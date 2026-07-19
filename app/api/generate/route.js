@@ -1,3 +1,6 @@
+import { requireUser } from "../../../lib/supabaseAdmin";
+import { isUnlimited } from "../../../lib/plans";
+
 export const maxDuration = 60;
 
 const SYSTEM = `You are a professional CV writer helping Kenyan job seekers tailor their applications.
@@ -10,72 +13,96 @@ You will receive a JOB description and a CANDIDATE profile. Produce a tailored C
 - Cover letter: 3-4 short paragraphs, specific to this company and role, confident but not exaggerated, no cliches like "I am writing to express". If the company name is unknown, address the hiring manager generically without inventing a name.
 - Kenyan context: phone in +254 format if given, do not add photo/age/marital status.
 
-Respond with ONLY a JSON object, no markdown fences, no commentary, matching exactly:
+Respond with ONLY a JSON object matching exactly:
 {
   "cv": {
-    "name": "", "title": "", 
+    "name": "", "title": "",
     "contact": {"email": "", "phone": "", "location": "", "linkedin": ""},
     "summary": "",
     "skills": ["", ""],
     "experience": [{"role": "", "company": "", "dates": "", "bullets": ["", ""]}],
     "education": [{"degree": "", "school": "", "dates": ""}],
-    "certifications": ["optional, omit array items if none provided"]
+    "certifications": []
   },
   "coverLetter": "full letter text with \\n\\n between paragraphs, ending with the candidate's name",
   "fit": {
     "matched": ["keywords from the job the candidate genuinely has, max 10"],
     "missing": ["important requirements the candidate lacks, max 5, empty array if none"]
-  }
+  },
+  "jobTitle": "short title of this job, e.g. 'Sales Executive — Safaricom'"
 }
 Use empty strings for unknown contact fields. Do not fabricate contact details.`;
 
 export async function POST(req) {
   try {
-    const { jobText, profileText } = await req.json();
+    const authed = await requireUser(req);
+    if (!authed) {
+      return Response.json({ error: "Please sign in to generate documents.", code: "auth" }, { status: 401 });
+    }
+    const { user, admin } = authed;
 
+    const { jobText, profileText, template } = await req.json();
     if (!jobText || jobText.trim().length < 80) {
       return Response.json({ error: "The job description looks too short. Paste the full posting." }, { status: 400 });
     }
     if (!profileText || profileText.trim().length < 80) {
       return Response.json({ error: "Add more detail about yourself — work history, education, skills." }, { status: 400 });
     }
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return Response.json({ error: "Server is missing ANTHROPIC_API_KEY." }, { status: 500 });
+
+    // Credit check
+    const { data: profile, error: pErr } = await admin
+      .from("profiles")
+      .select("credits, plan, plan_expires")
+      .eq("id", user.id)
+      .single();
+    if (pErr || !profile) {
+      return Response.json({ error: "Could not load your account. Try signing out and in." }, { status: 500 });
+    }
+    const unlimited = isUnlimited(profile);
+    if (!unlimited && profile.credits < 1) {
+      return Response.json(
+        { error: "You're out of applications. Top up from your dashboard.", code: "credits" },
+        { status: 402 }
+      );
     }
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 4000,
-        system: SYSTEM,
-        messages: [
-          {
-            role: "user",
-            content: `JOB DESCRIPTION:\n${jobText.slice(0, 14000)}\n\nCANDIDATE PROFILE:\n${profileText.slice(0, 14000)}`,
-          },
-        ],
-      }),
-    });
+    if (!process.env.GEMINI_API_KEY) {
+      return Response.json({ error: "Server is missing GEMINI_API_KEY." }, { status: 500 });
+    }
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM }] },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: `JOB DESCRIPTION:\n${jobText.slice(0, 14000)}\n\nCANDIDATE PROFILE:\n${profileText.slice(0, 14000)}` },
+              ],
+            },
+          ],
+          generationConfig: { maxOutputTokens: 4000, responseMimeType: "application/json" },
+        }),
+      }
+    );
 
     if (!res.ok) {
       const detail = await res.text();
-      console.error("Anthropic error:", detail);
-      return Response.json({ error: "Generation failed. Try again in a moment." }, { status: 502 });
+      console.error("Gemini error:", detail);
+      if (res.status === 429) {
+        return Response.json({ error: "The AI is busy right now. Wait a minute and try again — no credit was used." }, { status: 429 });
+      }
+      return Response.json({ error: "Generation failed. Try again — no credit was used." }, { status: 502 });
     }
 
     const data = await res.json();
-    const text = (data.content || [])
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("\n");
-
+    const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
     const clean = text.replace(/```json|```/g, "").trim();
+
     let parsed;
     try {
       parsed = JSON.parse(clean);
@@ -83,12 +110,23 @@ export async function POST(req) {
       const start = clean.indexOf("{");
       const end = clean.lastIndexOf("}");
       if (start === -1 || end === -1) {
-        return Response.json({ error: "Could not read the generated documents. Try again." }, { status: 502 });
+        return Response.json({ error: "Could not read the generated documents. Try again — no credit was used." }, { status: 502 });
       }
       parsed = JSON.parse(clean.slice(start, end + 1));
     }
 
-    return Response.json(parsed);
+    // Success: deduct credit (unless unlimited) and save history
+    if (!unlimited) {
+      await admin.from("profiles").update({ credits: profile.credits - 1 }).eq("id", user.id);
+    }
+    await admin.from("generations").insert({
+      user_id: user.id,
+      job_title: parsed.jobTitle || (parsed.cv?.title ?? "Application"),
+      template: template || "modern",
+      result: parsed,
+    });
+
+    return Response.json({ ...parsed, creditsLeft: unlimited ? null : profile.credits - 1 });
   } catch (err) {
     console.error(err);
     return Response.json({ error: "Something went wrong. Try again." }, { status: 500 });

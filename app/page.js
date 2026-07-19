@@ -1,5 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
+import Nav from "../components/Nav";
+import CvView from "../components/CvView";
+import { supabaseBrowser } from "../lib/supabaseClient";
+import { PLANS } from "../lib/plans";
 
 const TEMPLATES = [
   { id: "classic", name: "Classic", desc: "Serif, formal. Banks, gov, NGOs." },
@@ -8,6 +12,7 @@ const TEMPLATES = [
 ];
 
 export default function Home() {
+  const [user, setUser] = useState(null);
   const [jobText, setJobText] = useState("");
   const [jobUrl, setJobUrl] = useState("");
   const [profileText, setProfileText] = useState("");
@@ -15,6 +20,7 @@ export default function Home() {
   const [fetching, setFetching] = useState(false);
   const [fetchErr, setFetchErr] = useState("");
   const [genErr, setGenErr] = useState("");
+  const [needCredits, setNeedCredits] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [tab, setTab] = useState("cv");
@@ -23,7 +29,20 @@ export default function Home() {
   useEffect(() => {
     const saved = localStorage.getItem("tumacv-profile");
     if (saved) setProfileText(saved);
+    supabaseBrowser().auth.getUser().then(({ data }) => setUser(data?.user || null));
+
+    // Prefill from the jobs board (?jobid=...)
+    const params = new URLSearchParams(window.location.search);
+    const jobid = params.get("jobid");
+    if (jobid) {
+      supabaseBrowser().from("jobs").select("*").eq("id", jobid).single().then(({ data }) => {
+        if (data) {
+          setJobText(`${data.title} at ${data.company}${data.location ? ` (${data.location})` : ""}\n\n${data.description}\n\nHow to apply: ${data.how_to_apply}`);
+        }
+      });
+    }
   }, []);
+
   useEffect(() => {
     const t = setTimeout(() => localStorage.setItem("tumacv-profile", profileText), 400);
     return () => clearTimeout(t);
@@ -50,17 +69,29 @@ export default function Home() {
 
   async function generate() {
     setGenErr("");
+    setNeedCredits(false);
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
     setLoading(true);
     setResult(null);
     try {
+      const { data: sess } = await supabaseBrowser().auth.getSession();
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${sess?.session?.access_token}`,
+        },
         body: JSON.stringify({ jobText, profileText, template }),
       });
       const data = await res.json();
-      if (!res.ok) setGenErr(data.error || "Generation failed. Try again.");
-      else {
+      if (!res.ok) {
+        if (data.code === "credits") setNeedCredits(true);
+        else if (data.code === "auth") window.location.href = "/login";
+        else setGenErr(data.error || "Generation failed. Try again.");
+      } else {
         setResult(data);
         setTab("cv");
         window.scrollTo({ top: 0 });
@@ -83,11 +114,7 @@ export default function Home() {
   if (result) {
     return (
       <main className="shell wide">
-        <header className="top">
-          <div className="wordmark">Tuma<span>CV</span></div>
-          <div className="top-tag">tailored for this job</div>
-        </header>
-
+        <Nav />
         <div className="results-head">
           <h2>Your documents are ready</h2>
           <button className="btn-ghost" onClick={() => setResult(null)}>← Edit inputs</button>
@@ -120,19 +147,20 @@ export default function Home() {
 
         <div className="sheet-wrap">
           <div className="sheet">
-            {tab === "cv" ? <Cv data={result.cv} template={template} /> : <div className="letter">{result.coverLetter}</div>}
+            {tab === "cv" ? <CvView data={result.cv} template={template} /> : <div className="letter">{result.coverLetter}</div>}
           </div>
         </div>
+        <p className="field-note" style={{ textAlign: "center", paddingBottom: 30 }}>
+          Saved to your <a href="/dashboard">dashboard</a>
+          {typeof result.creditsLeft === "number" ? ` · ${result.creditsLeft} applications left` : ""}
+        </p>
       </main>
     );
   }
 
   return (
     <main className="shell">
-      <header className="top">
-        <div className="wordmark">Tuma<span>CV</span></div>
-        <div className="top-tag">Nairobi · pay per application</div>
-      </header>
+      <Nav />
 
       <section className="hero">
         <h1>One job. One <em>tailored</em> CV. Five minutes.</h1>
@@ -140,14 +168,17 @@ export default function Home() {
           Paste any job posting. TumaCV rewrites your CV and cover letter to match it —
           keywords, ordering, emphasis — using only your real experience. Nothing invented.
         </p>
-        <p className="price">First 2 applications free · then <b>KES 50</b> per application via M-Pesa</p>
+        <p className="price">
+          2 free applications on signup · from <b>KES 50</b> · M-Pesa, Airtel & card
+        </p>
       </section>
 
       <section className="step">
         <div className="step-head"><span className="step-no">01</span><h2>The job</h2></div>
         <p className="step-hint">
           Paste a link from BrighterMonday, Fuzu, MyJobMag or a company careers page — or paste the
-          description itself. (LinkedIn links need login, so copy the text instead.)
+          description itself. (LinkedIn links need login, so copy the text instead.) You can also pick
+          a job straight from our <a href="/jobs">jobs board</a>.
         </p>
         <div className="url-row">
           <input
@@ -181,7 +212,6 @@ export default function Home() {
           value={profileText}
           onChange={(e) => setProfileText(e.target.value)}
         />
-        <p className="field-note">Stored only in your browser — not on our servers.</p>
       </section>
 
       <section className="step" style={{ borderBottom: "none" }}>
@@ -193,7 +223,6 @@ export default function Home() {
               className={`tpl-card ${template === t.id ? "on" : ""}`}
               onClick={() => setTemplate(t.id)}
             >
-              <Thumb id={t.id} />
               <div className="tpl-name">{t.name}</div>
               <div className="tpl-desc">{t.desc}</div>
             </button>
@@ -201,149 +230,44 @@ export default function Home() {
         </div>
       </section>
 
+      {needCredits && (
+        <div className="banner warn">
+          You're out of applications. <a href="/dashboard">Top up from KES 50 →</a>
+        </div>
+      )}
       {genErr && <p className="error">{genErr}</p>}
       {loading && <div className="loading"><span className="spinner" /> Tailoring your CV to this job…</div>}
+
+      {!user && (
+        <section className="step" style={{ borderTop: "1px solid var(--stone)" }}>
+          <div className="step-head"><span className="step-no">PRICING</span><h2>Simple, in shillings</h2></div>
+          <div className="plan-row">
+            {Object.values(PLANS).map((p) => (
+              <a key={p.id} href="/login" className="plan-card" style={{ textDecoration: "none" }}>
+                <div className="plan-name">{p.name}</div>
+                <div className="plan-price">KES {p.priceKes}</div>
+                <div className="plan-blurb">{p.blurb}</div>
+              </a>
+            ))}
+          </div>
+          <p className="field-note">Start with 2 free applications — no payment needed to try it.</p>
+        </section>
+      )}
 
       <div className="gen-bar">
         <div className="gen-bar-in">
           <span className="sum">
-            {ready ? "Ready — takes ~30 seconds" : "Fill in the job and your profile to continue"}
+            {!user
+              ? "Sign in to generate — new accounts get 2 free"
+              : ready
+              ? "Ready — takes ~30 seconds"
+              : "Fill in the job and your profile to continue"}
           </span>
-          <button className="btn-primary" onClick={generate} disabled={!ready || loading}>
-            {loading ? "Generating…" : "Generate CV + letter"}
+          <button className="btn-primary" onClick={generate} disabled={(user && !ready) || loading}>
+            {loading ? "Generating…" : user ? "Generate CV + letter" : "Sign in to start"}
           </button>
         </div>
       </div>
     </main>
-  );
-}
-
-function Thumb({ id }) {
-  if (id === "classic")
-    return (
-      <div className="tpl-thumb">
-        <i style={{ top: 8, left: "30%", right: "30%", height: 5 }} />
-        <i style={{ top: 18, left: 10, right: 10, height: 2 }} />
-        <i style={{ top: 26, left: 10, right: 40, height: 3 }} />
-        <i style={{ top: 33, left: 10, right: 20, height: 3 }} />
-        <i style={{ top: 40, left: 10, right: 55, height: 3 }} />
-      </div>
-    );
-  if (id === "modern")
-    return (
-      <div className="tpl-thumb">
-        <i style={{ top: 8, bottom: 8, left: 10, width: 3, background: "var(--kijani)" }} />
-        <i style={{ top: 8, left: 20, width: 40, height: 5 }} />
-        <i style={{ top: 20, left: 20, width: 28, height: 3 }} />
-        <i style={{ top: 30, left: 20, right: 12, height: 3 }} />
-        <i style={{ top: 37, left: 20, right: 30, height: 3 }} />
-      </div>
-    );
-  return (
-    <div className="tpl-thumb">
-      {[8, 14, 20, 26, 32, 38, 44].map((t) => (
-        <i key={t} style={{ top: t, left: 10, right: t % 3 ? 14 : 34, height: 2.5 }} />
-      ))}
-    </div>
-  );
-}
-
-function Cv({ data, template }) {
-  if (!data) return null;
-  const c = data.contact || {};
-  const contactBits = [c.email, c.phone, c.location, c.linkedin].filter(Boolean);
-
-  if (template === "modern") {
-    return (
-      <div className="cv modern">
-        <aside className="side">
-          <h1>{data.name}</h1>
-          <div className="cv-title">{data.title}</div>
-          <div className="cv-contact">{contactBits.map((b) => <span key={b}>{b}</span>)}</div>
-          <h2>Skills</h2>
-          <div>{(data.skills || []).map((s) => <span className="skill-tag" key={s}>{s}</span>)}</div>
-          <h2>Education</h2>
-          {(data.education || []).map((e, i) => (
-            <div key={i} style={{ marginBottom: 8, fontSize: "12px" }}>
-              <b>{e.degree}</b><br />{e.school}<br /><span className="dates">{e.dates}</span>
-            </div>
-          ))}
-          {(data.certifications || []).length > 0 && (
-            <>
-              <h2>Certifications</h2>
-              <ul style={{ fontSize: "12px" }}>{data.certifications.map((x) => <li key={x}>{x}</li>)}</ul>
-            </>
-          )}
-        </aside>
-        <div>
-          <h2 style={{ marginTop: 0 }}>Profile</h2>
-          <p>{data.summary}</p>
-          <h2>Experience</h2>
-          {(data.experience || []).map((e, i) => (
-            <div className="exp-item" key={i}>
-              <div className="role-row">{e.role} · <span className="co">{e.company}</span></div>
-              <div className="dates" style={{ fontSize: "12px" }}>{e.dates}</div>
-              <ul>{(e.bullets || []).map((b, j) => <li key={j}>{b}</li>)}</ul>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (template === "compact") {
-    return (
-      <div className="cv compact">
-        <div className="cv-head">
-          <h1>{data.name}</h1><span className="cv-title">{data.title}</span>
-          <div className="cv-contact">{contactBits.join(" · ")}</div>
-        </div>
-        <p className="summary">{data.summary}</p>
-        <h2>Experience</h2>
-        {(data.experience || []).map((e, i) => (
-          <div className="exp-item" key={i}>
-            <div className="role-row"><span>{e.role}, {e.company}</span><span className="dates">{e.dates}</span></div>
-            <ul>{(e.bullets || []).map((b, j) => <li key={j}>{b}</li>)}</ul>
-          </div>
-        ))}
-        <h2>Skills</h2>
-        <p className="skills-line">{(data.skills || []).join(" · ")}</p>
-        <h2>Education</h2>
-        {(data.education || []).map((e, i) => (
-          <div className="role-row" key={i}><span>{e.degree}, {e.school}</span><span className="dates">{e.dates}</span></div>
-        ))}
-        {(data.certifications || []).length > 0 && (
-          <><h2>Certifications</h2><p className="skills-line">{data.certifications.join(" · ")}</p></>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="cv classic">
-      <div className="cv-head">
-        <h1>{data.name}</h1>
-        <div className="cv-title">{data.title}</div>
-        <div className="cv-contact">{contactBits.join("  ·  ")}</div>
-      </div>
-      <h2>Profile</h2>
-      <p>{data.summary}</p>
-      <h2>Experience</h2>
-      {(data.experience || []).map((e, i) => (
-        <div className="exp-item" key={i}>
-          <div className="role-row"><span>{e.role}, {e.company}</span><span className="dates">{e.dates}</span></div>
-          <ul>{(e.bullets || []).map((b, j) => <li key={j}>{b}</li>)}</ul>
-        </div>
-      ))}
-      <h2>Skills</h2>
-      <p className="skills">{(data.skills || []).join(" · ")}</p>
-      <h2>Education</h2>
-      {(data.education || []).map((e, i) => (
-        <div className="role-row" key={i}><span>{e.degree}, {e.school}</span><span className="dates">{e.dates}</span></div>
-      ))}
-      {(data.certifications || []).length > 0 && (
-        <><h2>Certifications</h2><p>{data.certifications.join(" · ")}</p></>
-      )}
-    </div>
   );
 }
