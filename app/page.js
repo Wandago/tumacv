@@ -1,272 +1,199 @@
 "use client";
-import { useEffect, useState } from "react";
-import Nav from "../components/Nav";
-import CvView from "../components/CvView";
-import { supabaseBrowser } from "../lib/supabaseClient";
-import { PLANS } from "../lib/plans";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Nav from "../../components/Nav";
+import { supabaseBrowser } from "../../lib/supabaseClient";
 
-const TEMPLATES = [
-  { id: "classic", name: "Classic", desc: "Serif, formal. Banks, gov, NGOs." },
-  { id: "modern", name: "Modern", desc: "Green sidebar. Startups, media, tech." },
-  { id: "compact", name: "Compact", desc: "Dense. Lots of experience, 1 page." },
-];
+function friendly(message) {
+  const m = (message || "").toLowerCase();
+  if (m.includes("invalid login credentials"))
+    return "Email or password doesn't match. If you're new here, tap \"Create an account\" below — or use \"Forgot password?\" to reset it.";
+  if (m.includes("already registered"))
+    return "That email already has an account. Use \"Sign in\" instead, or reset your password if you've forgotten it.";
+  if (m.includes("rate limit"))
+    return "Too many attempts for now. Wait a few minutes and try again.";
+  if (m.includes("password should be"))
+    return "Password needs to be at least 6 characters.";
+  return message || "Something went wrong. Try again.";
+}
 
-export default function Home() {
-  const [user, setUser] = useState(null);
-  const [jobText, setJobText] = useState("");
-  const [jobUrl, setJobUrl] = useState("");
-  const [profileText, setProfileText] = useState("");
-  const [template, setTemplate] = useState("modern");
-  const [fetching, setFetching] = useState(false);
-  const [fetchErr, setFetchErr] = useState("");
-  const [genErr, setGenErr] = useState("");
-  const [needCredits, setNeedCredits] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [tab, setTab] = useState("cv");
-  const [copied, setCopied] = useState(false);
+function PasswordInput({ id, value, onChange, placeholder, autoComplete, onEnter }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <input
+        id={id}
+        type={show ? "text" : "password"}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        style={{ paddingRight: 64 }}
+        onKeyDown={(e) => e.key === "Enter" && onEnter && onEnter()}
+      />
+      <button
+        type="button"
+        className="linkish"
+        style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 12 }}
+        onClick={() => setShow(!show)}
+      >
+        {show ? "Hide" : "Show"}
+      </button>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    const saved = localStorage.getItem("tumacv-profile");
-    if (saved) setProfileText(saved);
-    supabaseBrowser().auth.getUser().then(({ data }) => setUser(data?.user || null));
+export default function Login() {
+  const router = useRouter();
+  const [mode, setMode] = useState("signin"); // signin | signup | forgot
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
 
-    // Prefill from the jobs board (?jobid=...)
-    const params = new URLSearchParams(window.location.search);
-    const jobid = params.get("jobid");
-    if (jobid) {
-      supabaseBrowser().from("jobs").select("*").eq("id", jobid).single().then(({ data }) => {
-        if (data) {
-          setJobText(`${data.title} at ${data.company}${data.location ? ` (${data.location})` : ""}\n\n${data.description}\n\nHow to apply: ${data.how_to_apply}`);
-        }
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => localStorage.setItem("tumacv-profile", profileText), 400);
-    return () => clearTimeout(t);
-  }, [profileText]);
-
-  async function fetchJd() {
-    setFetchErr("");
-    setFetching(true);
-    try {
-      const res = await fetch("/api/fetch-jd", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: jobUrl }),
-      });
-      const data = await res.json();
-      if (!res.ok) setFetchErr(data.error || "Couldn't read that page.");
-      else setJobText(data.text);
-    } catch {
-      setFetchErr("Couldn't reach that page. Paste the description instead.");
-    } finally {
-      setFetching(false);
-    }
+  function switchMode(m) {
+    setMode(m);
+    setErr("");
+    setMsg("");
   }
 
-  async function generate() {
-    setGenErr("");
-    setNeedCredits(false);
-    if (!user) {
-      window.location.href = "/login";
+  async function submit() {
+    setErr("");
+    setMsg("");
+    const sb = supabaseBrowser();
+
+    if (mode === "forgot") {
+      if (!email) { setErr("Enter your email first."); return; }
+      setBusy(true);
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset`,
+      });
+      setBusy(false);
+      if (error) setErr(friendly(error.message));
+      else setMsg("Reset link sent — check your email (and spam folder). The link takes you back here to set a new password.");
       return;
     }
-    setLoading(true);
-    setResult(null);
-    try {
-      const { data: sess } = await supabaseBrowser().auth.getSession();
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${sess?.session?.access_token}`,
-        },
-        body: JSON.stringify({ jobText, profileText, template }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.code === "credits") setNeedCredits(true);
-        else if (data.code === "auth") window.location.href = "/login";
-        else setGenErr(data.error || "Generation failed. Try again.");
-      } else {
-        setResult(data);
-        setTab("cv");
-        window.scrollTo({ top: 0 });
+
+    if (mode === "signup") {
+      if (password.length < 6) { setErr("Password needs to be at least 6 characters."); return; }
+      if (password !== confirm) { setErr("Passwords don't match — check both boxes."); return; }
+      setBusy(true);
+      try {
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) throw error;
+        if (data.session) router.push("/dashboard");
+        else setMsg("Account created. Check your email for a confirmation link, then sign in.");
+      } catch (e) {
+        setErr(friendly(e.message));
+      } finally {
+        setBusy(false);
       }
-    } catch {
-      setGenErr("Network error. Check your connection and try again.");
+      return;
+    }
+
+    // signin
+    setBusy(true);
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      router.push("/dashboard");
+    } catch (e) {
+      setErr(friendly(e.message));
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
-  async function copyLetter() {
-    await navigator.clipboard.writeText(result.coverLetter);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }
-
-  const ready = jobText.trim().length >= 80 && profileText.trim().length >= 80;
-
-  if (result) {
-    return (
-      <main className="shell wide">
-        <Nav />
-        <div className="results-head">
-          <h2>Your documents are ready</h2>
-          <button className="btn-ghost" onClick={() => setResult(null)}>← Edit inputs</button>
-          {tab === "cv" && <button className="btn-primary" onClick={() => window.print()}>Save CV as PDF</button>}
-          {tab === "letter" && (
-            <>
-              <button className="btn-ghost" onClick={copyLetter}>{copied ? "Copied" : "Copy letter"}</button>
-              <button className="btn-primary" onClick={() => window.print()}>Save letter as PDF</button>
-            </>
-          )}
-        </div>
-
-        {result.fit && (
-          <div className="fit">
-            <h3>FIT CHECK</h3>
-            <div className="chips">
-              {(result.fit.matched || []).map((k) => <span className="chip" key={k}>{k}</span>)}
-              {(result.fit.missing || []).map((k) => <span className="chip miss" key={k}>{k}</span>)}
-            </div>
-            {(result.fit.missing || []).length > 0 && (
-              <p>Red items are asked for in the job but missing from your profile — address them in the interview, or add them to your profile if you have them.</p>
-            )}
-          </div>
-        )}
-
-        <div className="doc-tabs">
-          <button className={tab === "cv" ? "on" : "btn-ghost"} onClick={() => setTab("cv")}>CV</button>
-          <button className={tab === "letter" ? "on" : "btn-ghost"} onClick={() => setTab("letter")}>Cover letter</button>
-        </div>
-
-        <div className="sheet-wrap">
-          <div className="sheet">
-            {tab === "cv" ? <CvView data={result.cv} template={template} /> : <div className="letter">{result.coverLetter}</div>}
-          </div>
-        </div>
-        <p className="field-note" style={{ textAlign: "center", paddingBottom: 30 }}>
-          Saved to your <a href="/dashboard">dashboard</a>
-          {typeof result.creditsLeft === "number" ? ` · ${result.creditsLeft} applications left` : ""}
-        </p>
-      </main>
-    );
-  }
+  const canSubmit =
+    mode === "forgot"
+      ? !!email
+      : mode === "signup"
+      ? email && password.length >= 6 && confirm.length >= 6
+      : email && password.length >= 6;
 
   return (
     <main className="shell">
       <Nav />
-
-      <section className="hero">
-        <h1>One job. One <em>tailored</em> CV. Five minutes.</h1>
-        <p>
-          Paste any job posting. TumaCV rewrites your CV and cover letter to match it —
-          keywords, ordering, emphasis — using only your real experience. Nothing invented.
-        </p>
-        <p className="price">
-          2 free applications on signup · from <b>KES 50</b> · M-Pesa, Airtel & card
-        </p>
-      </section>
-
-      <section className="step">
-        <div className="step-head"><span className="step-no">01</span><h2>The job</h2></div>
+      <div className="auth-card">
+        <h1>
+          {mode === "signin" && "Welcome back"}
+          {mode === "signup" && "Create your account"}
+          {mode === "forgot" && "Reset your password"}
+        </h1>
         <p className="step-hint">
-          Paste a link from BrighterMonday, Fuzu, MyJobMag or a company careers page — or paste the
-          description itself. (LinkedIn links need login, so copy the text instead.) You can also pick
-          a job straight from our <a href="/jobs">jobs board</a>.
+          {mode === "signin" && "Sign in to your applications, credits and history."}
+          {mode === "signup" && "New accounts start with 2 free applications."}
+          {mode === "forgot" && "We'll email you a link to set a new password."}
         </p>
-        <div className="url-row">
-          <input
-            type="url"
-            placeholder="https://www.brightermonday.co.ke/listings/..."
-            value={jobUrl}
-            onChange={(e) => setJobUrl(e.target.value)}
-          />
-          <button className="btn-ghost" onClick={fetchJd} disabled={fetching || !jobUrl}>
-            {fetching ? "Reading…" : "Read link"}
-          </button>
-        </div>
-        {fetchErr && <p className="error">{fetchErr}</p>}
-        <textarea
-          placeholder="…or paste the full job description here"
-          value={jobText}
-          onChange={(e) => setJobText(e.target.value)}
-        />
-      </section>
 
-      <section className="step">
-        <div className="step-head"><span className="step-no">02</span><h2>You</h2></div>
-        <p className="step-hint">
-          Paste your current CV, or your LinkedIn profile (open your profile → More → Save to PDF,
-          then copy the text). Include jobs, dates, education, skills, and your phone + email.
-          Saved on this device so you only do it once.
+        <label className="field-label" htmlFor="email">Email</label>
+        <input id="email" type="text" inputMode="email" autoComplete="email" value={email}
+          onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+
+        {mode !== "forgot" && (
+          <>
+            <label className="field-label" htmlFor="password">Password</label>
+            <PasswordInput
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 6 characters"
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              onEnter={mode === "signin" ? submit : undefined}
+            />
+          </>
+        )}
+
+        {mode === "signup" && (
+          <>
+            <label className="field-label" htmlFor="confirm">Confirm password</label>
+            <PasswordInput
+              id="confirm"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="Type it again"
+              autoComplete="new-password"
+              onEnter={submit}
+            />
+            {confirm.length > 0 && password !== confirm && (
+              <p className="error" style={{ marginTop: 6 }}>Passwords don't match yet.</p>
+            )}
+          </>
+        )}
+
+        {mode === "signin" && (
+          <p style={{ textAlign: "right", marginTop: 8 }}>
+            <button className="linkish" onClick={() => switchMode("forgot")}>Forgot password?</button>
+          </p>
+        )}
+
+        {err && <p className="error">{err}</p>}
+        {msg && <p className="success">{msg}</p>}
+
+        <button className="btn-primary" style={{ width: "100%", marginTop: 14 }} onClick={submit}
+          disabled={busy || !canSubmit}>
+          {busy
+            ? "One moment…"
+            : mode === "signin"
+            ? "Sign in"
+            : mode === "signup"
+            ? "Create account — 2 free applications"
+            : "Send reset link"}
+        </button>
+
+        <p className="switch-mode">
+          {mode === "signin" && (
+            <>New here? <button className="linkish" onClick={() => switchMode("signup")}>Create an account</button></>
+          )}
+          {mode === "signup" && (
+            <>Already have an account? <button className="linkish" onClick={() => switchMode("signin")}>Sign in</button></>
+          )}
+          {mode === "forgot" && (
+            <><button className="linkish" onClick={() => switchMode("signin")}>← Back to sign in</button></>
+          )}
         </p>
-        <textarea
-          style={{ minHeight: 220 }}
-          placeholder={"Jane Wanjiku\nNairobi · jane@email.com · +254 7...\n\nSales Assistant, Naivas — 2023 to now\n- Served 100+ customers daily...\n\nEducation: ..."}
-          value={profileText}
-          onChange={(e) => setProfileText(e.target.value)}
-        />
-      </section>
-
-      <section className="step" style={{ borderBottom: "none" }}>
-        <div className="step-head"><span className="step-no">03</span><h2>Style</h2></div>
-        <div className="tpl-row">
-          {TEMPLATES.map((t) => (
-            <button
-              key={t.id}
-              className={`tpl-card ${template === t.id ? "on" : ""}`}
-              onClick={() => setTemplate(t.id)}
-            >
-              <div className="tpl-name">{t.name}</div>
-              <div className="tpl-desc">{t.desc}</div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {needCredits && (
-        <div className="banner warn">
-          You're out of applications. <a href="/dashboard">Top up from KES 50 →</a>
-        </div>
-      )}
-      {genErr && <p className="error">{genErr}</p>}
-      {loading && <div className="loading"><span className="spinner" /> Tailoring your CV to this job…</div>}
-
-      {!user && (
-        <section className="step" style={{ borderTop: "1px solid var(--stone)" }}>
-          <div className="step-head"><span className="step-no">PRICING</span><h2>Simple, in shillings</h2></div>
-          <div className="plan-row">
-            {Object.values(PLANS).map((p) => (
-              <a key={p.id} href="/login" className="plan-card" style={{ textDecoration: "none" }}>
-                <div className="plan-name">{p.name}</div>
-                <div className="plan-price">KES {p.priceKes}</div>
-                <div className="plan-blurb">{p.blurb}</div>
-              </a>
-            ))}
-          </div>
-          <p className="field-note">Start with 2 free applications — no payment needed to try it.</p>
-        </section>
-      )}
-
-      <div className="gen-bar">
-        <div className="gen-bar-in">
-          <span className="sum">
-            {!user
-              ? "Sign in to generate — new accounts get 2 free"
-              : ready
-              ? "Ready — takes ~30 seconds"
-              : "Fill in the job and your profile to continue"}
-          </span>
-          <button className="btn-primary" onClick={generate} disabled={(user && !ready) || loading}>
-            {loading ? "Generating…" : user ? "Generate CV + letter" : "Sign in to start"}
-          </button>
-        </div>
       </div>
     </main>
   );
