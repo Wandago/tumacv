@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "../lib/supabaseClient";
 import { FREE_MODE } from "../lib/plans";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Nav() {
   const [user, setUser] = useState(null);
@@ -39,6 +40,7 @@ export default function Nav() {
       <nav className="nav-links">
         <Link href="/jobs">Jobs board</Link>
         <Link href="/news">News</Link>
+        <ThemeToggle />
         {user ? (
           <>
             <Link href="/dashboard">Dashboard</Link>

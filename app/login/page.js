@@ -6,6 +6,8 @@ import { supabaseBrowser } from "../../lib/supabaseClient";
 
 function friendly(message) {
   const m = (message || "").toLowerCase();
+  if (m.includes("email not confirmed"))
+    return "Almost there — you still need to click the confirmation link we emailed you. Check spam if it's not in your inbox.";
   if (m.includes("invalid login credentials"))
     return "Email or password doesn't match. If you're new here, tap \"Create an account\" below — or use \"Forgot password?\" to reset it.";
   if (m.includes("already registered"))
@@ -64,11 +66,24 @@ export default function Login() {
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendMsg, setResendMsg] = useState("");
 
   function switchMode(m) {
     setMode(m);
     setErr("");
     setMsg("");
+    setPendingConfirm(false);
+  }
+
+  async function resendConfirmation() {
+    if (!email) return;
+    setResendBusy(true);
+    setResendMsg("");
+    const { error } = await supabaseBrowser().auth.resend({ type: "signup", email });
+    setResendBusy(false);
+    setResendMsg(error ? friendly(error.message) : "Sent — check your inbox (and spam folder).");
   }
 
   async function submit() {
@@ -96,7 +111,10 @@ export default function Login() {
         const { data, error } = await sb.auth.signUp({ email, password });
         if (error) throw error;
         if (data.session) router.push("/onboarding");
-        else setMsg("Account created. Check your email for a confirmation link, then sign in.");
+        else {
+          setMsg("Account created. Check your email for a confirmation link, then sign in.");
+          setPendingConfirm(true);
+        }
       } catch (e) {
         setErr(friendly(e.message));
       } finally {
@@ -118,6 +136,7 @@ export default function Login() {
       router.push(profile && !profile.onboarded ? "/onboarding" : "/dashboard");
     } catch (e) {
       setErr(friendly(e.message));
+      if ((e.message || "").toLowerCase().includes("email not confirmed")) setPendingConfirm(true);
     } finally {
       setBusy(false);
     }
@@ -200,6 +219,15 @@ export default function Login() {
 
         {err && <p className="error">{err}</p>}
         {msg && <p className="success">{msg}</p>}
+        {pendingConfirm && (
+          <p className="field-note" style={{ marginTop: 4 }}>
+            Didn't get it?{" "}
+            <button className="linkish" onClick={resendConfirmation} disabled={resendBusy}>
+              {resendBusy ? "Sending…" : "Resend confirmation email"}
+            </button>
+            {resendMsg && <span> — {resendMsg}</span>}
+          </p>
+        )}
 
         <button className="btn-primary" style={{ width: "100%", marginTop: 14 }} onClick={submit}
           disabled={busy || !canSubmit}>

@@ -105,3 +105,38 @@ company career pages) is fetched automatically as before.
 but has tight rate limits shared across all users. Before real launch, enable billing
 on the Gemini API (console shows a "set up billing" prompt) so the app draws from the
 much higher paid-tier limits — the code and pricing model already assume paid-tier cost.
+
+## Update: email verification + branded emails
+
+**Why now, not earlier:** email confirmation was turned OFF during initial testing because
+Supabase's built-in email sender has a very tight rate limit (2-4/hour) meant for development,
+not real users. Turning confirmation back on without fixing that first would lock users out
+after a handful of signups.
+
+### Step 1 — Connect a real email sender (Resend, free)
+1. Sign up at resend.com (free tier: 3,000 emails/month).
+2. Add and verify a domain (or use their shared onboarding domain to start immediately).
+3. Create an API key.
+4. In Supabase → Project Settings → Authentication → SMTP Settings, enable custom SMTP:
+   - Host: `smtp.resend.com`
+   - Port: `465` (or `587`)
+   - Username: `resend`
+   - Password: your Resend API key
+   - Sender email: an address on your verified domain (e.g. `noreply@yourdomain.com`)
+
+### Step 2 — Turn confirmation back on
+Supabase → Authentication → Sign In / Providers → Email → toggle **"Confirm email" ON**.
+
+### Step 3 — Install the branded templates
+Supabase → Authentication → Emails. For each template, paste the matching file from
+`email-templates/` in this repo:
+- `confirm-signup.html` → **Confirm signup**
+- `reset-password.html` → **Reset Password**
+
+Both match the site's visual language (green/red accent bar, TumaCV wordmark, same button style).
+
+### Bonus: bot protection beyond email verification
+Supabase also supports a CAPTCHA challenge on signup/signin (Authentication → Attack Protection),
+which stops automated signups more directly than email verification alone (a bot can still use
+a real email, it just can't click the confirmation link). This needs a small frontend widget
+(hCaptcha or Turnstile) added to the login form — ask if you'd like this built in too.
