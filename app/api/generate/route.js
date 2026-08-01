@@ -1,5 +1,5 @@
 import { requireUser } from "../../../lib/supabaseAdmin";
-import { isUnlimited } from "../../../lib/plans";
+import { isUnlimited, FREE_MODE } from "../../../lib/plans";
 
 export const maxDuration = 60;
 
@@ -33,7 +33,10 @@ Respond with ONLY a JSON object matching exactly:
 }
 Use empty strings for unknown contact fields. Do not fabricate contact details.`;
 
-const MODEL_CANDIDATES = ["gemini-3.6-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+// Ordered by cost: Flash-Lite is ~15x cheaper than 3.6 Flash and is what the
+// pricing in lib/plans.js is built around. Falls forward only on 404 (a model
+// being renamed/retired) — not on quota/auth errors, which surface immediately.
+const MODEL_CANDIDATES = ["gemini-2.5-flash-lite", "gemini-3.5-flash-lite", "gemini-3.6-flash"];
 
 async function callGemini(body) {
   let lastDetail = "";
@@ -76,7 +79,7 @@ export async function POST(req) {
       return Response.json({ error: "Add more detail about yourself — work history, education, skills." }, { status: 400 });
     }
 
-    // Credit check
+    // Credit check (skipped entirely in FREE_MODE)
     const { data: profile, error: pErr } = await admin
       .from("profiles")
       .select("credits, plan, plan_expires")
@@ -85,7 +88,7 @@ export async function POST(req) {
     if (pErr || !profile) {
       return Response.json({ error: "Could not load your account. Try signing out and in." }, { status: 500 });
     }
-    const unlimited = isUnlimited(profile);
+    const unlimited = FREE_MODE || isUnlimited(profile);
     if (!unlimited && profile.credits < 1) {
       return Response.json(
         { error: "You're out of applications. Top up from your dashboard.", code: "credits" },

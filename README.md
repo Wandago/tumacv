@@ -83,3 +83,25 @@ supabase-schema.sql              ← run once in Supabase
   means users can only read their own data.
 - The webhook rejects calls without your challenge phrase and only fulfills each payment once.
 - No secret key ever ships to the browser: only `NEXT_PUBLIC_*` variables are public.
+
+## Update: pricing & LinkedIn (this revision)
+
+**Pricing** now runs KES 1/generation (KES 50 → 50 applications), because the AI model
+switched to Gemini Flash-Lite, which costs roughly KES 0.20–0.30 per generation on the
+paid tier — leaving healthy margin even at this much lower price. Tiers live in
+`lib/plans.js`. `FREE_MODE` there is set back to `false`.
+
+**LinkedIn**: there is no legitimate way for a third-party app to auto-pull someone's
+full LinkedIn profile — the official API only exposes name/email/photo, and scraping
+violates LinkedIn's terms and carries real legal risk. What's actually implemented:
+users export their own profile as a PDF (LinkedIn's native, first-party "Save to PDF"),
+upload it, and the app extracts the text client-side (in the browser, via pdfjs-dist —
+nothing is sent to LinkedIn or uploaded to any server for this step). Same applies to
+LinkedIn *job* links — they sit behind a login wall by design, so those still require
+pasting the description text; every other job board (BrighterMonday, Fuzu, MyJobMag,
+company career pages) is fetched automatically as before.
+
+**Going to real paid Gemini**: the free aistudio.google.com key works during testing,
+but has tight rate limits shared across all users. Before real launch, enable billing
+on the Gemini API (console shows a "set up billing" prompt) so the app draws from the
+much higher paid-tier limits — the code and pricing model already assume paid-tier cost.

@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Nav from "../components/Nav";
 import CvView from "../components/CvView";
 import { supabaseBrowser } from "../lib/supabaseClient";
-import { PLANS } from "../lib/plans";
+import { PLANS, FREE_MODE } from "../lib/plans";
+import { extractPdfText } from "../lib/pdfText";
 
 const TEMPLATES = [
   { id: "classic", name: "Classic", desc: "Serif, formal. Banks, gov, NGOs." },
@@ -25,11 +26,29 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [tab, setTab] = useState("cv");
   const [copied, setCopied] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfErr, setPdfErr] = useState("");
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("tumacv-profile");
     if (saved) setProfileText(saved);
-    supabaseBrowser().auth.getUser().then(({ data }) => setUser(data?.user || null));
+    supabaseBrowser().auth.getUser().then(({ data }) => {
+      setUser(data?.user || null);
+      if (data?.user && !saved) {
+        supabaseBrowser()
+          .from("profiles")
+          .select("profile_text")
+          .eq("id", data.user.id)
+          .single()
+          .then(({ data: p }) => {
+            if (p?.profile_text) {
+              setProfileText(p.profile_text);
+              localStorage.setItem("tumacv-profile", p.profile_text);
+            }
+          });
+      }
+    });
 
     // Prefill from the jobs board (?jobid=...)
     const params = new URLSearchParams(window.location.search);
@@ -103,6 +122,30 @@ export default function Home() {
     }
   }
 
+  async function handlePdfUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPdfErr("");
+    if (file.type !== "application/pdf") {
+      setPdfErr("Please upload a PDF file.");
+      return;
+    }
+    setPdfBusy(true);
+    try {
+      const text = await extractPdfText(file);
+      if (text.length < 80) {
+        setPdfErr("Couldn't read much text from that PDF — it may be a scanned image. Paste your details instead.");
+      } else {
+        setProfileText(text);
+      }
+    } catch {
+      setPdfErr("Couldn't read that PDF. Try re-saving it from LinkedIn, or paste your details instead.");
+    } finally {
+      setPdfBusy(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   async function copyLetter() {
     await navigator.clipboard.writeText(result.coverLetter);
     setCopied(true);
@@ -152,7 +195,7 @@ export default function Home() {
         </div>
         <p className="field-note" style={{ textAlign: "center", paddingBottom: 30 }}>
           Saved to your <a href="/dashboard">dashboard</a>
-          {typeof result.creditsLeft === "number" ? ` · ${result.creditsLeft} applications left` : ""}
+          {!FREE_MODE && typeof result.creditsLeft === "number" ? ` · ${result.creditsLeft} applications left` : ""}
         </p>
       </main>
     );
@@ -169,7 +212,7 @@ export default function Home() {
           keywords, ordering, emphasis — using only your real experience. Nothing invented.
         </p>
         <p className="price">
-          2 free applications on signup · from <b>KES 50</b> · M-Pesa, Airtel & card
+          {FREE_MODE ? "Free during beta — sign in and generate as many as you like" : "2 free to try · then as low as KES 1 per application · M-Pesa, Airtel & card"}
         </p>
       </section>
 
@@ -177,8 +220,9 @@ export default function Home() {
         <div className="step-head"><span className="step-no">01</span><h2>The job</h2></div>
         <p className="step-hint">
           Paste a link from BrighterMonday, Fuzu, MyJobMag or a company careers page — or paste the
-          description itself. (LinkedIn links need login, so copy the text instead.) You can also pick
-          a job straight from our <a href="/jobs">jobs board</a>.
+          description itself. LinkedIn job links can't be read automatically (LinkedIn blocks this
+          for all outside tools) — copy the description text from the listing instead. You can also
+          pick a job straight from our <a href="/jobs">jobs board</a>.
         </p>
         <div className="url-row">
           <input
@@ -202,10 +246,25 @@ export default function Home() {
       <section className="step">
         <div className="step-head"><span className="step-no">02</span><h2>You</h2></div>
         <p className="step-hint">
-          Paste your current CV, or your LinkedIn profile (open your profile → More → Save to PDF,
-          then copy the text). Include jobs, dates, education, skills, and your phone + email.
-          Saved on this device so you only do it once.
+          Upload your LinkedIn profile as a PDF (on LinkedIn: open your profile → the "More" button →
+          Save to PDF) and we'll read it automatically — or paste your CV text below. Saved on this
+          device so you only do it once.
         </p>
+        <div className="upload-row">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            id="pdf-upload"
+            style={{ display: "none" }}
+            onChange={handlePdfUpload}
+          />
+          <button className="btn-ghost" onClick={() => fileInputRef.current?.click()} disabled={pdfBusy}>
+            {pdfBusy ? "Reading PDF…" : "📄 Upload LinkedIn / CV PDF"}
+          </button>
+          <span className="field-note" style={{ marginTop: 0 }}>auto-fills the box below</span>
+        </div>
+        {pdfErr && <p className="error">{pdfErr}</p>}
         <textarea
           style={{ minHeight: 220 }}
           placeholder={"Jane Wanjiku\nNairobi · jane@email.com · +254 7...\n\nSales Assistant, Naivas — 2023 to now\n- Served 100+ customers daily...\n\nEducation: ..."}
@@ -238,7 +297,7 @@ export default function Home() {
       {genErr && <p className="error">{genErr}</p>}
       {loading && <div className="loading"><span className="spinner" /> Tailoring your CV to this job…</div>}
 
-      {!user && (
+      {!FREE_MODE && !user && (
         <section className="step" style={{ borderTop: "1px solid var(--stone)" }}>
           <div className="step-head"><span className="step-no">PRICING</span><h2>Simple, in shillings</h2></div>
           <div className="plan-row">
@@ -258,7 +317,7 @@ export default function Home() {
         <div className="gen-bar-in">
           <span className="sum">
             {!user
-              ? "Sign in to generate — new accounts get 2 free"
+              ? FREE_MODE ? "Sign in to generate — free during beta" : "Sign in to generate — new accounts get 2 free"
               : ready
               ? "Ready — takes ~30 seconds"
               : "Fill in the job and your profile to continue"}

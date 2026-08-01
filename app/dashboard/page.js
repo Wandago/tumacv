@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Nav from "../../components/Nav";
 import CvView from "../../components/CvView";
 import { supabaseBrowser } from "../../lib/supabaseClient";
-import { PLANS } from "../../lib/plans";
+import { PLANS, FREE_MODE } from "../../lib/plans";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -126,28 +126,33 @@ export default function Dashboard() {
       <div className="dash-grid">
         <div className="dash-card">
           <h3>BALANCE</h3>
-          <div className="big-number">{unlimited ? "∞" : profile?.credits ?? "…"}</div>
+          <div className="big-number">{FREE_MODE || unlimited ? "∞" : profile?.credits ?? "…"}</div>
           <p>
-            {unlimited
+            {FREE_MODE
+              ? "Free during beta — generate as many as you like"
+              : unlimited
               ? `Unlimited until ${new Date(profile.plan_expires).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
               : "applications remaining"}
           </p>
         </div>
-        <div className="dash-card span2">
-          <h3>TOP UP</h3>
-          <div className="plan-row">
-            {Object.values(PLANS).map((p) => (
-              <button key={p.id} className="plan-card" onClick={() => buy(p.id)} disabled={!!buying}>
-                <div className="plan-name">{p.name}</div>
-                <div className="plan-price">KES {p.priceKes}</div>
-                <div className="plan-blurb">{buying === p.id ? "Opening checkout…" : p.blurb}</div>
-              </button>
-            ))}
+        {!FREE_MODE && (
+          <div className="dash-card span2">
+            <h3>TOP UP</h3>
+            <div className="plan-row">
+              {Object.values(PLANS).map((p) => (
+                <button key={p.id} className="plan-card" onClick={() => buy(p.id)} disabled={!!buying}>
+                  <div className="plan-name">{p.name}</div>
+                  <div className="plan-price">KES {p.priceKes}</div>
+                  <div className="plan-blurb">{buying === p.id ? "Opening checkout…" : p.blurb}</div>
+                </button>
+              ))}
+            </div>
+            <p className="field-note">Pay with M-Pesa, Airtel Money, or Visa/Mastercard. Passes don't auto-renew.</p>
+            {err && <p className="error">{err}</p>}
           </div>
-          <p className="field-note">Pay with M-Pesa, Airtel Money, or Visa/Mastercard. Passes don't auto-renew.</p>
-          {err && <p className="error">{err}</p>}
-        </div>
+        )}
       </div>
+
 
       <section style={{ marginTop: 34 }}>
         <div className="step-head"><span className="step-no">HISTORY</span><h2>Past applications</h2></div>

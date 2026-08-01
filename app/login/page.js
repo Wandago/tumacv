@@ -17,6 +17,18 @@ function friendly(message) {
   return message || "Something went wrong. Try again.";
 }
 
+function strength(pw) {
+  if (!pw) return { score: 0, label: "" };
+  let score = 0;
+  if (pw.length >= 6) score++;
+  if (pw.length >= 10) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const labels = ["Too short", "Weak", "Okay", "Good", "Strong", "Strong"];
+  return { score, label: labels[score] };
+}
+
 function PasswordInput({ id, value, onChange, placeholder, autoComplete, onEnter }) {
   const [show, setShow] = useState(false);
   return (
@@ -83,7 +95,7 @@ export default function Login() {
       try {
         const { data, error } = await sb.auth.signUp({ email, password });
         if (error) throw error;
-        if (data.session) router.push("/dashboard");
+        if (data.session) router.push("/onboarding");
         else setMsg("Account created. Check your email for a confirmation link, then sign in.");
       } catch (e) {
         setErr(friendly(e.message));
@@ -96,9 +108,14 @@ export default function Login() {
     // signin
     setBusy(true);
     try {
-      const { error } = await sb.auth.signInWithPassword({ email, password });
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      router.push("/dashboard");
+      const { data: profile } = await sb
+        .from("profiles")
+        .select("onboarded")
+        .eq("id", data.user.id)
+        .single();
+      router.push(profile && !profile.onboarded ? "/onboarding" : "/dashboard");
     } catch (e) {
       setErr(friendly(e.message));
     } finally {
@@ -117,6 +134,7 @@ export default function Login() {
     <main className="shell">
       <Nav />
       <div className="auth-card">
+        {mode === "signup" && <p className="step-indicator">Step 1 of 2</p>}
         <h1>
           {mode === "signin" && "Welcome back"}
           {mode === "signup" && "Create your account"}
@@ -124,7 +142,7 @@ export default function Login() {
         </h1>
         <p className="step-hint">
           {mode === "signin" && "Sign in to your applications, credits and history."}
-          {mode === "signup" && "New accounts start with 2 free applications."}
+          {mode === "signup" && "New accounts start with 5 free applications."}
           {mode === "forgot" && "We'll email you a link to set a new password."}
         </p>
 
@@ -144,6 +162,17 @@ export default function Login() {
               onEnter={mode === "signin" ? submit : undefined}
             />
           </>
+        )}
+
+        {mode === "signup" && password.length > 0 && (
+          <div className="strength-row">
+            <div className="strength-bars">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <span key={i} className={`strength-bar ${i < strength(password).score ? "on s" + strength(password).score : ""}`} />
+              ))}
+            </div>
+            <span className="strength-label">{strength(password).label}</span>
+          </div>
         )}
 
         {mode === "signup" && (
@@ -179,7 +208,7 @@ export default function Login() {
             : mode === "signin"
             ? "Sign in"
             : mode === "signup"
-            ? "Create account — 2 free applications"
+            ? "Create account — 5 free applications"
             : "Send reset link"}
         </button>
 

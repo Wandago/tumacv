@@ -275,3 +275,46 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .job-chev { font-size: 20px; color: var(--soil); }
 .job-body { padding: 0 18px 18px; font-size: 14px; border-top: 1px solid var(--stone); padding-top: 14px; }
 .job-apply { margin-top: 10px; }
+
+/* ---------- PDF upload ---------- */
+.upload-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+
+/* ---------- auth polish ---------- */
+.auth-card {
+  max-width: 400px; margin: 48px auto; background: var(--sheet);
+  border: 1px solid var(--stone); border-radius: 14px; padding: 30px;
+  box-shadow: 0 1px 2px rgba(20,24,26,0.04), 0 16px 40px rgba(20,24,26,0.07);
+  position: relative; overflow: hidden;
+}
+.auth-card::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--kijani), var(--moto));
+}
+.step-indicator {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--kijani-dark); margin-bottom: 6px;
+}
+select {
+  width: 100%; font-family: var(--body); font-size: 14px; color: var(--ink);
+  background: var(--sheet); border: 1px solid var(--stone); border-radius: 8px;
+  padding: 12px 14px; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235c5a54' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center;
+}
+select:focus { outline: 2px solid var(--kijani); outline-offset: 1px; }
+
+.strength-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.strength-bars { display: flex; gap: 4px; flex: 1; }
+.strength-bar { height: 4px; flex: 1; border-radius: 2px; background: var(--stone); }
+.strength-bar.on.s1 { background: var(--moto); }
+.strength-bar.on.s2 { background: #d99a2b; }
+.strength-bar.on.s3, .strength-bar.on.s4, .strength-bar.on.s5 { background: var(--kijani); }
+.strength-label { font-family: var(--mono); font-size: 11px; color: var(--soil); white-space: nowrap; }
+
+.level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+.level-card {
+  border: 1px solid var(--stone); border-radius: 8px; background: var(--sheet);
+  padding: 11px 12px; text-align: left; font-size: 13px;
+}
+.level-card.on { border: 2px solid var(--kijani); background: #eef6ef; font-weight: 600; }
+@media (max-width: 480px) { .level-grid { grid-template-columns: 1fr; } }

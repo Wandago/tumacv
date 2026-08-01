@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "../lib/supabaseClient";
+import { FREE_MODE } from "../lib/plans";
 
 export default function Nav() {
   const [user, setUser] = useState(null);
@@ -41,7 +42,7 @@ export default function Nav() {
           <>
             <Link href="/dashboard">Dashboard</Link>
             <span className="credits-pill">
-              {unlimited ? "Unlimited" : `${profile?.credits ?? "…"} credits`}
+              {FREE_MODE ? "Free" : unlimited ? "Unlimited" : `${profile?.credits ?? "…"} credits`}
             </span>
           </>
         ) : (

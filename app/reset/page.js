@@ -38,10 +38,17 @@ export default function ResetPassword() {
       <div className="auth-card">
         <h1>Set a new password</h1>
         {!ready ? (
-          <p className="step-hint">
-            This page only works from the reset link in your email. If you landed here directly,
-            go to <a href="/login">sign in</a> and tap "Forgot password?".
-          </p>
+          <>
+            <p className="step-hint">
+              This link has expired or wasn't opened from your email. That's fine — you can request
+              a fresh reset link, sign in if you remember your password, or create a new account if
+              you don't have one yet.
+            </p>
+            <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+              <a className="btn-ghost" style={{ textDecoration: "none" }} href="/login">Sign in</a>
+              <a className="btn-ghost" style={{ textDecoration: "none" }} href="/login">Create an account</a>
+            </div>
+          </>
         ) : (
           <>
             <p className="step-hint">Choose a new password for your account.</p>

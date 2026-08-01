@@ -4,14 +4,21 @@
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
-  credits int not null default 2,
+  credits int not null default 5,
   plan text not null default 'free',
   plan_expires timestamptz,
+  industry text,
+  experience_level text,
+  profile_text text,
+  onboarded boolean not null default false,
   created_at timestamptz not null default now()
 );
 alter table public.profiles enable row level security;
 create policy "read own profile" on public.profiles
   for select using (auth.uid() = id);
+create policy "update own profile" on public.profiles
+  for update using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
