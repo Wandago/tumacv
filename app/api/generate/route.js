@@ -136,10 +136,30 @@ export async function POST(req) {
       parsed = JSON.parse(clean.slice(start, end + 1));
     }
 
-    // Success: deduct credit (unless unlimited) and save history
+    // Success: deduct credit (unless unlimited/free), track streak, and save history
     if (!unlimited) {
       await admin.from("profiles").update({ credits: profile.credits - 1 }).eq("id", user.id);
     }
+
+    // Streak: consecutive calendar days with at least one application.
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: streakProfile } = await admin
+      .from("profiles")
+      .select("streak_count, last_generation_date")
+      .eq("id", user.id)
+      .single();
+    if (streakProfile) {
+      const last = streakProfile.last_generation_date;
+      let newStreak = 1;
+      if (last === today) {
+        newStreak = streakProfile.streak_count || 1; // already counted today
+      } else if (last) {
+        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        newStreak = last === yesterday ? (streakProfile.streak_count || 0) + 1 : 1;
+      }
+      await admin.from("profiles").update({ streak_count: newStreak, last_generation_date: today }).eq("id", user.id);
+    }
+
     await admin.from("generations").insert({
       user_id: user.id,
       job_title: parsed.jobTitle || (parsed.cv?.title ?? "Application"),

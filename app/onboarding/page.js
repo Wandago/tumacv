@@ -4,14 +4,7 @@ import { useRouter } from "next/navigation";
 import Nav from "../../components/Nav";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { extractPdfText } from "../../lib/pdfText";
-
-const INDUSTRIES = [
-  "Sales & Business Development", "Customer Service", "Administration & Office Support",
-  "IT & Software", "Finance & Accounting", "Marketing & Communications",
-  "Engineering & Construction", "Healthcare", "Education & Training",
-  "Hospitality & Tourism", "Logistics & Supply Chain", "Retail",
-  "Human Resources", "Legal", "Creative & Design", "Manufacturing", "Other",
-];
+import { INDUSTRIES } from "../../lib/gamification";
 
 const LEVELS = [
   { id: "graduate", label: "Entry-level / recent graduate" },

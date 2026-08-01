@@ -318,3 +318,85 @@ select:focus { outline: 2px solid var(--kijani); outline-offset: 1px; }
 }
 .level-card.on { border: 2px solid var(--kijani); background: #eef6ef; font-weight: 600; }
 @media (max-width: 480px) { .level-grid { grid-template-columns: 1fr; } }
+
+/* ---------- nav: generate CV button ---------- */
+.nav-generate-btn {
+  background: var(--kijani); color: #fff; border-radius: 8px; padding: 7px 14px;
+  text-decoration: none; font-weight: 600; font-size: 13px;
+}
+.nav-generate-btn:hover { background: var(--kijani-dark); }
+
+/* ---------- share buttons ---------- */
+.share-prompt {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 4px 0 4px; text-align: center;
+}
+.share-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.share-row.compact .share-btn { padding: 7px 12px; font-size: 12.5px; }
+.share-btn {
+  border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600;
+  text-decoration: none; color: #fff; border: none; cursor: pointer;
+}
+.share-btn.wa { background: #25D366; }
+.share-btn.x { background: #14171a; }
+.share-btn.li { background: #0A66C2; }
+.share-btn.copy { background: var(--stone); color: var(--ink); }
+
+/* ---------- dashboard: streak / badges / insight / hired ---------- */
+.streak-number { color: var(--moto); }
+.hired-banner {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px;
+}
+.hired-prompt {
+  display: block; width: 100%; text-align: left; background: var(--sheet);
+  border: 1px dashed var(--stone); border-radius: 10px; padding: 12px 16px;
+  font-size: 13px; color: var(--soil); margin: 14px 0;
+}
+.hired-prompt:hover { border-color: var(--kijani); color: var(--ink); }
+
+.insight-card {
+  background: linear-gradient(135deg, #eef6ef, #fafaf7); border: 1px solid var(--stone);
+  border-radius: 12px; padding: 16px 18px; margin-top: 16px;
+}
+.insight-card.muted { background: var(--sheet); }
+.insight-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--kijani-dark); display: block; margin-bottom: 6px; }
+.insight-text { font-size: 14px; line-height: 1.5; margin: 0; }
+
+.badges-section { margin-top: 30px; }
+.badge-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 10px; }
+@media (max-width: 720px) { .badge-grid { grid-template-columns: repeat(2, 1fr); } }
+.badge-item {
+  background: var(--sheet); border: 1px solid var(--stone); border-radius: 10px;
+  padding: 14px 10px; text-align: center; opacity: 0.4; filter: grayscale(1);
+}
+.badge-item.on { opacity: 1; filter: none; border-color: var(--kijani); background: #eef6ef; }
+.badge-emoji { font-size: 26px; display: block; margin-bottom: 6px; }
+.badge-label { font-weight: 600; font-size: 12.5px; display: block; }
+.badge-threshold { font-family: var(--mono); font-size: 10.5px; color: var(--soil); }
+
+.week-stat {
+  font-family: var(--mono); font-size: 12px; background: #eef6ef; color: var(--kijani-dark);
+  border-radius: 99px; padding: 4px 11px; margin-left: auto;
+}
+
+/* ---------- news page ---------- */
+.news-filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 22px; }
+.news-filter-chip {
+  border: 1px solid var(--stone); border-radius: 99px; padding: 6px 14px;
+  font-size: 12.5px; background: var(--sheet);
+}
+.news-filter-chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.news-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; padding-bottom: 50px; }
+@media (max-width: 720px) { .news-grid { grid-template-columns: 1fr; } }
+.news-card {
+  text-align: left; background: var(--sheet); border: 1px solid var(--stone);
+  border-radius: 12px; padding: 18px; display: block;
+}
+.news-card:hover { border-color: var(--kijani); }
+.news-industry {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--kijani-dark); background: #eef6ef; border-radius: 5px; padding: 3px 8px;
+}
+.news-card h3 { font-family: var(--display); font-weight: 700; font-size: 16px; margin: 10px 0 4px; line-height: 1.3; }
+.news-meta { font-size: 11.5px; color: var(--soil); margin-bottom: 8px; }
+.news-preview, .news-body { font-size: 13.5px; line-height: 1.55; color: var(--ink); white-space: pre-wrap; }

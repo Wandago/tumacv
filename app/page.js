@@ -5,6 +5,7 @@ import CvView from "../components/CvView";
 import { supabaseBrowser } from "../lib/supabaseClient";
 import { PLANS, FREE_MODE } from "../lib/plans";
 import { extractPdfText } from "../lib/pdfText";
+import ShareButtons from "../components/ShareButtons";
 
 const TEMPLATES = [
   { id: "classic", name: "Classic", desc: "Serif, formal. Banks, gov, NGOs." },
@@ -193,10 +194,15 @@ export default function Home() {
             {tab === "cv" ? <CvView data={result.cv} template={template} /> : <div className="letter">{result.coverLetter}</div>}
           </div>
         </div>
-        <p className="field-note" style={{ textAlign: "center", paddingBottom: 30 }}>
+        <p className="field-note" style={{ textAlign: "center", paddingBottom: 10 }}>
           Saved to your <a href="/dashboard">dashboard</a>
           {!FREE_MODE && typeof result.creditsLeft === "number" ? ` · ${result.creditsLeft} applications left` : ""}
         </p>
+        <div className="share-prompt">
+          <span className="field-note" style={{ marginTop: 0 }}>Know someone else job hunting?</span>
+          <ShareButtons compact />
+        </div>
+        <div style={{ paddingBottom: 30 }} />
       </main>
     );
   }

@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/generate-articles",
+      "schedule": "0 5 * * *"
+    }
+  ]
+}
+

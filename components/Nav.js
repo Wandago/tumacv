@@ -38,12 +38,14 @@ export default function Nav() {
       </Link>
       <nav className="nav-links">
         <Link href="/jobs">Jobs board</Link>
+        <Link href="/news">News</Link>
         {user ? (
           <>
             <Link href="/dashboard">Dashboard</Link>
             <span className="credits-pill">
               {FREE_MODE ? "Free" : unlimited ? "Unlimited" : `${profile?.credits ?? "…"} credits`}
             </span>
+            <Link href="/" className="nav-generate-btn">Generate CV</Link>
           </>
         ) : (
           <Link href="/login" className="nav-cta">Sign in</Link>

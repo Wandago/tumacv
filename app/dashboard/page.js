@@ -5,6 +5,8 @@ import Nav from "../../components/Nav";
 import CvView from "../../components/CvView";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { PLANS, FREE_MODE } from "../../lib/plans";
+import { earnedBadges, nextBadge, BADGES } from "../../lib/gamification";
+import ShareButtons from "../../components/ShareButtons";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -16,6 +18,9 @@ export default function Dashboard() {
   const [buying, setBuying] = useState("");
   const [err, setErr] = useState("");
   const [paidBanner, setPaidBanner] = useState(false);
+  const [insight, setInsight] = useState(null);
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [hiredBusy, setHiredBusy] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.search.includes("paid=1")) {
@@ -42,6 +47,32 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) loadData(user);
   }, [user]);
+
+  useEffect(() => {
+    if (!user || !profile?.industry) return;
+    setInsightLoading(true);
+    supabaseBrowser().auth.getSession().then(async ({ data: sess }) => {
+      try {
+        const res = await fetch("/api/insight", {
+          headers: { authorization: `Bearer ${sess?.session?.access_token}` },
+        });
+        const data = await res.json();
+        setInsight(data.insight || null);
+      } catch {
+        setInsight(null);
+      } finally {
+        setInsightLoading(false);
+      }
+    });
+  }, [user, profile?.industry]);
+
+  async function toggleHired(value) {
+    setHiredBusy(true);
+    const sb = supabaseBrowser();
+    await sb.from("profiles").update({ hired: value, hired_at: value ? new Date().toISOString() : null }).eq("id", user.id);
+    setProfile((p) => ({ ...p, hired: value }));
+    setHiredBusy(false);
+  }
 
   // After returning from payment, poll a few times while the webhook lands.
   useEffect(() => {
@@ -123,6 +154,21 @@ export default function Dashboard() {
         </div>
       )}
 
+      {profile?.hired ? (
+        <div className="banner hired-banner">
+          🎉 Congratulations on landing the job! Come back any time you need TumaCV again.
+          <button className="linkish" style={{ marginLeft: 10 }} onClick={() => toggleHired(false)} disabled={hiredBusy}>
+            Not hired anymore? Undo
+          </button>
+        </div>
+      ) : (
+        history.length > 0 && (
+          <button className="hired-prompt" onClick={() => toggleHired(true)} disabled={hiredBusy}>
+            🎉 Got the job? Tap to celebrate
+          </button>
+        )
+      )}
+
       <div className="dash-grid">
         <div className="dash-card">
           <h3>BALANCE</h3>
@@ -135,6 +181,15 @@ export default function Dashboard() {
               : "applications remaining"}
           </p>
         </div>
+
+        <div className="dash-card">
+          <h3>STREAK</h3>
+          <div className="big-number streak-number">
+            {profile?.streak_count > 0 ? `🔥 ${profile.streak_count}` : "—"}
+          </div>
+          <p>{profile?.streak_count > 0 ? `day${profile.streak_count === 1 ? "" : "s"} in a row` : "Generate today to start a streak"}</p>
+        </div>
+
         {!FREE_MODE && (
           <div className="dash-card span2">
             <h3>TOP UP</h3>
@@ -153,9 +208,58 @@ export default function Dashboard() {
         )}
       </div>
 
+      {profile?.industry && (
+        <div className="insight-card">
+          <span className="insight-label">💡 Tip for {profile.industry}, {new Date().toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</span>
+          {insightLoading ? (
+            <p className="step-hint" style={{ margin: 0 }}>Loading today's tip…</p>
+          ) : insight ? (
+            <p className="insight-text">{insight}</p>
+          ) : (
+            <p className="step-hint" style={{ margin: 0 }}>Check back after your next generation for a fresh tip.</p>
+          )}
+        </div>
+      )}
+      {!profile?.industry && (
+        <div className="insight-card muted">
+          <span className="insight-label">💡 Want personalized tips?</span>
+          <p className="step-hint" style={{ margin: 0 }}>
+            <a href="/onboarding">Tell us your industry</a> to unlock a daily job-hunting tip made for your field.
+          </p>
+        </div>
+      )}
+
+      <section className="badges-section">
+        <div className="step-head"><span className="step-no">PROGRESS</span><h2>Your badges</h2></div>
+        <div className="badge-grid">
+          {BADGES.map((b) => {
+            const on = history.length >= b.threshold;
+            return (
+              <div key={b.id} className={`badge-item ${on ? "on" : ""}`}>
+                <span className="badge-emoji">{b.emoji}</span>
+                <span className="badge-label">{b.label}</span>
+                <span className="badge-threshold">{b.threshold} application{b.threshold === 1 ? "" : "s"}</span>
+              </div>
+            );
+          })}
+        </div>
+        {nextBadge(history.length) && (
+          <p className="field-note">
+            {nextBadge(history.length).threshold - history.length} more to unlock "{nextBadge(history.length).label}" {nextBadge(history.length).emoji}
+          </p>
+        )}
+      </section>
 
       <section style={{ marginTop: 34 }}>
-        <div className="step-head"><span className="step-no">HISTORY</span><h2>Past applications</h2></div>
+        <div className="step-head">
+          <span className="step-no">HISTORY</span>
+          <h2>Past applications</h2>
+          {history.length > 0 && (
+            <span className="week-stat">
+              {history.filter((h) => Date.now() - new Date(h.created_at).getTime() < 7 * 86400000).length} this week
+            </span>
+          )}
+        </div>
         {history.length === 0 ? (
           <p className="step-hint">Nothing yet. <a href="/">Generate your first tailored CV →</a></p>
         ) : (
