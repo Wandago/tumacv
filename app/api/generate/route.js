@@ -33,6 +33,33 @@ Respond with ONLY a JSON object matching exactly:
 }
 Use empty strings for unknown contact fields. Do not fabricate contact details.`;
 
+const MODEL_CANDIDATES = ["gemini-3.6-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+
+async function callGemini(body) {
+  let lastDetail = "";
+  for (const model of MODEL_CANDIDATES) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }
+    );
+    if (res.ok) return res;
+    lastDetail = await res.text();
+    // Only fall through to the next model on a 404 (model retired/renamed).
+    // Any other error (bad key, quota, etc.) should surface immediately.
+    if (res.status !== 404) {
+      console.error(`Gemini error (${model}):`, lastDetail);
+      return { ok: false, status: res.status, _detail: lastDetail };
+    }
+    console.error(`Gemini model unavailable, trying next: ${model}`);
+  }
+  console.error("All Gemini model candidates failed:", lastDetail);
+  return { ok: false, status: 502, _detail: lastDetail };
+}
+
 export async function POST(req) {
   try {
     const authed = await requireUser(req);
@@ -70,29 +97,20 @@ export async function POST(req) {
       return Response.json({ error: "Server is missing GEMINI_API_KEY." }, { status: 500 });
     }
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM }] },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: `JOB DESCRIPTION:\n${jobText.slice(0, 14000)}\n\nCANDIDATE PROFILE:\n${profileText.slice(0, 14000)}` },
-              ],
-            },
+    const res = await callGemini({
+      systemInstruction: { parts: [{ text: SYSTEM }] },
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: `JOB DESCRIPTION:\n${jobText.slice(0, 14000)}\n\nCANDIDATE PROFILE:\n${profileText.slice(0, 14000)}` },
           ],
-          generationConfig: { maxOutputTokens: 4000, responseMimeType: "application/json" },
-        }),
-      }
-    );
+        },
+      ],
+      generationConfig: { maxOutputTokens: 4000, responseMimeType: "application/json" },
+    });
 
     if (!res.ok) {
-      const detail = await res.text();
-      console.error("Gemini error:", detail);
       if (res.status === 429) {
         return Response.json({ error: "The AI is busy right now. Wait a minute and try again — no credit was used." }, { status: 429 });
       }
