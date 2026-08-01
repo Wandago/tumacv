@@ -212,7 +212,7 @@ export default function Home() {
           keywords, ordering, emphasis — using only your real experience. Nothing invented.
         </p>
         <p className="price">
-          {FREE_MODE ? "Free during beta — sign in and generate as many as you like" : "2 free to try · then as low as KES 1 per application · M-Pesa, Airtel & card"}
+          {FREE_MODE ? "Free during beta — sign in and generate as many as you like" : "5 free to try · then as low as KES 1 per application · M-Pesa, Airtel & card"}
         </p>
       </section>
 
@@ -309,7 +309,7 @@ export default function Home() {
               </a>
             ))}
           </div>
-          <p className="field-note">Start with 2 free applications — no payment needed to try it.</p>
+          <p className="field-note">Start with 5 free applications — no payment needed to try it.</p>
         </section>
       )}
 
@@ -317,7 +317,7 @@ export default function Home() {
         <div className="gen-bar-in">
           <span className="sum">
             {!user
-              ? FREE_MODE ? "Sign in to generate — free during beta" : "Sign in to generate — new accounts get 2 free"
+              ? FREE_MODE ? "Sign in to generate — free during beta" : "Sign in to generate — new accounts get 5 free"
               : ready
               ? "Ready — takes ~30 seconds"
               : "Fill in the job and your profile to continue"}
