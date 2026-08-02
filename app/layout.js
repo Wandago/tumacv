@@ -27,7 +27,16 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#0b7a3b" />
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <footer style={{
+          textAlign: "center", padding: "20px 18px 30px", fontSize: 11.5,
+          color: "var(--soil)", fontFamily: "var(--mono)",
+        }}>
+          <a href="/privacy" style={{ color: "inherit", marginRight: 14 }}>Privacy</a>
+          <a href="/terms" style={{ color: "inherit" }}>Terms</a>
+        </footer>
+      </body>
     </html>
   );
 }

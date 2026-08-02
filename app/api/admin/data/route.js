@@ -50,5 +50,41 @@ export async function GET(req) {
     return Response.json({ payments: data });
   }
 
+  if (type === "stats") {
+    const [{ count: totalUsers }, { count: signupsWeek }, { count: totalGenerations }, { count: hiredCount }, { count: activeStreaks }] =
+      await Promise.all([
+        admin.from("profiles").select("*", { count: "exact", head: true }),
+        admin.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
+        admin.from("generations").select("*", { count: "exact", head: true }),
+        admin.from("profiles").select("*", { count: "exact", head: true }).eq("hired", true),
+        admin.from("profiles").select("*", { count: "exact", head: true }).gte("streak_count", 3),
+      ]);
+    const { data: completedPayments } = await admin.from("payments").select("amount").eq("status", "complete").limit(5000);
+    const totalRevenue = (completedPayments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+    return Response.json({ stats: { totalUsers, signupsWeek, totalGenerations, hiredCount, activeStreaks, totalRevenue } });
+  }
+
+  if (type === "articles") {
+    const { data, error } = await admin
+      .from("articles")
+      .select("id, industry, title, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ articles: data });
+  }
+
+  if (type === "user_generations") {
+    const userId = new URL(req.url).searchParams.get("userId");
+    const { data, error } = await admin
+      .from("generations")
+      .select("id, job_title, template, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ generations: data });
+  }
+
   return Response.json({ error: "Unknown type." }, { status: 400 });
 }

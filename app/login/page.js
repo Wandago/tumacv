@@ -67,6 +67,7 @@ export default function Login() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingConfirm, setPendingConfirm] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [resendBusy, setResendBusy] = useState(false);
   const [resendMsg, setResendMsg] = useState("");
 
@@ -106,6 +107,7 @@ export default function Login() {
     if (mode === "signup") {
       if (password.length < 6) { setErr("Password needs to be at least 6 characters."); return; }
       if (password !== confirm) { setErr("Passwords don't match — check both boxes."); return; }
+      if (!agreed) { setErr("Please accept the Privacy Policy and Terms of Use to continue."); return; }
       setBusy(true);
       try {
         const { data, error } = await sb.auth.signUp({ email, password });
@@ -146,7 +148,7 @@ export default function Login() {
     mode === "forgot"
       ? !!email
       : mode === "signup"
-      ? email && password.length >= 6 && confirm.length >= 6
+      ? email && password.length >= 6 && confirm.length >= 6 && agreed
       : email && password.length >= 6;
 
   return (
@@ -215,6 +217,21 @@ export default function Login() {
           <p style={{ textAlign: "right", marginTop: 8 }}>
             <button className="linkish" onClick={() => switchMode("forgot")}>Forgot password?</button>
           </p>
+        )}
+
+        {mode === "signup" && (
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, fontSize: 12.5, color: "var(--soil)", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              style={{ width: "auto", marginTop: 2, accentColor: "var(--kijani)" }}
+            />
+            <span>
+              I agree to the <a href="/privacy" target="_blank" className="linkish" style={{ fontSize: 12.5 }}>Privacy Policy</a> and{" "}
+              <a href="/terms" target="_blank" className="linkish" style={{ fontSize: 12.5 }}>Terms of Use</a>.
+            </span>
+          </label>
         )}
 
         {err && <p className="error">{err}</p>}

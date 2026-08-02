@@ -7,11 +7,16 @@ import { supabaseBrowser } from "../../lib/supabaseClient";
 export default function Admin() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(null); // null = checking
-  const [tab, setTab] = useState("users");
+  const [tab, setTab] = useState("overview");
+  const [stats, setStats] = useState(null);
   const [users, setUsers] = useState(null);
   const [jobs, setJobs] = useState(null);
   const [payments, setPayments] = useState(null);
+  const [articles, setArticles] = useState(null);
+  const [expandedUser, setExpandedUser] = useState(null);
+  const [userGens, setUserGens] = useState({});
   const [q, setQ] = useState("");
+  const [payFilter, setPayFilter] = useState("all");
   const [busyId, setBusyId] = useState("");
   const [linkResult, setLinkResult] = useState(null);
   const [err, setErr] = useState("");
@@ -37,16 +42,23 @@ export default function Admin() {
     const res = await fetch(`/api/admin/data?type=${type}`, { headers: await authHeader() });
     const data = await res.json();
     if (!res.ok) { setErr(data.error || "Could not load data."); return; }
+    if (type === "stats") setStats(data.stats);
     if (type === "users") setUsers(data.users);
     if (type === "jobs") setJobs(data.jobs);
     if (type === "payments") setPayments(data.payments);
+    if (type === "articles") setArticles(data.articles);
   }
 
+  // Real loader (kept separate to avoid the type/tab name mismatch above)
   useEffect(() => {
     if (!authorized) return;
-    if (tab === "users" && users === null) load("users");
-    if (tab === "jobs" && jobs === null) load("jobs");
-    if (tab === "payments" && payments === null) load("payments");
+    (async () => {
+      if (tab === "overview" && stats === null) load("stats");
+      if (tab === "users" && users === null) load("users");
+      if (tab === "jobs" && jobs === null) load("jobs");
+      if (tab === "payments" && payments === null) load("payments");
+      if (tab === "articles" && articles === null) load("articles");
+    })();
   }, [authorized, tab]); // eslint-disable-line
 
   async function act(action, payload) {
@@ -68,6 +80,14 @@ export default function Admin() {
     setBusyId("");
   }
 
+  async function toggleAdmin(userId, value) {
+    if (!confirm(value ? "Make this user an admin? They'll get full access to this panel." : "Remove admin access from this user?")) return;
+    setBusyId(userId);
+    const data = await act("toggle_admin", { userId, value });
+    if (data) setUsers((u) => u.map((x) => (x.id === userId ? { ...x, is_admin: value } : x)));
+    setBusyId("");
+  }
+
   async function getResetLink(email, userId) {
     setBusyId(userId);
     setLinkResult(null);
@@ -76,11 +96,38 @@ export default function Admin() {
     setBusyId("");
   }
 
+  async function viewActivity(userId) {
+    if (expandedUser === userId) { setExpandedUser(null); return; }
+    setExpandedUser(userId);
+    if (!userGens[userId]) {
+      const res = await fetch(`/api/admin/data?type=user_generations&userId=${userId}`, { headers: await authHeader() });
+      const data = await res.json();
+      if (res.ok) setUserGens((g) => ({ ...g, [userId]: data.generations }));
+    }
+  }
+
   async function deleteJob(jobId) {
     if (!confirm("Delete this job posting? This can't be undone.")) return;
     setBusyId(jobId);
     const data = await act("delete_job", { jobId });
     if (data) setJobs((j) => j.filter((x) => x.id !== jobId));
+    setBusyId("");
+  }
+
+  async function deleteArticle(articleId) {
+    if (!confirm("Delete this article?")) return;
+    setBusyId(articleId);
+    const data = await act("delete_article", { articleId });
+    if (data) setArticles((a) => a.filter((x) => x.id !== articleId));
+    setBusyId("");
+  }
+
+  async function resolvePayment(paymentId, newStatus) {
+    const label = newStatus === "complete" ? "mark this payment COMPLETE and credit the user's account" : "mark this payment FAILED";
+    if (!confirm(`Are you sure you want to ${label}? This is meant for fixing a payment where the automatic webhook missed it.`)) return;
+    setBusyId(paymentId);
+    const data = await act("resolve_payment", { paymentId, newStatus });
+    if (data) setPayments((p) => p.map((x) => (x.id === paymentId ? { ...x, status: newStatus } : x)));
     setBusyId("");
   }
 
@@ -103,6 +150,10 @@ export default function Admin() {
   }
 
   const filteredUsers = users ? users.filter((u) => !q || u.email?.toLowerCase().includes(q.toLowerCase())) : null;
+  const filteredJobs = jobs ? jobs.filter((j) => !q || `${j.title} ${j.company}`.toLowerCase().includes(q.toLowerCase())) : null;
+  const filteredPayments = payments
+    ? payments.filter((p) => payFilter === "all" || p.status === payFilter)
+    : null;
 
   return (
     <main className="shell wide">
@@ -111,10 +162,12 @@ export default function Admin() {
         <h2>Admin</h2>
       </div>
 
-      <div className="doc-tabs">
-        <button className={tab === "users" ? "on" : "btn-ghost"} onClick={() => setTab("users")}>Users</button>
-        <button className={tab === "jobs" ? "on" : "btn-ghost"} onClick={() => setTab("jobs")}>Jobs board</button>
+      <div className="doc-tabs" style={{ flexWrap: "wrap" }}>
+        <button className={tab === "overview" ? "on" : "btn-ghost"} onClick={() => { setTab("overview"); setQ(""); }}>Overview</button>
+        <button className={tab === "users" ? "on" : "btn-ghost"} onClick={() => { setTab("users"); setQ(""); }}>Users</button>
+        <button className={tab === "jobs" ? "on" : "btn-ghost"} onClick={() => { setTab("jobs"); setQ(""); }}>Jobs board</button>
         <button className={tab === "payments" ? "on" : "btn-ghost"} onClick={() => setTab("payments")}>Payments</button>
+        <button className={tab === "articles" ? "on" : "btn-ghost"} onClick={() => setTab("articles")}>News articles</button>
       </div>
 
       {err && <p className="error">{err}</p>}
@@ -129,6 +182,21 @@ export default function Admin() {
           </div>
           <p className="field-note">One-time use, expires soon. Share it directly with the person — don't post it anywhere public.</p>
         </div>
+      )}
+
+      {tab === "overview" && (
+        stats === null ? (
+          <div className="loading"><span className="spinner" /> Loading stats…</div>
+        ) : (
+          <div className="dash-grid">
+            <div className="dash-card"><h3>TOTAL USERS</h3><div className="big-number">{stats.totalUsers}</div></div>
+            <div className="dash-card"><h3>SIGNUPS · 7 DAYS</h3><div className="big-number">{stats.signupsWeek}</div></div>
+            <div className="dash-card"><h3>TOTAL APPLICATIONS</h3><div className="big-number">{stats.totalGenerations}</div></div>
+            <div className="dash-card"><h3>REVENUE (COMPLETE)</h3><div className="big-number">KES {stats.totalRevenue}</div></div>
+            <div className="dash-card"><h3>USERS HIRED</h3><div className="big-number">{stats.hiredCount}</div></div>
+            <div className="dash-card"><h3>ACTIVE STREAKS (3+ DAYS)</h3><div className="big-number streak-number">🔥 {stats.activeStreaks}</div></div>
+          </div>
+        )
       )}
 
       {tab === "users" && (
@@ -159,7 +227,29 @@ export default function Admin() {
                     <button className="btn-ghost" disabled={busyId === u.id} onClick={() => getResetLink(u.email, u.id)}>
                       {busyId === u.id ? "…" : "Get reset link"}
                     </button>
+                    <button className="btn-ghost" disabled={busyId === u.id} onClick={() => toggleAdmin(u.id, !u.is_admin)}>
+                      {u.is_admin ? "Remove admin" : "Make admin"}
+                    </button>
+                    <button className="btn-ghost" onClick={() => viewActivity(u.id)}>
+                      {expandedUser === u.id ? "Hide activity" : "View activity"}
+                    </button>
                   </div>
+                  {expandedUser === u.id && (
+                    <div style={{ borderTop: "1px solid var(--stone)", paddingTop: 8, marginTop: 2 }}>
+                      {!userGens[u.id] ? (
+                        <span className="field-note">Loading…</span>
+                      ) : userGens[u.id].length === 0 ? (
+                        <span className="field-note">No applications generated yet.</span>
+                      ) : (
+                        userGens[u.id].map((g) => (
+                          <div key={g.id} className="field-note" style={{ display: "flex", justifyContent: "space-between", marginTop: 0, marginBottom: 4 }}>
+                            <span>{g.job_title || "Application"} ({g.template})</span>
+                            <span>{new Date(g.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
               {filteredUsers.length === 0 && <p className="step-hint">No users match "{q}".</p>}
@@ -169,41 +259,86 @@ export default function Admin() {
       )}
 
       {tab === "jobs" && (
-        jobs === null ? (
-          <div className="loading"><span className="spinner" /> Loading jobs…</div>
-        ) : (
-          <div className="history-list">
-            {jobs.map((j) => (
-              <div key={j.id} className="history-item">
-                <div>
-                  <span className="hi-title">{j.title} — {j.company}</span>
-                  <div className="field-note" style={{ marginTop: 2 }}>{j.location} · {j.job_type}</div>
+        <>
+          <input type="text" placeholder="Search by title or company…" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 12 }} />
+          {filteredJobs === null ? (
+            <div className="loading"><span className="spinner" /> Loading jobs…</div>
+          ) : (
+            <div className="history-list">
+              {filteredJobs.map((j) => (
+                <div key={j.id} className="history-item">
+                  <div>
+                    <span className="hi-title">{j.title} — {j.company}</span>
+                    <div className="field-note" style={{ marginTop: 2 }}>{j.location} · {j.job_type}</div>
+                  </div>
+                  <button className="btn-ghost" disabled={busyId === j.id} onClick={() => deleteJob(j.id)}>
+                    {busyId === j.id ? "…" : "Delete"}
+                  </button>
                 </div>
-                <button className="btn-ghost" disabled={busyId === j.id} onClick={() => deleteJob(j.id)}>
-                  {busyId === j.id ? "…" : "Delete"}
-                </button>
-              </div>
-            ))}
-            {jobs.length === 0 && <p className="step-hint">No jobs posted yet.</p>}
-          </div>
-        )
+              ))}
+              {filteredJobs.length === 0 && <p className="step-hint">No jobs match.</p>}
+            </div>
+          )}
+        </>
       )}
 
       {tab === "payments" && (
-        payments === null ? (
-          <div className="loading"><span className="spinner" /> Loading payments…</div>
+        <>
+          <div className="news-filter-row">
+            {["all", "pending", "complete", "failed", "underpaid"].map((s) => (
+              <button key={s} className={`news-filter-chip ${payFilter === s ? "on" : ""}`} onClick={() => setPayFilter(s)}>{s}</button>
+            ))}
+          </div>
+          {filteredPayments === null ? (
+            <div className="loading"><span className="spinner" /> Loading payments…</div>
+          ) : (
+            <div className="history-list">
+              {filteredPayments.map((p) => (
+                <div key={p.id} className="history-item">
+                  <div>
+                    <span className="hi-title">{p.plan_id} — KES {p.amount}</span>
+                    <div className="field-note" style={{ marginTop: 2 }}>
+                      {new Date(p.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })} · {p.provider_ref || "no ref"}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span className="credits-pill">{p.status}</span>
+                    {p.status !== "complete" && (
+                      <>
+                        <button className="btn-ghost" disabled={busyId === p.id} onClick={() => resolvePayment(p.id, "complete")}>
+                          {busyId === p.id ? "…" : "Mark complete"}
+                        </button>
+                        {p.status !== "failed" && (
+                          <button className="btn-ghost" disabled={busyId === p.id} onClick={() => resolvePayment(p.id, "failed")}>Mark failed</button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {filteredPayments.length === 0 && <p className="step-hint">No payments match.</p>}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === "articles" && (
+        articles === null ? (
+          <div className="loading"><span className="spinner" /> Loading articles…</div>
         ) : (
           <div className="history-list">
-            {payments.map((p) => (
-              <div key={p.id} className="history-item">
-                <span className="hi-title">{p.plan_id} — KES {p.amount}</span>
-                <span className="hi-meta">
-                  <span className="credits-pill" style={{ marginRight: 8 }}>{p.status}</span>
-                  {new Date(p.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
-                </span>
+            {articles.map((a) => (
+              <div key={a.id} className="history-item">
+                <div>
+                  <span className="hi-title">{a.title}</span>
+                  <div className="field-note" style={{ marginTop: 2 }}>{a.industry} · {new Date(a.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</div>
+                </div>
+                <button className="btn-ghost" disabled={busyId === a.id} onClick={() => deleteArticle(a.id)}>
+                  {busyId === a.id ? "…" : "Delete"}
+                </button>
               </div>
             ))}
-            {payments.length === 0 && <p className="step-hint">No payments yet.</p>}
+            {articles.length === 0 && <p className="step-hint">No articles generated yet.</p>}
           </div>
         )
       )}

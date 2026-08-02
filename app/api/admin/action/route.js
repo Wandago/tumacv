@@ -1,4 +1,5 @@
 import { requireUser } from "../../../../lib/supabaseAdmin";
+import { PLANS } from "../../../../lib/plans";
 
 export const maxDuration = 20;
 
@@ -56,6 +57,46 @@ export async function POST(req) {
     const { userId, value } = body;
     const { error } = await admin.from("profiles").update({ is_admin: value }).eq("id", userId);
     if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: true });
+  }
+
+  if (body.action === "delete_article") {
+    const { error } = await admin.from("articles").delete().eq("id", body.articleId);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: true });
+  }
+
+  if (body.action === "resolve_payment") {
+    // Support tool for the exact failure mode we've hit before: a real payment
+    // succeeded at IntaSend but the webhook never fired (or failed), so the
+    // user paid and got nothing. This mirrors the webhook's own fulfillment
+    // logic exactly, and is idempotent — resolving an already-complete payment
+    // does nothing twice.
+    const { paymentId, newStatus } = body; // newStatus: "complete" | "failed"
+    const { data: payment, error: payErr } = await admin.from("payments").select("*").eq("id", paymentId).single();
+    if (payErr || !payment) return Response.json({ error: "Payment not found." }, { status: 404 });
+    if (payment.status === "complete") return Response.json({ ok: true, note: "Already complete — no change." });
+
+    if (newStatus === "failed") {
+      await admin.from("payments").update({ status: "failed" }).eq("id", paymentId);
+      return Response.json({ ok: true });
+    }
+
+    const plan = PLANS[payment.plan_id];
+    if (!plan) return Response.json({ error: "Unknown plan on this payment." }, { status: 400 });
+
+    const { data: profile } = await admin.from("profiles").select("credits, plan, plan_expires").eq("id", payment.user_id).single();
+    if (!profile) return Response.json({ error: "User not found." }, { status: 404 });
+
+    if (plan.unlimitedDays) {
+      const from = profile.plan === "unlimited" && profile.plan_expires && new Date(profile.plan_expires) > new Date()
+        ? new Date(profile.plan_expires) : new Date();
+      const expires = new Date(from.getTime() + plan.unlimitedDays * 24 * 60 * 60 * 1000);
+      await admin.from("profiles").update({ plan: "unlimited", plan_expires: expires.toISOString() }).eq("id", payment.user_id);
+    } else {
+      await admin.from("profiles").update({ credits: profile.credits + plan.credits }).eq("id", payment.user_id);
+    }
+    await admin.from("payments").update({ status: "complete", provider_ref: "admin-resolved" }).eq("id", paymentId);
     return Response.json({ ok: true });
   }
 
