@@ -102,7 +102,7 @@ export default function Admin() {
     );
   }
 
-  const filteredUsers = users?.filter((u) => !q || u.email?.toLowerCase().includes(q.toLowerCase()));
+  const filteredUsers = users ? users.filter((u) => !q || u.email?.toLowerCase().includes(q.toLowerCase())) : null;
 
   return (
     <main className="shell wide">
