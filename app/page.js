@@ -218,7 +218,8 @@ export default function Home() {
           keywords, ordering, emphasis — using only your real experience. Nothing invented.
         </p>
         <p className="price">
-          {FREE_MODE ? "Free during beta — sign in and generate as many as you like" : "5 free to try · then as low as KES 1 per application · M-Pesa, Airtel & card"}
+          {FREE_MODE ? "Free during beta — sign in and generate as many as you like" : "5 free to try · then as low as KES 2 per application · M-Pesa, Airtel & card"}
+          {!FREE_MODE && <> · <a href="/pricing" style={{ color: "inherit", textDecoration: "underline" }}>see full pricing</a></>}
         </p>
       </section>
 

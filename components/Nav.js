@@ -23,7 +23,7 @@ export default function Nav() {
     if (!user) return;
     supabaseBrowser()
       .from("profiles")
-      .select("credits, plan, plan_expires")
+      .select("credits, plan, plan_expires, is_admin")
       .eq("id", user.id)
       .single()
       .then(({ data }) => setProfile(data));
@@ -38,12 +38,14 @@ export default function Nav() {
         Tuma<span>CV</span>
       </Link>
       <nav className="nav-links">
+        <Link href="/pricing">Pricing</Link>
         <Link href="/jobs">Jobs board</Link>
         <Link href="/news">News</Link>
         <ThemeToggle />
         {user ? (
           <>
             <Link href="/dashboard">Dashboard</Link>
+            {profile?.is_admin && <Link href="/admin">Admin</Link>}
             <span className="credits-pill">
               {FREE_MODE ? "Free" : unlimited ? "Unlimited" : `${profile?.credits ?? "…"} credits`}
             </span>

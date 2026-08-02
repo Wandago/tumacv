@@ -145,6 +145,7 @@ export default function Dashboard() {
       <Nav />
       <div className="results-head">
         <h2>Your dashboard</h2>
+        <a href="/onboarding" className="btn-ghost" style={{ textDecoration: "none" }}>Edit profile</a>
         <button className="btn-ghost" onClick={signOut}>Sign out</button>
       </div>
 

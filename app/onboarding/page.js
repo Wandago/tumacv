@@ -16,6 +16,7 @@ const LEVELS = [
 export default function Onboarding() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [industry, setIndustry] = useState("");
   const [level, setLevel] = useState("");
   const [profileText, setProfileText] = useState("");
@@ -23,17 +24,29 @@ export default function Onboarding() {
   const [pdfErr, setPdfErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [saved, setSaved] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     const sb = supabaseBrowser();
-    sb.auth.getUser().then(({ data }) => {
-      if (!data?.user) router.replace("/login");
-      else {
-        setReady(true);
-        const saved = localStorage.getItem("tumacv-profile");
-        if (saved) setProfileText(saved);
+    sb.auth.getUser().then(async ({ data }) => {
+      if (!data?.user) { router.replace("/login"); return; }
+      const { data: profile } = await sb
+        .from("profiles")
+        .select("industry, experience_level, profile_text, onboarded")
+        .eq("id", data.user.id)
+        .single();
+
+      setIsEditing(!!profile?.onboarded);
+      if (profile?.industry) setIndustry(profile.industry);
+      if (profile?.experience_level) setLevel(profile.experience_level);
+      if (profile?.profile_text) {
+        setProfileText(profile.profile_text);
+      } else {
+        const draft = localStorage.getItem("tumacv-profile");
+        if (draft) setProfileText(draft);
       }
+      setReady(true);
     });
   }, [router]);
 
@@ -58,26 +71,50 @@ export default function Onboarding() {
     }
   }
 
-  async function save(skip) {
+  async function save() {
     setErr("");
     setBusy(true);
+    setSaved(false);
     try {
       const sb = supabaseBrowser();
       const { data: userData } = await sb.auth.getUser();
       const { error } = await sb
         .from("profiles")
         .update({
-          industry: skip ? null : industry || null,
-          experience_level: skip ? null : level || null,
-          profile_text: skip ? null : profileText || null,
+          industry: industry || null,
+          experience_level: level || null,
+          profile_text: profileText || null,
           onboarded: true,
         })
         .eq("id", userData.user.id);
       if (error) throw error;
-      if (!skip && profileText) localStorage.setItem("tumacv-profile", profileText);
-      router.push("/dashboard");
+      if (profileText) localStorage.setItem("tumacv-profile", profileText);
+      if (isEditing) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      } else {
+        router.push("/dashboard");
+      }
     } catch (e) {
       setErr("Could not save. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // First-time skip: marks onboarding done without requiring any info.
+  // Editing "Cancel" just leaves — never touches existing saved data.
+  async function skipOrCancel() {
+    if (isEditing) {
+      router.push("/dashboard");
+      return;
+    }
+    setBusy(true);
+    try {
+      const sb = supabaseBrowser();
+      const { data: userData } = await sb.auth.getUser();
+      await sb.from("profiles").update({ onboarded: true }).eq("id", userData.user.id);
+      router.push("/dashboard");
     } finally {
       setBusy(false);
     }
@@ -89,11 +126,12 @@ export default function Onboarding() {
     <main className="shell">
       <Nav />
       <div className="auth-card" style={{ maxWidth: 520 }}>
-        <p className="step-indicator">Step 2 of 2</p>
-        <h1>A little about you</h1>
+        {!isEditing && <p className="step-indicator">Step 2 of 2</p>}
+        <h1>{isEditing ? "Your profile" : "A little about you"}</h1>
         <p className="step-hint">
-          Optional, but it helps every generated CV sound right for your field from the start.
-          Takes about a minute.
+          {isEditing
+            ? "Update this any time — new job, new skills, new CV. Every generated application uses what's saved here."
+            : "Optional, but it helps every generated CV sound right for your field from the start. Takes about a minute."}
         </p>
 
         <label className="field-label" htmlFor="industry">Industry</label>
@@ -139,13 +177,14 @@ export default function Onboarding() {
         />
 
         {err && <p className="error">{err}</p>}
+        {saved && <p className="success">Saved.</p>}
 
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={() => save(true)} disabled={busy}>
-            Skip for now
+          <button className="btn-ghost" style={{ flex: 1 }} onClick={skipOrCancel} disabled={busy}>
+            {isEditing ? "Cancel" : "Skip for now"}
           </button>
-          <button className="btn-primary" style={{ flex: 2 }} onClick={() => save(false)} disabled={busy}>
-            {busy ? "Saving…" : "Save and continue"}
+          <button className="btn-primary" style={{ flex: 2 }} onClick={save} disabled={busy}>
+            {busy ? "Saving…" : isEditing ? "Save changes" : "Save and continue"}
           </button>
         </div>
       </div>
