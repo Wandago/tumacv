@@ -3,14 +3,10 @@ import { PLANS } from "../../../../lib/plans";
 
 export const maxDuration = 20;
 
-// IntaSend POSTs invoice updates here. Configure the webhook in the IntaSend
-// dashboard pointing to https://YOUR-DOMAIN/api/payments/webhook and set a
-// challenge string; put the same string in the INTASEND_WEBHOOK_CHALLENGE env var.
 export async function POST(req) {
   try {
     const body = await req.json();
 
-    // Authenticate the webhook via the shared challenge string.
     if (
       !process.env.INTASEND_WEBHOOK_CHALLENGE ||
       body.challenge !== process.env.INTASEND_WEBHOOK_CHALLENGE
@@ -23,13 +19,12 @@ export async function POST(req) {
     const paidValue = Number(body.value ?? body.net_amount ?? body.invoice?.value ?? 0);
     const providerRef = body.invoice_id || body.invoice?.invoice_id || null;
 
-    if (!apiRef) return Response.json({ ok: true }); // nothing to do
+    if (!apiRef) return Response.json({ ok: true });
 
     const admin = supabaseAdmin();
     const { data: payment } = await admin.from("payments").select("*").eq("id", apiRef).single();
     if (!payment) return Response.json({ ok: true });
 
-    // Idempotency: only fulfill a payment once.
     if (payment.status === "complete") return Response.json({ ok: true });
 
     if (state === "FAILED") {
@@ -38,13 +33,12 @@ export async function POST(req) {
     }
 
     if (state !== "COMPLETE" && state !== "COMPLETED") {
-      return Response.json({ ok: true }); // PENDING / PROCESSING — wait for the next event
+      return Response.json({ ok: true });
     }
 
     const plan = PLANS[payment.plan_id];
     if (!plan) return Response.json({ ok: true });
 
-    // Guard against underpayment (allow small rounding differences).
     if (paidValue && paidValue < payment.amount - 1) {
       await admin.from("payments").update({ status: "underpaid", provider_ref: providerRef }).eq("id", payment.id);
       return Response.json({ ok: true });
@@ -58,7 +52,6 @@ export async function POST(req) {
     if (!profile) return Response.json({ ok: true });
 
     if (plan.unlimitedDays) {
-      // Extend from current expiry if still active, else from now.
       const from =
         profile.plan === "unlimited" && profile.plan_expires && new Date(profile.plan_expires) > new Date()
           ? new Date(profile.plan_expires)

@@ -3,5 +3,6 @@
 
 alter table public.profiles add column if not exists is_admin boolean not null default false;
 
--- Make yourself an admin. Replace the email, then run just this line.
+-- Make yourself an admin. Replace the email, then run just this line
+-- (remove the leading -- comment dashes first, or it won't execute).
 -- update public.profiles set is_admin = true where email = 'you@example.com';

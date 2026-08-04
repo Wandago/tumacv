@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import Nav from "../components/Nav";
 import CvView from "../components/CvView";
 import { supabaseBrowser } from "../lib/supabaseClient";
-import { PLANS, FREE_MODE } from "../lib/plans";
+import { FREE_MODE } from "../lib/plans";
 import { extractPdfText } from "../lib/pdfText";
+import { getSavedProfile, setSavedProfile, clearLegacySharedDraft } from "../lib/storage";
 import ShareButtons from "../components/ShareButtons";
 
 const TEMPLATES = [
@@ -15,6 +16,7 @@ const TEMPLATES = [
 
 export default function Home() {
   const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [jobText, setJobText] = useState("");
   const [jobUrl, setJobUrl] = useState("");
   const [profileText, setProfileText] = useState("");
@@ -31,27 +33,31 @@ export default function Home() {
   const [pdfErr, setPdfErr] = useState("");
   const fileInputRef = useRef(null);
 
+  // Profile drafts are scoped per-account (lib/storage.js) so a different
+  // person signing into a shared browser never sees someone else's saved CV.
   useEffect(() => {
-    const saved = localStorage.getItem("tumacv-profile");
-    if (saved) setProfileText(saved);
+    clearLegacySharedDraft();
     supabaseBrowser().auth.getUser().then(({ data }) => {
-      setUser(data?.user || null);
-      if (data?.user && !saved) {
+      const u = data?.user || null;
+      setUser(u);
+      setAuthChecked(true);
+      if (u) {
+        const draft = getSavedProfile(u.id);
+        if (draft) setProfileText(draft);
         supabaseBrowser()
           .from("profiles")
           .select("profile_text")
-          .eq("id", data.user.id)
+          .eq("id", u.id)
           .single()
           .then(({ data: p }) => {
-            if (p?.profile_text) {
+            if (p?.profile_text && !draft) {
               setProfileText(p.profile_text);
-              localStorage.setItem("tumacv-profile", p.profile_text);
+              setSavedProfile(u.id, p.profile_text);
             }
           });
       }
     });
 
-    // Prefill from the jobs board (?jobid=...)
     const params = new URLSearchParams(window.location.search);
     const jobid = params.get("jobid");
     if (jobid) {
@@ -64,9 +70,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => localStorage.setItem("tumacv-profile", profileText), 400);
+    if (!user) return;
+    const t = setTimeout(() => setSavedProfile(user.id, profileText), 400);
     return () => clearTimeout(t);
-  }, [profileText]);
+  }, [profileText, user]);
 
   async function fetchJd() {
     setFetchErr("");
@@ -84,6 +91,30 @@ export default function Home() {
       setFetchErr("Couldn't reach that page. Paste the description instead.");
     } finally {
       setFetching(false);
+    }
+  }
+
+  async function handlePdfUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPdfErr("");
+    if (file.type !== "application/pdf") {
+      setPdfErr("Please upload a PDF file.");
+      return;
+    }
+    setPdfBusy(true);
+    try {
+      const text = await extractPdfText(file);
+      if (text.length < 80) {
+        setPdfErr("Couldn't read much text from that PDF — it may be a scanned image. Paste your details instead.");
+      } else {
+        setProfileText(text);
+      }
+    } catch {
+      setPdfErr("Couldn't read that PDF. Try re-saving it from LinkedIn, or paste your details instead.");
+    } finally {
+      setPdfBusy(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -123,30 +154,6 @@ export default function Home() {
     }
   }
 
-  async function handlePdfUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPdfErr("");
-    if (file.type !== "application/pdf") {
-      setPdfErr("Please upload a PDF file.");
-      return;
-    }
-    setPdfBusy(true);
-    try {
-      const text = await extractPdfText(file);
-      if (text.length < 80) {
-        setPdfErr("Couldn't read much text from that PDF — it may be a scanned image. Paste your details instead.");
-      } else {
-        setProfileText(text);
-      }
-    } catch {
-      setPdfErr("Couldn't read that PDF. Try re-saving it from LinkedIn, or paste your details instead.");
-    } finally {
-      setPdfBusy(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
-
   async function copyLetter() {
     await navigator.clipboard.writeText(result.coverLetter);
     setCopied(true);
@@ -154,6 +161,56 @@ export default function Home() {
   }
 
   const ready = jobText.trim().length >= 80 && profileText.trim().length >= 80;
+
+  if (!authChecked) return null;
+
+  if (!user) {
+    return (
+      <main className="shell">
+        <Nav />
+        <section className="hero">
+          <h1>One job. One <em>tailored</em> CV. Five minutes.</h1>
+          <p>
+            Paste any job posting. TumaCV rewrites your CV and cover letter to match it —
+            keywords, ordering, emphasis — using only your real experience. Nothing invented.
+          </p>
+          <p className="price">
+            {FREE_MODE ? "Free during beta — create an account and generate as many as you like" : "5 free applications when you sign up · then as low as KES 2 each"}
+          </p>
+        </section>
+
+        <section className="step">
+          <div className="step-head"><span className="step-no">01</span><h2>Paste a job</h2></div>
+          <p className="step-hint">
+            A link from BrighterMonday, Fuzu, MyJobMag, a company careers page, or just the
+            description text. Pick one straight from our <a href="/jobs">jobs board</a> if you'd rather.
+          </p>
+        </section>
+        <section className="step">
+          <div className="step-head"><span className="step-no">02</span><h2>Add your CV</h2></div>
+          <p className="step-hint">
+            Upload your LinkedIn PDF export or paste your CV — saved to your account so you only do it once.
+          </p>
+        </section>
+        <section className="step" style={{ borderBottom: "none" }}>
+          <div className="step-head"><span className="step-no">03</span><h2>Get your documents</h2></div>
+          <p className="step-hint">
+            A tailored CV in your choice of layout, plus a matching cover letter, ready in under a minute.
+          </p>
+        </section>
+
+        <div style={{ textAlign: "center", padding: "22px 0 40px" }}>
+          <a href="/login?mode=signup" className="btn-primary" style={{ textDecoration: "none", display: "inline-block", padding: "14px 32px", fontSize: 15 }}>
+            Generate CV — create your free account
+          </a>
+          <p className="field-note" style={{ marginTop: 10 }}>
+            5 free applications, no card required. Already have an account?{" "}
+            <a href="/login" style={{ color: "var(--kijani-dark)" }}>Sign in</a>.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   if (result) {
     return (
@@ -216,10 +273,6 @@ export default function Home() {
         <p>
           Paste any job posting. TumaCV rewrites your CV and cover letter to match it —
           keywords, ordering, emphasis — using only your real experience. Nothing invented.
-        </p>
-        <p className="price">
-          {FREE_MODE ? "Free during beta — sign in and generate as many as you like" : "5 free to try · then as low as KES 2 per application · M-Pesa, Airtel & card"}
-          {!FREE_MODE && <> · <a href="/pricing" style={{ color: "inherit", textDecoration: "underline" }}>see full pricing</a></>}
         </p>
       </section>
 
@@ -304,33 +357,13 @@ export default function Home() {
       {genErr && <p className="error">{genErr}</p>}
       {loading && <div className="loading"><span className="spinner" /> Tailoring your CV to this job…</div>}
 
-      {!FREE_MODE && !user && (
-        <section className="step" style={{ borderTop: "1px solid var(--stone)" }}>
-          <div className="step-head"><span className="step-no">PRICING</span><h2>Simple, in shillings</h2></div>
-          <div className="plan-row">
-            {Object.values(PLANS).map((p) => (
-              <a key={p.id} href="/login" className="plan-card" style={{ textDecoration: "none" }}>
-                <div className="plan-name">{p.name}</div>
-                <div className="plan-price">KES {p.priceKes}</div>
-                <div className="plan-blurb">{p.blurb}</div>
-              </a>
-            ))}
-          </div>
-          <p className="field-note">Start with 5 free applications — no payment needed to try it.</p>
-        </section>
-      )}
-
       <div className="gen-bar">
         <div className="gen-bar-in">
           <span className="sum">
-            {!user
-              ? FREE_MODE ? "Sign in to generate — free during beta" : "Sign in to generate — new accounts get 5 free"
-              : ready
-              ? "Ready — takes ~30 seconds"
-              : "Fill in the job and your profile to continue"}
+            {ready ? "Ready — takes ~30 seconds" : "Fill in the job and your profile to continue"}
           </span>
-          <button className="btn-primary" onClick={generate} disabled={(user && !ready) || loading}>
-            {loading ? "Generating…" : user ? "Generate CV + letter" : "Sign in to start"}
+          <button className="btn-primary" onClick={generate} disabled={!ready || loading}>
+            {loading ? "Generating…" : "Generate CV + letter"}
           </button>
         </div>
       </div>

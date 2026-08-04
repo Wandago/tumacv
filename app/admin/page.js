@@ -6,7 +6,7 @@ import { supabaseBrowser } from "../../lib/supabaseClient";
 
 export default function Admin() {
   const router = useRouter();
-  const [authorized, setAuthorized] = useState(null); // null = checking
+  const [authorized, setAuthorized] = useState(null);
   const [tab, setTab] = useState("overview");
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState(null);
@@ -49,16 +49,13 @@ export default function Admin() {
     if (type === "articles") setArticles(data.articles);
   }
 
-  // Real loader (kept separate to avoid the type/tab name mismatch above)
   useEffect(() => {
     if (!authorized) return;
-    (async () => {
-      if (tab === "overview" && stats === null) load("stats");
-      if (tab === "users" && users === null) load("users");
-      if (tab === "jobs" && jobs === null) load("jobs");
-      if (tab === "payments" && payments === null) load("payments");
-      if (tab === "articles" && articles === null) load("articles");
-    })();
+    if (tab === "overview" && stats === null) load("stats");
+    if (tab === "users" && users === null) load("users");
+    if (tab === "jobs" && jobs === null) load("jobs");
+    if (tab === "payments" && payments === null) load("payments");
+    if (tab === "articles" && articles === null) load("articles");
   }, [authorized, tab]); // eslint-disable-line
 
   async function act(action, payload) {
@@ -151,9 +148,7 @@ export default function Admin() {
 
   const filteredUsers = users ? users.filter((u) => !q || u.email?.toLowerCase().includes(q.toLowerCase())) : null;
   const filteredJobs = jobs ? jobs.filter((j) => !q || `${j.title} ${j.company}`.toLowerCase().includes(q.toLowerCase())) : null;
-  const filteredPayments = payments
-    ? payments.filter((p) => payFilter === "all" || p.status === payFilter)
-    : null;
+  const filteredPayments = payments ? payments.filter((p) => payFilter === "all" || p.status === payFilter) : null;
 
   return (
     <main className="shell wide">

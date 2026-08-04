@@ -32,10 +32,6 @@ export async function POST(req) {
   }
 
   if (body.action === "reset_link") {
-    // Supabase cannot reveal a user's actual password — nobody, including admins,
-    // should be able to. This generates a working one-time reset link instead,
-    // which support can share directly (WhatsApp, phone call) without depending
-    // on the user's email deliverability.
     const { email } = body;
     const site = process.env.NEXT_PUBLIC_SITE_URL || "https://tumacv.vercel.app";
     const { data, error } = await admin.auth.admin.generateLink({
@@ -67,12 +63,7 @@ export async function POST(req) {
   }
 
   if (body.action === "resolve_payment") {
-    // Support tool for the exact failure mode we've hit before: a real payment
-    // succeeded at IntaSend but the webhook never fired (or failed), so the
-    // user paid and got nothing. This mirrors the webhook's own fulfillment
-    // logic exactly, and is idempotent — resolving an already-complete payment
-    // does nothing twice.
-    const { paymentId, newStatus } = body; // newStatus: "complete" | "failed"
+    const { paymentId, newStatus } = body;
     const { data: payment, error: payErr } = await admin.from("payments").select("*").eq("id", paymentId).single();
     if (payErr || !payment) return Response.json({ error: "Payment not found." }, { status: 404 });
     if (payment.status === "complete") return Response.json({ ok: true, note: "Already complete — no change." });

@@ -48,9 +48,10 @@ export default function Privacy() {
       <div className="step">
         <h2 style={{ marginBottom: 8 }}>Local storage on your device</h2>
         <p className="step-hint" style={{ marginBottom: 0 }}>
-          We keep a draft copy of your profile text in your browser's local storage so the form
-          doesn't lose your work. This stays on your device and isn't a tracking cookie — we don't
-          use advertising or cross-site tracking cookies at all.
+          We keep a draft copy of your profile text in your browser's local storage, scoped to your
+          account, so the form doesn't lose your work and a different person signing into a shared
+          computer never sees your saved CV. This stays on your device and isn't a tracking cookie —
+          we don't use advertising or cross-site tracking cookies at all.
         </p>
       </div>
 

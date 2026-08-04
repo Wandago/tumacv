@@ -20,7 +20,6 @@ export async function POST(req) {
       );
     }
 
-    // Create a pending payment row; its id becomes our reference at IntaSend.
     const { data: payment, error: payErr } = await admin
       .from("payments")
       .insert({ user_id: user.id, plan_id: plan.id, amount: plan.priceKes, status: "pending" })

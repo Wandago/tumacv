@@ -1,142 +1,57 @@
-# TumaCV v2 — full SaaS
+# TumaCV
 
-Tailored CV + cover letters for Kenyan job seekers, with accounts, credit tiers,
-M-Pesa/Airtel/card payments, a dashboard with history, and a free jobs board.
+Tailored CV + cover letters for Kenyan job seekers — accounts, credits, tiers,
+M-Pesa/Airtel/card payments, a dashboard with gamification, a jobs board,
+an AI-written industry news section, and an admin panel.
 
-## What's included
+## Setup
 
-- **Accounts** — email + password via Supabase. Every new account gets 2 free applications.
-- **Tiers** — Single KES 50 (1 app), Starter KES 200 (30 apps), Pro KES 500 (100 apps),
-  Unlimited KES 1,500 (30-day pass). Prices live in `lib/plans.js` — change them there only.
-- **Payments** — IntaSend hosted checkout (M-Pesa STK, Airtel Money, Visa/Mastercard) with a
-  webhook that credits accounts automatically. Passes are one-off, not auto-renewing
-  (recurring billing on mobile money is unreliable; 30-day passes are the honest version).
-- **Dashboard** — balance, top-up buttons, and every past CV/letter reopenable and printable.
-- **Jobs board** — employers post free (login required, which limits spam); every listing has a
-  "Tailor my CV for this job" button that pre-fills the generator. This is the flywheel:
-  employers bring seekers, seekers pay per application.
-- **AI** — Google Gemini (free tier to start). One file to swap providers later:
-  `app/api/generate/route.js`.
+1. **Supabase**: create a project → SQL Editor → paste `supabase-schema.sql` → Run.
+   Copy Project URL, anon key, service_role key into your env vars.
+2. **Gemini**: get a free key at aistudio.google.com.
+3. **IntaSend**: sandbox.intasend.com for testing; payment.intasend.com once KYC'd.
+4. **Resend + Supabase SMTP**: for real confirmation emails (see below).
+5. Deploy on Vercel, add all variables from `.env.example`, deploy.
+6. Make yourself an admin: Supabase SQL Editor →
+   `update public.profiles set is_admin = true where email = 'you@example.com';`
 
-## Setup (about 30 minutes, all free)
+## Email verification
 
-### 1. Supabase (database + accounts)
-1. Create a free project at supabase.com (choose a region, set a strong DB password).
-2. Open **SQL Editor**, paste the entire contents of `supabase-schema.sql`, click **Run**.
-3. In **Authentication → Providers → Email**: for a smoother beta, turn OFF
-   "Confirm email" (turn it back on before public launch).
-4. In **Project Settings → API**, copy three values: Project URL, `anon` public key,
-   and `service_role` key (keep service_role secret — server only).
+Supabase's built-in email sender has a tight rate limit meant for development.
+Before turning on "Confirm email" in Authentication settings, connect Resend
+(free, 3,000/month) as custom SMTP in Supabase → Project Settings → Authentication
+→ SMTP Settings. Then install the branded templates from `email-templates/`
+into Supabase → Authentication → Emails.
 
-### 2. Gemini (AI)
-Get a free key at aistudio.google.com → Get API key.
-Note: on Gemini's free tier Google may use prompts to improve its models —
-acceptable for beta, switch to a paid key before charging the public.
+## Privacy fix (important context for future edits)
 
-### 3. IntaSend (payments)
-1. Sign up at intasend.com. Start in **sandbox** (test mode) — you get test keys immediately;
-   live keys require completing their KYC (ID + basic business info, usually ~1 day).
-2. Copy your **Publishable key** (starts `ISPubKey_test_` in sandbox).
-3. In the IntaSend dashboard, set up a **Webhook**: URL = `https://YOUR-DOMAIN/api/payments/webhook`,
-   and set a **challenge** — any secret phrase. The same phrase goes in your env vars.
-4. Sandbox lets you simulate successful M-Pesa payments without real money.
-
-### 4. Deploy on Vercel
-1. Push this folder to GitHub (GitHub Desktop: commit → push).
-2. vercel.com → Add New Project → import the repo.
-3. Add ALL environment variables from `.env.example` (with your real values).
-   Set `NEXT_PUBLIC_SITE_URL` to your Vercel URL once you know it.
-4. Deploy. Then create your own account on the live site, buy a plan with an IntaSend
-   sandbox test payment, and confirm credits appear in your dashboard within a minute.
-
-### Going live with real money
-- Complete IntaSend KYC → swap `INTASEND_PUBLISHABLE_KEY` to the live key and
-  `INTASEND_BASE_URL` to `https://payment.intasend.com`, update the webhook URL if your
-  domain changed, and redeploy.
-- Switch Gemini to a paid key (or back to Claude) — user CVs shouldn't be on a
-  free tier that trains models.
-- Vercel Hobby is non-commercial: upgrade to Pro ($20/mo) or move to Cloudflare
-  when you start charging.
-- Turn email confirmation back on in Supabase.
+Profile drafts are stored in the browser scoped **per account** via
+`lib/storage.js` (`tumacv-profile-<user-id>`), not a single shared key. This
+was a real bug fixed after a report: a second account created on the same
+browser was seeing the first account's saved CV. Never reintroduce a shared
+unscoped localStorage key for profile data — always go through
+`getSavedProfile(userId)` / `setSavedProfile(userId, text)`.
 
 ## Where things live
 
 ```
-lib/plans.js                     ← pricing (edit here only)
-lib/supabaseClient.js            ← browser DB client
-lib/supabaseAdmin.js             ← server DB client + auth check
-app/page.js                      ← generator
-app/login/page.js                ← auth
-app/dashboard/page.js            ← balance, top-ups, history
-app/jobs/page.js                 ← jobs board
-app/api/generate/route.js        ← Gemini + credit enforcement
-app/api/checkout/route.js        ← creates IntaSend checkout
-app/api/payments/webhook/route.js ← credits accounts after payment
-app/api/fetch-jd/route.js        ← reads job URLs
-supabase-schema.sql              ← run once in Supabase
+lib/plans.js                     Pricing (edit here only)
+lib/storage.js                   Per-account localStorage — the privacy fix
+lib/gemini.js                    Shared AI caller with model-fallback
+lib/gamification.js              Badges + industries list
+app/page.js                      Generator (homepage)
+app/onboarding/page.js           First-run onboarding AND "Edit profile" (dual purpose)
+app/dashboard/page.js            Credits, streak, badges, insight, history
+app/admin/page.js                Admin panel (Overview/Users/Jobs/Payments/Articles)
+app/api/generate/route.js        Gemini + credits + streak tracking
+app/api/cron/generate-articles   Daily AI news articles (2/day, random industry)
+supabase-schema.sql              Fresh-install schema (final state)
+supabase-migration-v4..v7.sql    Incremental migrations, run in order on an existing DB
 ```
 
-## Security notes
-- Prices are decided server-side (`lib/plans.js` imported by API routes) — the client can't
-  pay KES 1 for Unlimited.
-- Credits are checked and deducted server-side with the service-role key; row-level security
-  means users can only read their own data.
-- The webhook rejects calls without your challenge phrase and only fulfills each payment once.
-- No secret key ever ships to the browser: only `NEXT_PUBLIC_*` variables are public.
+## Model fallback
 
-## Update: pricing & LinkedIn (this revision)
-
-**Pricing** now runs KES 1/generation (KES 50 → 50 applications), because the AI model
-switched to Gemini Flash-Lite, which costs roughly KES 0.20–0.30 per generation on the
-paid tier — leaving healthy margin even at this much lower price. Tiers live in
-`lib/plans.js`. `FREE_MODE` there is set back to `false`.
-
-**LinkedIn**: there is no legitimate way for a third-party app to auto-pull someone's
-full LinkedIn profile — the official API only exposes name/email/photo, and scraping
-violates LinkedIn's terms and carries real legal risk. What's actually implemented:
-users export their own profile as a PDF (LinkedIn's native, first-party "Save to PDF"),
-upload it, and the app extracts the text client-side (in the browser, via pdfjs-dist —
-nothing is sent to LinkedIn or uploaded to any server for this step). Same applies to
-LinkedIn *job* links — they sit behind a login wall by design, so those still require
-pasting the description text; every other job board (BrighterMonday, Fuzu, MyJobMag,
-company career pages) is fetched automatically as before.
-
-**Going to real paid Gemini**: the free aistudio.google.com key works during testing,
-but has tight rate limits shared across all users. Before real launch, enable billing
-on the Gemini API (console shows a "set up billing" prompt) so the app draws from the
-much higher paid-tier limits — the code and pricing model already assume paid-tier cost.
-
-## Update: email verification + branded emails
-
-**Why now, not earlier:** email confirmation was turned OFF during initial testing because
-Supabase's built-in email sender has a very tight rate limit (2-4/hour) meant for development,
-not real users. Turning confirmation back on without fixing that first would lock users out
-after a handful of signups.
-
-### Step 1 — Connect a real email sender (Resend, free)
-1. Sign up at resend.com (free tier: 3,000 emails/month).
-2. Add and verify a domain (or use their shared onboarding domain to start immediately).
-3. Create an API key.
-4. In Supabase → Project Settings → Authentication → SMTP Settings, enable custom SMTP:
-   - Host: `smtp.resend.com`
-   - Port: `465` (or `587`)
-   - Username: `resend`
-   - Password: your Resend API key
-   - Sender email: an address on your verified domain (e.g. `noreply@yourdomain.com`)
-
-### Step 2 — Turn confirmation back on
-Supabase → Authentication → Sign In / Providers → Email → toggle **"Confirm email" ON**.
-
-### Step 3 — Install the branded templates
-Supabase → Authentication → Emails. For each template, paste the matching file from
-`email-templates/` in this repo:
-- `confirm-signup.html` → **Confirm signup**
-- `reset-password.html` → **Reset Password**
-
-Both match the site's visual language (green/red accent bar, TumaCV wordmark, same button style).
-
-### Bonus: bot protection beyond email verification
-Supabase also supports a CAPTCHA challenge on signup/signin (Authentication → Attack Protection),
-which stops automated signups more directly than email verification alone (a bot can still use
-a real email, it just can't click the confirmation link). This needs a small frontend widget
-(hCaptcha or Turnstile) added to the login form — ask if you'd like this built in too.
+`lib/gemini.js` tries `gemini-2.5-flash-lite` → `gemini-3.5-flash-lite` →
+`gemini-3.6-flash` in that order (cheapest first), only falling forward on a
+404 (model retired/renamed) — Google has renamed models mid-project before,
+so this absorbs the next rename without a code change.

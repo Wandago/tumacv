@@ -1,10 +1,8 @@
 :root {
-  /* ---- brand accents (constant across themes) ---- */
   --kijani: #0b8a3f;
   --kijani-dark: #056a2f;
   --moto: #ff453a;
 
-  /* ---- light theme ---- */
   --ink: #1d1d1f;
   --soil: #6e6e73;
   --paper: #f5f5f7;
@@ -15,7 +13,6 @@
   --shadow-2: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
   --nav-bg: rgba(255,255,255,0.72);
 
-  /* ---- type: system stack renders as real San Francisco on Apple devices ---- */
   --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
@@ -40,7 +37,6 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 html { color-scheme: light dark; }
 
 body {
@@ -54,7 +50,6 @@ body {
 
 a { color: inherit; }
 
-/* ---------- shell ---------- */
 .shell { max-width: 720px; margin: 0 auto; padding: 0 18px 110px; }
 .shell.wide { max-width: 980px; }
 
@@ -87,7 +82,6 @@ header.top {
 }
 .hero .price b { font-weight: 600; }
 
-/* ---------- steps (grouped, card-like — Apple "settings list" feel) ---------- */
 .step {
   background: var(--sheet); border: 1px solid var(--stone); border-radius: 18px;
   padding: 20px 22px; margin-bottom: 12px; box-shadow: var(--shadow-1);
@@ -133,7 +127,6 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
 .error { color: var(--moto); font-size: 13px; margin-top: 8px; }
 .success { color: var(--kijani-dark); font-size: 13px; margin-top: 8px; }
 
-/* template picker */
 .tpl-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .tpl-card {
   border: 1px solid var(--stone); border-radius: 14px; background: var(--surface-2);
@@ -144,7 +137,6 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
 .tpl-card .tpl-desc { font-size: 11.5px; color: var(--soil); margin-top: 3px; }
 @media (max-width: 560px) { .tpl-row { grid-template-columns: 1fr; } }
 
-/* generate bar */
 .gen-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
   background: var(--nav-bg); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6);
@@ -156,7 +148,6 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
 }
 .gen-bar .sum { font-family: var(--mono); font-size: 11.5px; color: var(--soil); }
 
-/* ---------- results ---------- */
 .results-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 6px 0 14px; }
 .results-head h2 { font-family: var(--display); font-weight: 600; font-size: 19px; margin-right: auto; letter-spacing: -0.01em; }
 
@@ -174,7 +165,6 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
 .doc-tabs button { border-radius: 999px; padding: 8px 16px; }
 .doc-tabs .on { background: var(--ink); color: var(--paper); }
 
-/* the paper sheet — always light, mimics a printed page regardless of theme */
 .sheet-wrap { display: flex; justify-content: center; padding: 4px 0 26px; }
 .sheet {
   background: #ffffff; width: 100%; max-width: 794px; min-height: 600px;
@@ -186,7 +176,6 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
 
 .letter { font-family: var(--serif); font-size: 14.5px; line-height: 1.7; white-space: pre-wrap; color: #1a1a1a; }
 
-/* ---------- CV templates (paper — always light) ---------- */
 .cv { font-size: 13px; line-height: 1.5; color: #1a1a1a; }
 .cv h1 { letter-spacing: -0.01em; }
 .cv ul { padding-left: 18px; }
@@ -233,13 +222,11 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
 .cv .exp-item { margin-bottom: 11px; }
 .cv .summary { margin-top: 10px; }
 
-/* ---------- loading ---------- */
 .loading { display: flex; align-items: center; gap: 10px; color: var(--soil); font-family: var(--mono); font-size: 13px; padding: 30px 0; }
 .spinner { width: 16px; height: 16px; border: 2px solid var(--stone); border-top-color: var(--kijani); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } button { transition: none; } }
 
-/* ---------- print: only the active sheet ---------- */
 @media print {
   body { background: #fff; }
   body * { visibility: hidden; }
@@ -248,7 +235,6 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
   .gen-bar, .doc-tabs, .results-head, .fit { display: none; }
 }
 
-/* ---------- nav ---------- */
 .nav-links { display: flex; align-items: center; gap: 14px; font-size: 13.5px; }
 .nav-links a { color: var(--ink); text-decoration: none; font-weight: 500; }
 .nav-links a:hover { color: var(--kijani-dark); }
@@ -263,14 +249,12 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
 }
 .theme-toggle:hover { background: var(--stone); }
 
-/* ---------- nav: generate CV button ---------- */
 .nav-generate-btn {
   background: var(--kijani); color: #fff; border-radius: 999px; padding: 7px 14px;
   text-decoration: none; font-weight: 600; font-size: 13px;
 }
 .nav-generate-btn:hover { background: var(--kijani-dark); }
 
-/* ---------- auth ---------- */
 .auth-card {
   max-width: 400px; margin: 32px auto; background: var(--sheet);
   border: 1px solid var(--stone); border-radius: 20px; padding: 28px;
@@ -319,7 +303,6 @@ select:focus {
 
 .upload-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
 
-/* ---------- banners ---------- */
 .banner {
   background: color-mix(in srgb, var(--kijani) 12%, var(--sheet)); border: 1px solid var(--kijani);
   border-radius: 14px; padding: 12px 16px; font-size: 14px; margin: 14px 0;
@@ -334,7 +317,6 @@ select:focus {
 }
 .hired-prompt:hover { border-color: var(--kijani); color: var(--ink); }
 
-/* ---------- dashboard ---------- */
 .dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 @media (max-width: 720px) { .dash-grid { grid-template-columns: 1fr 1fr; } }
 .dash-card {
@@ -394,7 +376,6 @@ select:focus {
 .hi-title { font-weight: 600; font-size: 13.5px; }
 .hi-meta { font-family: var(--mono); font-size: 10.5px; color: var(--soil); white-space: nowrap; }
 
-/* ---------- share buttons ---------- */
 .share-prompt { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 4px 0; text-align: center; }
 .share-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .share-row.compact .share-btn { padding: 7px 12px; font-size: 12px; }
@@ -404,7 +385,6 @@ select:focus {
 .share-btn.li { background: #0A66C2; }
 .share-btn.copy { background: var(--surface-2); color: var(--ink); }
 
-/* ---------- jobs board ---------- */
 .post-card { background: var(--sheet); border: 1px solid var(--stone); border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow-1); }
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
 @media (max-width: 560px) { .two-col { grid-template-columns: 1fr; } }
@@ -418,7 +398,6 @@ select:focus {
 .job-body { padding: 0 17px 17px; font-size: 13.5px; border-top: 1px solid var(--stone); padding-top: 13px; }
 .job-apply { margin-top: 10px; }
 
-/* ---------- news page ---------- */
 .news-filter-row { display: flex; gap: 7px; flex-wrap: wrap; margin: 14px 0 18px; }
 .news-filter-chip { border: 1px solid var(--stone); border-radius: 999px; padding: 6px 14px; font-size: 12px; background: var(--sheet); }
 .news-filter-chip.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }

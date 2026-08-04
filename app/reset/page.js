@@ -14,7 +14,6 @@ export default function ResetPassword() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    // The emailed link signs the user into a temporary recovery session.
     const sb = supabaseBrowser();
     sb.auth.getSession().then(({ data }) => setReady(!!data?.session));
     const { data: sub } = sb.auth.onAuthStateChange((_e, session) => setReady(!!session));

@@ -1,5 +1,6 @@
 import { requireUser } from "../../../lib/supabaseAdmin";
 import { isUnlimited, FREE_MODE } from "../../../lib/plans";
+import { callGemini } from "../../../lib/gemini";
 
 export const maxDuration = 60;
 
@@ -33,36 +34,6 @@ Respond with ONLY a JSON object matching exactly:
 }
 Use empty strings for unknown contact fields. Do not fabricate contact details.`;
 
-// Ordered by cost: Flash-Lite is ~15x cheaper than 3.6 Flash and is what the
-// pricing in lib/plans.js is built around. Falls forward only on 404 (a model
-// being renamed/retired) — not on quota/auth errors, which surface immediately.
-const MODEL_CANDIDATES = ["gemini-2.5-flash-lite", "gemini-3.5-flash-lite", "gemini-3.6-flash"];
-
-async function callGemini(body) {
-  let lastDetail = "";
-  for (const model of MODEL_CANDIDATES) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      }
-    );
-    if (res.ok) return res;
-    lastDetail = await res.text();
-    // Only fall through to the next model on a 404 (model retired/renamed).
-    // Any other error (bad key, quota, etc.) should surface immediately.
-    if (res.status !== 404) {
-      console.error(`Gemini error (${model}):`, lastDetail);
-      return { ok: false, status: res.status, _detail: lastDetail };
-    }
-    console.error(`Gemini model unavailable, trying next: ${model}`);
-  }
-  console.error("All Gemini model candidates failed:", lastDetail);
-  return { ok: false, status: 502, _detail: lastDetail };
-}
-
 export async function POST(req) {
   try {
     const authed = await requireUser(req);
@@ -79,10 +50,9 @@ export async function POST(req) {
       return Response.json({ error: "Add more detail about yourself — work history, education, skills." }, { status: 400 });
     }
 
-    // Credit check (skipped entirely in FREE_MODE)
     const { data: profile, error: pErr } = await admin
       .from("profiles")
-      .select("credits, plan, plan_expires")
+      .select("credits, plan, plan_expires, streak_count, longest_streak, last_generation_date")
       .eq("id", user.id)
       .single();
     if (pErr || !profile) {
@@ -136,29 +106,20 @@ export async function POST(req) {
       parsed = JSON.parse(clean.slice(start, end + 1));
     }
 
-    // Success: deduct credit (unless unlimited/free), track streak, and save history
-    if (!unlimited) {
-      await admin.from("profiles").update({ credits: profile.credits - 1 }).eq("id", user.id);
-    }
-
-    // Streak: consecutive calendar days with at least one application.
+    // Streak tracking
     const today = new Date().toISOString().slice(0, 10);
-    const { data: streakProfile } = await admin
-      .from("profiles")
-      .select("streak_count, last_generation_date")
-      .eq("id", user.id)
-      .single();
-    if (streakProfile) {
-      const last = streakProfile.last_generation_date;
-      let newStreak = 1;
-      if (last === today) {
-        newStreak = streakProfile.streak_count || 1; // already counted today
-      } else if (last) {
-        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-        newStreak = last === yesterday ? (streakProfile.streak_count || 0) + 1 : 1;
-      }
-      await admin.from("profiles").update({ streak_count: newStreak, last_generation_date: today }).eq("id", user.id);
+    let newStreak = 1;
+    if (profile.last_generation_date === today) {
+      newStreak = profile.streak_count || 1;
+    } else if (profile.last_generation_date) {
+      const diffDays = Math.round((new Date(today) - new Date(profile.last_generation_date)) / 86400000);
+      newStreak = diffDays === 1 ? (profile.streak_count || 0) + 1 : 1;
     }
+    const newLongest = Math.max(newStreak, profile.longest_streak || 0);
+
+    const updates = { streak_count: newStreak, longest_streak: newLongest, last_generation_date: today };
+    if (!unlimited) updates.credits = profile.credits - 1;
+    await admin.from("profiles").update(updates).eq("id", user.id);
 
     await admin.from("generations").insert({
       user_id: user.id,

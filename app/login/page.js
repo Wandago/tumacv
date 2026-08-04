@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Nav from "../../components/Nav";
 import { supabaseBrowser } from "../../lib/supabaseClient";
@@ -59,7 +59,12 @@ function PasswordInput({ id, value, onChange, placeholder, autoComplete, onEnter
 
 export default function Login() {
   const router = useRouter();
-  const [mode, setMode] = useState("signin"); // signin | signup | forgot
+  const [mode, setMode] = useState("signin");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "signup") setMode("signup");
+  }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -125,7 +130,6 @@ export default function Login() {
       return;
     }
 
-    // signin
     setBusy(true);
     try {
       const { data, error } = await sb.auth.signInWithPassword({ email, password });

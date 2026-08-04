@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack: (config) => {
-    // pdfjs-dist's legacy build optionally requires 'canvas' for server-side
-    // rendering support we don't use (all PDF parsing happens in the browser).
     config.resolve.alias.canvas = false;
     return config;
   },

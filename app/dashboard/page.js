@@ -6,14 +6,14 @@ import CvView from "../../components/CvView";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { PLANS, FREE_MODE } from "../../lib/plans";
 import { earnedBadges, nextBadge, BADGES } from "../../lib/gamification";
-import ShareButtons from "../../components/ShareButtons";
+import { clearLegacySharedDraft } from "../../lib/storage";
 
 export default function Dashboard() {
   const router = useRouter();
-  const [user, setUser] = useState(undefined); // undefined = loading
+  const [user, setUser] = useState(undefined);
   const [profile, setProfile] = useState(null);
   const [history, setHistory] = useState([]);
-  const [viewing, setViewing] = useState(null); // {result, template}
+  const [viewing, setViewing] = useState(null);
   const [tab, setTab] = useState("cv");
   const [buying, setBuying] = useState("");
   const [err, setErr] = useState("");
@@ -49,21 +49,24 @@ export default function Dashboard() {
   }, [user]);
 
   useEffect(() => {
+    if (!paidBanner || !user) return;
+    const t = setInterval(() => loadData(user), 4000);
+    const stop = setTimeout(() => clearInterval(t), 40000);
+    return () => { clearInterval(t); clearTimeout(stop); };
+  }, [paidBanner, user]);
+
+  useEffect(() => {
     if (!user || !profile?.industry) return;
     setInsightLoading(true);
-    supabaseBrowser().auth.getSession().then(async ({ data: sess }) => {
-      try {
-        const res = await fetch("/api/insight", {
-          headers: { authorization: `Bearer ${sess?.session?.access_token}` },
-        });
-        const data = await res.json();
-        setInsight(data.insight || null);
-      } catch {
-        setInsight(null);
-      } finally {
-        setInsightLoading(false);
-      }
-    });
+    (async () => {
+      const { data: sess } = await supabaseBrowser().auth.getSession();
+      const res = await fetch("/api/insight", {
+        headers: { authorization: `Bearer ${sess?.session?.access_token}` },
+      });
+      const data = await res.json();
+      setInsight(data.insight || null);
+      setInsightLoading(false);
+    })();
   }, [user, profile?.industry]);
 
   async function toggleHired(value) {
@@ -73,14 +76,6 @@ export default function Dashboard() {
     setProfile((p) => ({ ...p, hired: value }));
     setHiredBusy(false);
   }
-
-  // After returning from payment, poll a few times while the webhook lands.
-  useEffect(() => {
-    if (!paidBanner || !user) return;
-    const t = setInterval(() => loadData(user), 4000);
-    const stop = setTimeout(() => clearInterval(t), 40000);
-    return () => { clearInterval(t); clearTimeout(stop); };
-  }, [paidBanner, user]);
 
   async function buy(planId) {
     setErr("");
@@ -107,6 +102,7 @@ export default function Dashboard() {
   }
 
   async function signOut() {
+    clearLegacySharedDraft();
     await supabaseBrowser().auth.signOut();
     router.push("/");
   }
@@ -262,7 +258,12 @@ export default function Dashboard() {
           )}
         </div>
         {history.length === 0 ? (
-          <p className="step-hint">Nothing yet. <a href="/">Generate your first tailored CV →</a></p>
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <p className="step-hint">Nothing yet — let's fix that.</p>
+            <a href="/" className="btn-primary" style={{ textDecoration: "none", display: "inline-block", padding: "12px 28px" }}>
+              Generate your first CV
+            </a>
+          </div>
         ) : (
           <div className="history-list">
             {history.map((h) => (

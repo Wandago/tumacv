@@ -6,8 +6,6 @@ export const metadata = {
     "Paste a job description, get a CV and cover letter tailored to it. Built for Kenyan job seekers. Pay per application via M-Pesa.",
 };
 
-// Runs before paint to avoid a flash of the wrong theme. Reads a saved
-// preference; falls back to the OS setting if the person hasn't chosen one.
 const themeInit = `
 (function() {
   try {

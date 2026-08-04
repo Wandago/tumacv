@@ -1,6 +1,8 @@
--- TumaCV database schema. Paste this whole file into Supabase → SQL Editor → Run.
+-- TumaCV database schema (consolidated, final state as of this build).
+-- For a BRAND NEW Supabase project: paste this whole file into SQL Editor → Run.
+-- If you already have a TumaCV database, do NOT run this — use the numbered
+-- migration files instead (supabase-migration-v4.sql through v7.sql), in order.
 
--- Profiles: one row per user, created automatically on signup with 2 free credits.
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
@@ -11,6 +13,15 @@ create table public.profiles (
   experience_level text,
   profile_text text,
   onboarded boolean not null default false,
+  streak_count int not null default 0,
+  longest_streak int not null default 0,
+  last_generation_date date,
+  hired boolean not null default false,
+  hired_at timestamptz,
+  cached_insight text,
+  insight_date date,
+  is_admin boolean not null default false,
+  terms_accepted_at timestamptz,
   created_at timestamptz not null default now()
 );
 alter table public.profiles enable row level security;
@@ -23,7 +34,7 @@ create policy "update own profile" on public.profiles
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, email) values (new.id, new.email);
+  insert into public.profiles (id, email, terms_accepted_at) values (new.id, new.email, now());
   return new;
 end $$;
 
@@ -31,7 +42,6 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- Generation history: reopen any past CV/letter from the dashboard.
 create table public.generations (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -44,7 +54,6 @@ alter table public.generations enable row level security;
 create policy "read own generations" on public.generations
   for select using (auth.uid() = user_id);
 
--- Job board: anyone can read, logged-in users can post for free.
 create table public.jobs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete set null,
@@ -64,7 +73,6 @@ create policy "logged in users can post jobs" on public.jobs
 create policy "posters can delete own jobs" on public.jobs
   for delete using (auth.uid() = user_id);
 
--- Payments: created server-side, fulfilled by the IntaSend webhook.
 create table public.payments (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -77,3 +85,14 @@ create table public.payments (
 alter table public.payments enable row level security;
 create policy "read own payments" on public.payments
   for select using (auth.uid() = user_id);
+
+create table public.articles (
+  id uuid primary key default gen_random_uuid(),
+  industry text not null,
+  title text not null,
+  content text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.articles enable row level security;
+create policy "articles are public" on public.articles
+  for select using (true);

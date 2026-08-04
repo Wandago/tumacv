@@ -6,8 +6,6 @@ export const maxDuration = 60;
 
 const ARTICLES_PER_RUN = 2;
 
-// Rotating the angle is what keeps articles from reading like the same
-// template with the industry name swapped in.
 const ANGLES = [
   "what's actually changing in hiring for this field right now, and why",
   "the specific skills employers in this field are screening for that most candidates don't realize matter",
@@ -37,7 +35,7 @@ async function chooseIndustries(admin) {
     .gte("created_at", threeDaysAgo);
   const recentSet = new Set((recent || []).map((r) => r.industry));
   let candidates = pool.filter((i) => !recentSet.has(i));
-  if (candidates.length < ARTICLES_PER_RUN) candidates = pool; // exhausted the fresh pool, allow repeats
+  if (candidates.length < ARTICLES_PER_RUN) candidates = pool;
   return pickTwo(candidates);
 }
 
@@ -78,7 +76,7 @@ Respond as JSON only: {"title": "a specific, sharp headline — not generic", "c
 export async function GET(req) {
   const url = new URL(req.url);
   const provided = url.searchParams.get("secret") || req.headers.get("x-cron-secret");
-  const authHeader = req.headers.get("authorization"); // Vercel Cron sends this automatically
+  const authHeader = req.headers.get("authorization");
   const authorized =
     (process.env.CRON_SECRET && provided === process.env.CRON_SECRET) ||
     (process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`);

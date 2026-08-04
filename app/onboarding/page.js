@@ -5,6 +5,7 @@ import Nav from "../../components/Nav";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { extractPdfText } from "../../lib/pdfText";
 import { INDUSTRIES } from "../../lib/gamification";
+import { getSavedProfile, setSavedProfile } from "../../lib/storage";
 
 const LEVELS = [
   { id: "graduate", label: "Entry-level / recent graduate" },
@@ -43,7 +44,8 @@ export default function Onboarding() {
       if (profile?.profile_text) {
         setProfileText(profile.profile_text);
       } else {
-        const draft = localStorage.getItem("tumacv-profile");
+        // Scoped to this account's id — never a different person's leftover draft.
+        const draft = getSavedProfile(data.user.id);
         if (draft) setProfileText(draft);
       }
       setReady(true);
@@ -88,7 +90,7 @@ export default function Onboarding() {
         })
         .eq("id", userData.user.id);
       if (error) throw error;
-      if (profileText) localStorage.setItem("tumacv-profile", profileText);
+      if (profileText) setSavedProfile(userData.user.id, profileText);
       if (isEditing) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
@@ -102,8 +104,6 @@ export default function Onboarding() {
     }
   }
 
-  // First-time skip: marks onboarding done without requiring any info.
-  // Editing "Cancel" just leaves — never touches existing saved data.
   async function skipOrCancel() {
     if (isEditing) {
       router.push("/dashboard");
