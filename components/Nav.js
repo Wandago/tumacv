@@ -8,6 +8,7 @@ import ThemeToggle from "./ThemeToggle";
 export default function Nav() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const sb = supabaseBrowser();
@@ -29,32 +30,60 @@ export default function Nav() {
       .then(({ data }) => setProfile(data));
   }, [user]);
 
+  // Close the mobile menu automatically if the viewport grows past the
+  // mobile breakpoint (e.g. rotating a tablet), so it can't get stuck open.
+  useEffect(() => {
+    const onResize = () => { if (window.innerWidth > 680) setMenuOpen(false); };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const unlimited =
     profile?.plan === "unlimited" && profile?.plan_expires && new Date(profile.plan_expires) > new Date();
 
+  const links = (
+    <>
+      <Link href="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link>
+      <Link href="/jobs" onClick={() => setMenuOpen(false)}>Jobs board</Link>
+      <Link href="/news" onClick={() => setMenuOpen(false)}>News</Link>
+      <div className="nav-theme-row">
+        <span>Theme</span>
+        <ThemeToggle />
+      </div>
+      {user ? (
+        <>
+          <Link href="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</Link>
+          {profile?.is_admin && <Link href="/admin" onClick={() => setMenuOpen(false)}>Admin</Link>}
+          <span className="credits-pill">
+            {FREE_MODE ? "Free" : unlimited ? "Unlimited" : `${profile?.credits ?? "…"} credits`}
+          </span>
+          <Link href="/" className="nav-generate-btn" onClick={() => setMenuOpen(false)}>Generate CV</Link>
+        </>
+      ) : (
+        <Link href="/login" className="nav-cta" onClick={() => setMenuOpen(false)}>Sign in</Link>
+      )}
+    </>
+  );
+
   return (
     <header className="top">
-      <Link href="/" className="wordmark" style={{ textDecoration: "none", color: "inherit" }}>
-        Tuma<span>CV</span>
-      </Link>
-      <nav className="nav-links">
-        <Link href="/pricing">Pricing</Link>
-        <Link href="/jobs">Jobs board</Link>
-        <Link href="/news">News</Link>
-        <ThemeToggle />
-        {user ? (
-          <>
-            <Link href="/dashboard">Dashboard</Link>
-            {profile?.is_admin && <Link href="/admin">Admin</Link>}
-            <span className="credits-pill">
-              {FREE_MODE ? "Free" : unlimited ? "Unlimited" : `${profile?.credits ?? "…"} credits`}
-            </span>
-            <Link href="/" className="nav-generate-btn">Generate CV</Link>
-          </>
-        ) : (
-          <Link href="/login" className="nav-cta">Sign in</Link>
-        )}
-      </nav>
+      <div className="nav-bar-row">
+        <Link href="/" className="wordmark" style={{ textDecoration: "none", color: "inherit" }} onClick={() => setMenuOpen(false)}>
+          Tuma<span>CV</span>
+        </Link>
+        <nav className="nav-links desktop-only">{links}</nav>
+        <button
+          className="nav-hamburger mobile-only"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? "✕" : "☰"}
+        </button>
+      </div>
+      {menuOpen && (
+        <nav className="nav-mobile-panel mobile-only">{links}</nav>
+      )}
     </header>
   );
 }
