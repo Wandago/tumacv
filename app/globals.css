@@ -268,11 +268,11 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } button { transition: none; } }
 
 @media print {
-  body { background: #fff; }
-  body * { visibility: hidden; }
-  .sheet, .sheet * { visibility: visible; }
-  .sheet { position: absolute; inset: 0; box-shadow: none; max-width: none; padding: 0; }
-  .gen-bar, .doc-tabs, .results-head, .fit { display: none; }
+  body { background: #fff; margin: 0; }
+  header.top, .gen-bar, .doc-tabs, .results-head, .fit, footer, .share-prompt { display: none !important; }
+  .shell, .shell.wide { max-width: none; margin: 0; padding: 0; }
+  .sheet-wrap { display: block; padding: 0; }
+  .sheet { box-shadow: none; max-width: none; width: 100%; margin: 0; }
 }
 
 .nav-links { align-items: center; gap: 14px; font-size: 13.5px; }
