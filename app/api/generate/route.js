@@ -56,6 +56,7 @@ export async function POST(req) {
       .eq("id", user.id)
       .single();
     if (pErr || !profile) {
+      console.error("Profile lookup failed for", user.id, pErr);
       return Response.json({ error: "Could not load your account. Try signing out and in." }, { status: 500 });
     }
     const unlimited = FREE_MODE || isUnlimited(profile);
