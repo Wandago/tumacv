@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Nav from "../../components/Nav";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { extractPdfText } from "../../lib/pdfText";
+import { extractImagesToText } from "../../lib/imageExtract";
 import { INDUSTRIES } from "../../lib/gamification";
 import { getSavedProfile, setSavedProfile } from "../../lib/storage";
 
@@ -23,10 +24,13 @@ export default function Onboarding() {
   const [profileText, setProfileText] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfErr, setPdfErr] = useState("");
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoErr, setPhotoErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef(null);
+  const photoInputRef = useRef(null);
 
   useEffect(() => {
     const sb = supabaseBrowser();
@@ -70,6 +74,28 @@ export default function Onboarding() {
     } finally {
       setPdfBusy(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handlePhotoUpload(e) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setPhotoErr("");
+    if (files.length > 4) {
+      setPhotoErr("Please choose up to 4 photos at a time.");
+      if (photoInputRef.current) photoInputRef.current.value = "";
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      const { data: sess } = await supabaseBrowser().auth.getSession();
+      const text = await extractImagesToText(files, sess?.session?.access_token);
+      setProfileText(text);
+    } catch (err) {
+      setPhotoErr(err.message || "Couldn't read those photos. Try again, or type your details instead.");
+    } finally {
+      setPhotoBusy(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
     }
   }
 
@@ -166,9 +192,24 @@ export default function Onboarding() {
           <button type="button" className="btn-ghost" onClick={() => fileInputRef.current?.click()} disabled={pdfBusy}>
             {pdfBusy ? "Reading PDF…" : "📄 Upload PDF"}
           </button>
-          <span className="field-note" style={{ marginTop: 0 }}>or paste below</span>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: "none" }}
+            onChange={handlePhotoUpload}
+          />
+          <button type="button" className="btn-ghost" onClick={() => photoInputRef.current?.click()} disabled={photoBusy}>
+            {photoBusy ? "Reading photo…" : "📷 Or upload a photo"}
+          </button>
         </div>
         {pdfErr && <p className="error">{pdfErr}</p>}
+        {photoErr && <p className="error">{photoErr}</p>}
+        <p className="field-note" style={{ marginBottom: 10 }}>
+          On iPhone, can't find your saved PDF? Try the photo option instead — a picture of a printed
+          CV or a few LinkedIn screenshots works well, straight from Camera or Photos.
+        </p>
         <textarea
           style={{ minHeight: 160 }}
           placeholder="Paste your CV or LinkedIn export text here…"
