@@ -5,6 +5,7 @@ import CvView from "../components/CvView";
 import { supabaseBrowser } from "../lib/supabaseClient";
 import { FREE_MODE } from "../lib/plans";
 import { extractPdfText } from "../lib/pdfText";
+import { generateCvDocx, downloadBlob } from "../lib/generateDocx";
 import { extractImagesToText } from "../lib/imageExtract";
 import { getSavedProfile, setSavedProfile, clearLegacySharedDraft } from "../lib/storage";
 import ShareButtons from "../components/ShareButtons";
@@ -13,6 +14,8 @@ const TEMPLATES = [
   { id: "classic", name: "Classic", desc: "Serif, formal. Banks, gov, NGOs." },
   { id: "modern", name: "Modern", desc: "Green sidebar. Startups, media, tech." },
   { id: "compact", name: "Compact", desc: "Dense. Lots of experience, 1 page." },
+  { id: "minimal", name: "Minimal", desc: "Clean and understated. Design, product." },
+  { id: "executive", name: "Executive", desc: "Formal and bold. Senior, leadership roles." },
 ];
 
 export default function Home() {
@@ -30,6 +33,7 @@ export default function Home() {
   const [result, setResult] = useState(null);
   const [tab, setTab] = useState("cv");
   const [copied, setCopied] = useState(false);
+  const [docxBusy, setDocxBusy] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfErr, setPdfErr] = useState("");
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -186,6 +190,30 @@ export default function Home() {
     setTimeout(() => setCopied(false), 1500);
   }
 
+  async function downloadDocx() {
+    if (!result?.cv) return;
+    setDocxBusy(true);
+    try {
+      const blob = await generateCvDocx(result.cv);
+      const safeName = (result.cv.name || "CV").replace(/[^a-z0-9]+/gi, "_");
+      downloadBlob(blob, `${safeName}_CV.docx`);
+    } catch (e) {
+      console.error(e);
+      setGenErr("Could not create the Word file. Try again, or use Save as PDF instead.");
+    } finally {
+      setDocxBusy(false);
+    }
+  }
+
+  function matchScore(fit) {
+    if (!fit) return null;
+    const matched = (fit.matched || []).length;
+    const missing = (fit.missing || []).length;
+    const total = matched + missing;
+    if (total === 0) return null;
+    return Math.round((matched / total) * 100);
+  }
+
   const ready = jobText.trim().length >= 80 && profileText.trim().length >= 80;
 
   if (!authChecked) return null;
@@ -245,7 +273,14 @@ export default function Home() {
         <div className="results-head">
           <h2>Your documents are ready</h2>
           <button className="btn-ghost" onClick={() => setResult(null)}>← Edit inputs</button>
-          {tab === "cv" && <button className="btn-primary" onClick={() => window.print()}>Save CV as PDF</button>}
+          {tab === "cv" && (
+            <>
+              <button className="btn-ghost" onClick={downloadDocx} disabled={docxBusy}>
+                {docxBusy ? "Preparing…" : "Download .docx"}
+              </button>
+              <button className="btn-primary" onClick={() => window.print()}>Save CV as PDF</button>
+            </>
+          )}
           {tab === "letter" && (
             <>
               <button className="btn-ghost" onClick={copyLetter}>{copied ? "Copied" : "Copy letter"}</button>
@@ -256,7 +291,14 @@ export default function Home() {
 
         {result.fit && (
           <div className="fit">
-            <h3>FIT CHECK</h3>
+            <div className="fit-top">
+              <h3>FIT CHECK</h3>
+              {matchScore(result.fit) !== null && (
+                <span className={`match-score ${matchScore(result.fit) >= 70 ? "good" : matchScore(result.fit) >= 40 ? "okay" : "low"}`}>
+                  {matchScore(result.fit)}% match
+                </span>
+              )}
+            </div>
             <div className="chips">
               {(result.fit.matched || []).map((k) => <span className="chip" key={k}>{k}</span>)}
               {(result.fit.missing || []).map((k) => <span className="chip miss" key={k}>{k}</span>)}

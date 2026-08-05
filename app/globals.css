@@ -196,6 +196,14 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
   border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; box-shadow: var(--shadow-1);
 }
 .fit h3 { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: 0.04em; color: var(--soil); }
+.fit-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.match-score {
+  font-family: var(--display); font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums;
+  padding: 4px 12px; border-radius: 999px;
+}
+.match-score.good { background: color-mix(in srgb, var(--kijani) 16%, transparent); color: var(--kijani-dark); }
+.match-score.okay { background: color-mix(in srgb, #ff9f0a 18%, transparent); color: #b06a00; }
+.match-score.low { background: color-mix(in srgb, var(--moto) 14%, transparent); color: var(--moto); }
 .fit .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .chip { font-size: 12px; padding: 4px 10px; border-radius: 99px; background: color-mix(in srgb, var(--kijani) 14%, transparent); color: var(--kijani-dark); }
 .chip.miss { background: color-mix(in srgb, var(--moto) 14%, transparent); color: var(--moto); }
@@ -258,6 +266,33 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
 .cv.compact .role-row { display: flex; justify-content: space-between; gap: 10px; font-weight: 600; }
 .cv.compact ul { padding-left: 16px; }
 .cv.compact .skills-line { line-height: 1.6; }
+
+/* Minimal — generous whitespace, left-aligned, understated */
+.cv.minimal { font-family: var(--body); font-size: 12.5px; line-height: 1.6; }
+.cv.minimal .cv-head { margin-bottom: 20px; }
+.cv.minimal h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
+.cv.minimal .cv-title { font-size: 13px; color: #555; margin-top: 3px; }
+.cv.minimal .cv-contact { font-size: 11px; color: #777; margin-top: 8px; }
+.cv.minimal h2 {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 600;
+  color: #999; margin: 24px 0 10px;
+}
+.cv.minimal .role-row { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
+.cv.minimal .co { color: #666; font-size: 12px; margin-bottom: 4px; }
+.cv.minimal .summary { color: #333; }
+.cv.minimal ul { padding-left: 16px; }
+
+/* Executive — formal, senior, heavier structure */
+.cv.executive { font-family: var(--serif); font-size: 13px; line-height: 1.55; }
+.cv.executive .cv-head { text-align: center; border-bottom: 3px double #1a1a1a; padding-bottom: 16px; margin-bottom: 4px; }
+.cv.executive h1 { font-size: 28px; font-weight: 700; letter-spacing: 0.02em; }
+.cv.executive .cv-title { font-size: 14px; margin-top: 4px; letter-spacing: 0.04em; text-transform: uppercase; color: #444; }
+.cv.executive .cv-contact { font-size: 12px; color: #444; margin-top: 8px; }
+.cv.executive h2 {
+  font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;
+  margin: 22px 0 9px; color: #1a1a1a; border-bottom: 1px solid #1a1a1a; padding-bottom: 4px;
+}
+.cv.executive .role-row { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; }
 
 .cv .exp-item { margin-bottom: 11px; }
 .cv .summary { margin-top: 10px; }

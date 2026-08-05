@@ -7,6 +7,7 @@ import { supabaseBrowser } from "../../lib/supabaseClient";
 import { PLANS, FREE_MODE } from "../../lib/plans";
 import { earnedBadges, nextBadge, BADGES } from "../../lib/gamification";
 import { clearLegacySharedDraft } from "../../lib/storage";
+import { generateCvDocx, downloadBlob } from "../../lib/generateDocx";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [history, setHistory] = useState([]);
   const [viewing, setViewing] = useState(null);
+  const [docxBusy, setDocxBusy] = useState(false);
   const [tab, setTab] = useState("cv");
   const [buying, setBuying] = useState("");
   const [err, setErr] = useState("");
@@ -107,6 +109,20 @@ export default function Dashboard() {
     router.push("/");
   }
 
+  async function downloadDocx() {
+    if (!viewing?.result?.cv) return;
+    setDocxBusy(true);
+    try {
+      const blob = await generateCvDocx(viewing.result.cv);
+      const safeName = (viewing.result.cv.name || "CV").replace(/[^a-z0-9]+/gi, "_");
+      downloadBlob(blob, `${safeName}_CV.docx`);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDocxBusy(false);
+    }
+  }
+
   const unlimited =
     profile?.plan === "unlimited" && profile?.plan_expires && new Date(profile.plan_expires) > new Date();
 
@@ -117,6 +133,11 @@ export default function Dashboard() {
         <div className="results-head">
           <h2>{viewing.job_title || "Application"}</h2>
           <button className="btn-ghost" onClick={() => setViewing(null)}>← Back to dashboard</button>
+          {tab === "cv" && (
+            <button className="btn-ghost" onClick={downloadDocx} disabled={docxBusy}>
+              {docxBusy ? "Preparing…" : "Download .docx"}
+            </button>
+          )}
           <button className="btn-primary" onClick={() => window.print()}>
             {tab === "cv" ? "Save CV as PDF" : "Save letter as PDF"}
           </button>
