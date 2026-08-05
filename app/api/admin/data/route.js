@@ -23,7 +23,7 @@ export async function GET(req) {
   if (type === "users") {
     const { data, error } = await admin
       .from("profiles")
-      .select("id, email, credits, plan, plan_expires, industry, experience_level, streak_count, hired, is_admin, created_at")
+      .select("id, email, credits, plan, plan_expires, industry, experience_level, referral_source, streak_count, hired, is_admin, created_at")
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -84,6 +84,39 @@ export async function GET(req) {
       .limit(20);
     if (error) return Response.json({ error: error.message }, { status: 500 });
     return Response.json({ generations: data });
+  }
+
+  if (type === "referral_stats") {
+    const { data } = await admin.from("profiles").select("referral_source").limit(5000);
+    const counts = {};
+    for (const row of data || []) {
+      const key = row.referral_source || "Not specified";
+      counts[key] = (counts[key] || 0) + 1;
+    }
+    const stats = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, count }));
+    return Response.json({ stats });
+  }
+
+  if (type === "industry_stats") {
+    const { data } = await admin.from("profiles").select("industry").limit(5000);
+    const counts = {};
+    for (const row of data || []) {
+      const key = row.industry || "Not specified";
+      counts[key] = (counts[key] || 0) + 1;
+    }
+    const stats = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, count }));
+    return Response.json({ stats });
+  }
+
+  if (type === "page_stats") {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+    const { data } = await admin.from("page_views").select("path").gte("created_at", thirtyDaysAgo).limit(20000);
+    const counts = {};
+    for (const row of data || []) {
+      counts[row.path] = (counts[row.path] || 0) + 1;
+    }
+    const stats = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([label, count]) => ({ label, count }));
+    return Response.json({ stats, totalViews: (data || []).length });
   }
 
   return Response.json({ error: "Unknown type." }, { status: 400 });

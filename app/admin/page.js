@@ -9,6 +9,11 @@ export default function Admin() {
   const [authorized, setAuthorized] = useState(null);
   const [tab, setTab] = useState("overview");
   const [stats, setStats] = useState(null);
+  const [referralStats, setReferralStats] = useState(null);
+  const [industryStats, setIndustryStats] = useState(null);
+  const [pageStats, setPageStats] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({});
   const [users, setUsers] = useState(null);
   const [jobs, setJobs] = useState(null);
   const [payments, setPayments] = useState(null);
@@ -43,6 +48,9 @@ export default function Admin() {
     const data = await res.json();
     if (!res.ok) { setErr(data.error || "Could not load data."); return; }
     if (type === "stats") setStats(data.stats);
+    if (type === "referral_stats") setReferralStats(data.stats);
+    if (type === "industry_stats") setIndustryStats(data.stats);
+    if (type === "page_stats") setPageStats(data);
     if (type === "users") setUsers(data.users);
     if (type === "jobs") setJobs(data.jobs);
     if (type === "payments") setPayments(data.payments);
@@ -52,6 +60,9 @@ export default function Admin() {
   useEffect(() => {
     if (!authorized) return;
     if (tab === "overview" && stats === null) load("stats");
+    if (tab === "overview" && referralStats === null) load("referral_stats");
+    if (tab === "overview" && industryStats === null) load("industry_stats");
+    if (tab === "overview" && pageStats === null) load("page_stats");
     if (tab === "users" && users === null) load("users");
     if (tab === "jobs" && jobs === null) load("jobs");
     if (tab === "payments" && payments === null) load("payments");
@@ -82,6 +93,32 @@ export default function Admin() {
     setBusyId(userId);
     const data = await act("toggle_admin", { userId, value });
     if (data) setUsers((u) => u.map((x) => (x.id === userId ? { ...x, is_admin: value } : x)));
+    setBusyId("");
+  }
+
+  async function resetAccount(userId, email) {
+    if (!confirm(`Reset ${email}'s account? This deletes their application history and reverts credits, streak, and hired status to a fresh signup. Their login (email/password) is not affected. This can't be undone.`)) return;
+    setBusyId(userId);
+    const data = await act("reset_account", { userId });
+    if (data) {
+      setUsers((u) => u.map((x) => (x.id === userId ? { ...x, streak_count: 0, hired: false, plan: "free" } : x)));
+      setUserGens((g) => ({ ...g, [userId]: [] }));
+    }
+    setBusyId("");
+  }
+
+  function openEdit(u) {
+    setEditingUser(editingUser === u.id ? null : u.id);
+    setEditForm({ email: u.email || "", industry: u.industry || "", experience_level: u.experience_level || "" });
+  }
+
+  async function saveUserEdit(userId) {
+    setBusyId(userId);
+    const data = await act("update_user", { userId, ...editForm });
+    if (data) {
+      setUsers((u) => u.map((x) => (x.id === userId ? { ...x, ...editForm } : x)));
+      setEditingUser(null);
+    }
     setBusyId("");
   }
 
@@ -183,14 +220,25 @@ export default function Admin() {
         stats === null ? (
           <div className="loading"><span className="spinner" /> Loading stats…</div>
         ) : (
-          <div className="dash-grid">
-            <div className="dash-card"><h3>TOTAL USERS</h3><div className="big-number">{stats.totalUsers}</div></div>
-            <div className="dash-card"><h3>SIGNUPS · 7 DAYS</h3><div className="big-number">{stats.signupsWeek}</div></div>
-            <div className="dash-card"><h3>TOTAL APPLICATIONS</h3><div className="big-number">{stats.totalGenerations}</div></div>
-            <div className="dash-card"><h3>REVENUE (COMPLETE)</h3><div className="big-number">KES {stats.totalRevenue}</div></div>
-            <div className="dash-card"><h3>USERS HIRED</h3><div className="big-number">{stats.hiredCount}</div></div>
-            <div className="dash-card"><h3>ACTIVE STREAKS (3+ DAYS)</h3><div className="big-number streak-number">🔥 {stats.activeStreaks}</div></div>
-          </div>
+          <>
+            <div className="dash-grid">
+              <div className="dash-card"><h3>TOTAL USERS</h3><div className="big-number">{stats.totalUsers}</div></div>
+              <div className="dash-card"><h3>SIGNUPS · 7 DAYS</h3><div className="big-number">{stats.signupsWeek}</div></div>
+              <div className="dash-card"><h3>TOTAL APPLICATIONS</h3><div className="big-number">{stats.totalGenerations}</div></div>
+              <div className="dash-card"><h3>REVENUE (COMPLETE)</h3><div className="big-number">KES {stats.totalRevenue}</div></div>
+              <div className="dash-card"><h3>USERS HIRED</h3><div className="big-number">{stats.hiredCount}</div></div>
+              <div className="dash-card"><h3>ACTIVE STREAKS (3+ DAYS)</h3><div className="big-number streak-number">🔥 {stats.activeStreaks}</div></div>
+            </div>
+
+            <div className="breakdown-grid">
+              <BarCard title="WHERE USERS HEARD ABOUT US" data={referralStats} />
+              <BarCard title="USERS BY INDUSTRY" data={industryStats} />
+              <BarCard
+                title={`MOST VISITED PAGES ${pageStats ? `(${pageStats.totalViews} views, 30 days)` : ""}`}
+                data={pageStats?.stats}
+              />
+            </div>
+          </>
         )
       )}
 
@@ -211,6 +259,7 @@ export default function Admin() {
                     <span className="hi-meta">
                       {new Date(u.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
                       {" · "}{u.industry || "no industry set"}{" · "}🔥{u.streak_count || 0}
+                      {u.referral_source ? ` · via ${u.referral_source}` : ""}
                     </span>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -228,7 +277,26 @@ export default function Admin() {
                     <button className="btn-ghost" onClick={() => viewActivity(u.id)}>
                       {expandedUser === u.id ? "Hide activity" : "View activity"}
                     </button>
+                    <button className="btn-ghost" onClick={() => openEdit(u)}>
+                      {editingUser === u.id ? "Cancel edit" : "Edit details"}
+                    </button>
+                    <button className="btn-ghost danger-btn" disabled={busyId === u.id} onClick={() => resetAccount(u.id, u.email)}>
+                      {busyId === u.id ? "…" : "Reset account"}
+                    </button>
                   </div>
+                  {editingUser === u.id && (
+                    <div className="edit-user-form">
+                      <label className="field-label">Email</label>
+                      <input type="text" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} />
+                      <label className="field-label">Industry</label>
+                      <input type="text" value={editForm.industry} onChange={(e) => setEditForm((f) => ({ ...f, industry: e.target.value }))} />
+                      <label className="field-label">Experience level</label>
+                      <input type="text" value={editForm.experience_level} onChange={(e) => setEditForm((f) => ({ ...f, experience_level: e.target.value }))} placeholder="e.g. mid, senior, graduate" />
+                      <button className="btn-primary" style={{ marginTop: 10 }} disabled={busyId === u.id} onClick={() => saveUserEdit(u.id)}>
+                        {busyId === u.id ? "Saving…" : "Save changes"}
+                      </button>
+                    </div>
+                  )}
                   {expandedUser === u.id && (
                     <div style={{ borderTop: "1px solid var(--stone)", paddingTop: 8, marginTop: 2 }}>
                       {!userGens[u.id] ? (
@@ -338,5 +406,38 @@ export default function Admin() {
         )
       )}
     </main>
+  );
+}
+
+function BarCard({ title, data }) {
+  if (!data) {
+    return (
+      <div className="dash-card bar-card">
+        <h3>{title}</h3>
+        <div className="loading" style={{ padding: "16px 0" }}><span className="spinner" /></div>
+      </div>
+    );
+  }
+  const top = data.slice(0, 8);
+  const max = top.length ? Math.max(...top.map((d) => d.count)) : 1;
+  return (
+    <div className="dash-card bar-card">
+      <h3>{title}</h3>
+      {top.length === 0 ? (
+        <p className="field-note">No data yet.</p>
+      ) : (
+        <div className="bar-list">
+          {top.map((d) => (
+            <div className="bar-row" key={d.label}>
+              <span className="bar-label">{d.label}</span>
+              <div className="bar-track">
+                <div className="bar-fill" style={{ width: `${(d.count / max) * 100}%` }} />
+              </div>
+              <span className="bar-count">{d.count}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

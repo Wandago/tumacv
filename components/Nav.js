@@ -1,14 +1,24 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { supabaseBrowser } from "../lib/supabaseClient";
 import { FREE_MODE } from "../lib/plans";
+import { trackPageView } from "../lib/track";
 import ThemeToggle from "./ThemeToggle";
 
 export default function Nav() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const lastTracked = useRef(null);
+
+  useEffect(() => {
+    if (lastTracked.current === pathname) return;
+    lastTracked.current = pathname;
+    trackPageView(pathname);
+  }, [pathname]);
 
   useEffect(() => {
     const sb = supabaseBrowser();

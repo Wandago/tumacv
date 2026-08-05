@@ -6,6 +6,7 @@ import { supabaseBrowser } from "../lib/supabaseClient";
 import { FREE_MODE } from "../lib/plans";
 import { extractPdfText } from "../lib/pdfText";
 import { generateCvDocx, downloadBlob } from "../lib/generateDocx";
+import CreditsModal from "../components/CreditsModal";
 import { extractImagesToText } from "../lib/imageExtract";
 import { getSavedProfile, setSavedProfile, clearLegacySharedDraft } from "../lib/storage";
 import ShareButtons from "../components/ShareButtons";
@@ -214,6 +215,19 @@ export default function Home() {
     return Math.round((matched / total) * 100);
   }
 
+  // Starts a fresh application: clears the job details but keeps the saved
+  // profile and template choice, since that's the part people don't want to
+  // re-enter every time they apply to a new posting.
+  function newApplication() {
+    setResult(null);
+    setJobText("");
+    setJobUrl("");
+    setFetchErr("");
+    setGenErr("");
+    setNeedCredits(false);
+    window.scrollTo({ top: 0 });
+  }
+
   const ready = jobText.trim().length >= 80 && profileText.trim().length >= 80;
 
   if (!authChecked) return null;
@@ -273,6 +287,7 @@ export default function Home() {
         <div className="results-head">
           <h2>Your documents are ready</h2>
           <button className="btn-ghost" onClick={() => setResult(null)}>← Edit inputs</button>
+          <button className="btn-ghost" onClick={newApplication}>+ Generate another CV</button>
           {tab === "cv" && (
             <>
               <button className="btn-ghost" onClick={downloadDocx} disabled={docxBusy}>
@@ -327,7 +342,11 @@ export default function Home() {
           <span className="field-note" style={{ marginTop: 0 }}>Know someone else job hunting?</span>
           <ShareButtons compact />
         </div>
-        <div style={{ paddingBottom: 30 }} />
+        <div style={{ textAlign: "center", padding: "18px 0 30px" }}>
+          <button className="btn-primary" onClick={newApplication} style={{ padding: "12px 28px" }}>
+            Apply to another job →
+          </button>
+        </div>
       </main>
     );
   }
@@ -434,11 +453,7 @@ export default function Home() {
         </div>
       </section>
 
-      {needCredits && (
-        <div className="banner warn">
-          You're out of applications. <a href="/dashboard">Top up from KES 50 →</a>
-        </div>
-      )}
+      {needCredits && <CreditsModal onClose={() => setNeedCredits(false)} />}
       {genErr && <p className="error">{genErr}</p>}
       {loading && <div className="loading"><span className="spinner" /> Tailoring your CV to this job…</div>}
 

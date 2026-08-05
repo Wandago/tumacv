@@ -91,5 +91,50 @@ export async function POST(req) {
     return Response.json({ ok: true });
   }
 
+  if (body.action === "reset_account") {
+    // Support tool for a genuinely fresh start: wipes generation history and
+    // reverts the profile to a just-signed-up state. Does NOT touch the auth
+    // account itself (email/password) or delete the person's login.
+    const { userId } = body;
+    const { FREE_SIGNUP_CREDITS } = await import("../../../../lib/plans");
+    await admin.from("generations").delete().eq("user_id", userId);
+    const { error } = await admin
+      .from("profiles")
+      .update({
+        credits: FREE_SIGNUP_CREDITS,
+        plan: "free",
+        plan_expires: null,
+        streak_count: 0,
+        longest_streak: 0,
+        last_generation_date: null,
+        hired: false,
+        hired_at: null,
+        cached_insight: null,
+        insight_date: null,
+      })
+      .eq("id", userId);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: true });
+  }
+
+  if (body.action === "update_user") {
+    const { userId, email, industry, experience_level } = body;
+    const updates = {};
+    if (industry !== undefined) updates.industry = industry || null;
+    if (experience_level !== undefined) updates.experience_level = experience_level || null;
+
+    if (email) {
+      const { error: authErr } = await admin.auth.admin.updateUserById(userId, { email });
+      if (authErr) return Response.json({ error: `Could not update email: ${authErr.message}` }, { status: 500 });
+      updates.email = email;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const { error } = await admin.from("profiles").update(updates).eq("id", userId);
+      if (error) return Response.json({ error: error.message }, { status: 500 });
+    }
+    return Response.json({ ok: true });
+  }
+
   return Response.json({ error: "Unknown action." }, { status: 400 });
 }

@@ -15,12 +15,25 @@ const LEVELS = [
   { id: "senior", label: "7+ years / senior" },
 ];
 
+const REFERRAL_SOURCES = [
+  { id: "whatsapp", label: "WhatsApp", emoji: "💬" },
+  { id: "friend", label: "Friend / referral", emoji: "🤝" },
+  { id: "facebook", label: "Facebook", emoji: "📘" },
+  { id: "instagram", label: "Instagram", emoji: "📸" },
+  { id: "tiktok", label: "TikTok", emoji: "🎵" },
+  { id: "x", label: "X / Twitter", emoji: "𝕏" },
+  { id: "google", label: "Google search", emoji: "🔍" },
+  { id: "jobsboard", label: "Another jobs site", emoji: "💼" },
+  { id: "other", label: "Other", emoji: "✨" },
+];
+
 export default function Onboarding() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [industry, setIndustry] = useState("");
   const [level, setLevel] = useState("");
+  const [referral, setReferral] = useState("");
   const [profileText, setProfileText] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfErr, setPdfErr] = useState("");
@@ -38,13 +51,14 @@ export default function Onboarding() {
       if (!data?.user) { router.replace("/login"); return; }
       const { data: profile } = await sb
         .from("profiles")
-        .select("industry, experience_level, profile_text, onboarded")
+        .select("industry, experience_level, profile_text, onboarded, referral_source")
         .eq("id", data.user.id)
         .single();
 
       setIsEditing(!!profile?.onboarded);
       if (profile?.industry) setIndustry(profile.industry);
       if (profile?.experience_level) setLevel(profile.experience_level);
+      if (profile?.referral_source) setReferral(profile.referral_source);
       if (profile?.profile_text) {
         setProfileText(profile.profile_text);
       } else {
@@ -113,6 +127,7 @@ export default function Onboarding() {
           experience_level: level || null,
           profile_text: profileText || null,
           onboarded: true,
+          ...(isEditing ? {} : { referral_source: referral || null }),
         })
         .eq("id", userData.user.id);
       if (error) throw error;
@@ -179,6 +194,25 @@ export default function Onboarding() {
             </button>
           ))}
         </div>
+
+        {!isEditing && (
+          <>
+            <label className="field-label">How did you hear about TumaCV?</label>
+            <div className="referral-grid">
+              {REFERRAL_SOURCES.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={`referral-card ${referral === r.id ? "on" : ""}`}
+                  onClick={() => setReferral(r.id)}
+                >
+                  <span className="referral-emoji">{r.emoji}</span>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <label className="field-label">Your CV or LinkedIn profile</label>
         <div className="upload-row">
