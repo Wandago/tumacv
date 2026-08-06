@@ -555,3 +555,22 @@ select:focus {
 }
 .danger-btn { color: var(--moto); }
 .danger-btn:hover { background: color-mix(in srgb, var(--moto) 14%, transparent); }
+
+/* ---------- card payment (Paddle) row ---------- */
+.card-pay-row { margin-top: 10px; }
+.card-pay-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+
+/* ---------- GlobalPay help box ---------- */
+.globalpay-box {
+  background: var(--sheet); border: 1px solid var(--stone); border-radius: 16px;
+  padding: 18px 20px; margin: 4px 0 20px; box-shadow: var(--shadow-1);
+}
+.globalpay-title { font-family: var(--display); font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.globalpay-step-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--kijani-dark); margin: 14px 0 6px; }
+.globalpay-list { padding-left: 20px; font-size: 13px; line-height: 1.6; }
+.globalpay-list li { margin-bottom: 4px; }
+
+/* ---------- direct M-Pesa (Daraja) box ---------- */
+.mpesa-direct-box {
+  border-top: 1px solid var(--stone); padding-top: 12px; margin-top: 12px;
+}

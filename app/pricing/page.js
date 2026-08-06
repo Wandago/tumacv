@@ -1,8 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Nav from "../../components/Nav";
+import GlobalPayHelp from "../../components/GlobalPayHelp";
 import { supabaseBrowser } from "../../lib/supabaseClient";
-import { PLANS, FREE_MODE, FREE_SIGNUP_CREDITS } from "../../lib/plans";
+import { PLANS, FREE_MODE, FREE_SIGNUP_CREDITS, MPESA_ENABLED, PADDLE_ENABLED, toUsd } from "../../lib/plans";
+import { openPaddleCheckout, paddlePriceIdFor } from "../../lib/paddle";
 
 const FAQ = [
   {
@@ -11,11 +14,15 @@ const FAQ = [
   },
   {
     q: "How do I pay?",
-    a: "M-Pesa (STK push straight to your phone), Airtel Money, or Visa/Mastercard — pick whichever's easiest at checkout.",
+    a: MPESA_ENABLED
+      ? "M-Pesa (STK push straight to your phone), Airtel Money, or Visa/Mastercard — pick whichever's easiest at checkout."
+      : PADDLE_ENABLED
+      ? "Visa/Mastercard right now. Only have M-Pesa? See the GlobalPay guide below the plans — it lets you pay with a virtual card funded from your M-Pesa balance. Direct M-Pesa and Airtel Money are coming back soon."
+      : "We're finishing M-Pesa payment approval so everyone can pay directly — paid plans launch very soon. Your free applications work in the meantime.",
   },
   {
     q: "Do unused applications expire?",
-    a: "No. Basic and Plus credits stay on your account until you use them. Only the Unlimited pass has a time limit, since it's priced for a 30-day sprint.",
+    a: "No. None of the plans expire — buy a bundle and use it whenever you need it.",
   },
   {
     q: "What counts as one application?",
@@ -24,9 +31,12 @@ const FAQ = [
 ];
 
 export default function Pricing() {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [buying, setBuying] = useState("");
   const [err, setErr] = useState("");
+  const [showGlobalPay, setShowGlobalPay] = useState(false);
+  const paymentsLive = MPESA_ENABLED || PADDLE_ENABLED;
 
   useEffect(() => {
     supabaseBrowser().auth.getUser().then(({ data }) => setUser(data?.user || null));
@@ -34,7 +44,7 @@ export default function Pricing() {
 
   async function buy(planId) {
     if (!user) {
-      window.location.href = "/login";
+      router.push("/login");
       return;
     }
     setErr("");
@@ -57,6 +67,23 @@ export default function Pricing() {
     }
   }
 
+  async function payWithCard(planId) {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setErr("");
+    setBuying(planId);
+    try {
+      const { data: sess } = await supabaseBrowser().auth.getSession();
+      await openPaddleCheckout({ planId, userId: user.id, email: sess?.session?.user?.email });
+    } catch (e) {
+      setErr(e.message || "Could not open card checkout.");
+    } finally {
+      setBuying("");
+    }
+  }
+
   return (
     <main className="shell wide">
       <Nav />
@@ -74,6 +101,11 @@ export default function Pricing() {
           TumaCV is completely free during beta — every signed-in account gets unlimited applications.
           Pricing below is what kicks in after beta.
         </div>
+      ) : !paymentsLive ? (
+        <div className="banner" style={{ textAlign: "center" }}>
+          Paid plans are launching very soon — we're finishing M-Pesa payment approval so everyone
+          can top up directly. Your {FREE_SIGNUP_CREDITS} free applications work right now.
+        </div>
       ) : (
         <div className="hero" style={{ paddingTop: 4 }}>
           <p className="price">{FREE_SIGNUP_CREDITS} free to try · then pay as you go</p>
@@ -85,22 +117,45 @@ export default function Pricing() {
           <div key={p.id} className="dash-card" style={{ textAlign: "left" }}>
             <h3>{p.name.toUpperCase()}</h3>
             <div className="plan-price" style={{ fontSize: 26, marginTop: 8 }}>KES {p.priceKes}</div>
-            <p style={{ marginBottom: 14 }}>{p.blurb}</p>
+            {PADDLE_ENABLED && !MPESA_ENABLED && (
+              <div className="field-note" style={{ marginTop: 0 }}>≈ ${toUsd(p.priceKes)}</div>
+            )}
+            <p style={{ marginBottom: 14, marginTop: 6 }}>{p.blurb}</p>
             <button
               className="btn-primary"
               style={{ width: "100%" }}
-              onClick={() => buy(p.id)}
-              disabled={FREE_MODE || buying === p.id}
+              onClick={() => (MPESA_ENABLED ? buy(p.id) : PADDLE_ENABLED ? payWithCard(p.id) : undefined)}
+              disabled={FREE_MODE || !paymentsLive || buying === p.id || (PADDLE_ENABLED && !MPESA_ENABLED && !paddlePriceIdFor(p.id))}
             >
-              {FREE_MODE ? "Free right now" : buying === p.id ? "Opening checkout…" : user ? "Buy now" : "Sign in to buy"}
+              {FREE_MODE
+                ? "Free right now"
+                : !paymentsLive
+                ? "Coming soon"
+                : buying === p.id
+                ? "Opening checkout…"
+                : user
+                ? "Buy now"
+                : "Sign in to buy"}
             </button>
           </div>
         ))}
       </div>
       {err && <p className="error">{err}</p>}
-      <p className="field-note" style={{ marginBottom: 30 }}>
-        Pay with M-Pesa, Airtel Money, or Visa/Mastercard. Basic and Plus credits never expire — the Unlimited pass runs for 30 days.
+      <p className="field-note" style={{ marginBottom: paymentsLive ? 30 : 10 }}>
+        {MPESA_ENABLED
+          ? "Pay with M-Pesa or Airtel Money. None of the plans expire."
+          : PADDLE_ENABLED
+          ? "Pay by Visa/Mastercard. None of the plans expire."
+          : "None of the plans will expire once payments are live."}
       </p>
+      {PADDLE_ENABLED && !MPESA_ENABLED && (
+        <p className="field-note" style={{ marginBottom: 30 }}>
+          <button className="linkish" onClick={() => setShowGlobalPay(!showGlobalPay)}>
+            Only have M-Pesa? Here's how to pay anyway →
+          </button>
+        </p>
+      )}
+      {showGlobalPay && <GlobalPayHelp />}
 
       <section>
         <div className="step-head"><span className="step-no">FAQ</span><h2>Common questions</h2></div>

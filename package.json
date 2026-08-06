@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@paddle/paddle-js": "^1.6.4",
     "@supabase/supabase-js": "^2.45.0",
     "docx": "^9.7.1",
     "next": "14.2.35",

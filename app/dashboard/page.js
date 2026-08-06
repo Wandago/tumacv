@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 import Nav from "../../components/Nav";
 import CvView from "../../components/CvView";
 import { supabaseBrowser } from "../../lib/supabaseClient";
-import { PLANS, FREE_MODE } from "../../lib/plans";
+import { PLANS, FREE_MODE, MPESA_ENABLED, PADDLE_ENABLED, DARAJA_ENABLED, FREE_SIGNUP_CREDITS, toUsd } from "../../lib/plans";
 import { earnedBadges, nextBadge, BADGES } from "../../lib/gamification";
 import { clearLegacySharedDraft } from "../../lib/storage";
 import { generateCvDocx, downloadBlob } from "../../lib/generateDocx";
+import { openPaddleCheckout, paddlePriceIdFor } from "../../lib/paddle";
+import GlobalPayHelp from "../../components/GlobalPayHelp";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -19,6 +21,10 @@ export default function Dashboard() {
   const [tab, setTab] = useState("cv");
   const [buying, setBuying] = useState("");
   const [err, setErr] = useState("");
+  const [showGlobalPay, setShowGlobalPay] = useState(false);
+  const [mpesaPhone, setMpesaPhone] = useState("");
+  const [mpesaBusy, setMpesaBusy] = useState(false);
+  const [mpesaMsg, setMpesaMsg] = useState("");
   const [paidBanner, setPaidBanner] = useState(false);
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
@@ -100,6 +106,47 @@ export default function Dashboard() {
       setErr("Network error. Try again.");
     } finally {
       setBuying("");
+    }
+  }
+
+  async function payWithCard(planId) {
+    setErr("");
+    try {
+      const { data: sess } = await supabaseBrowser().auth.getSession();
+      await openPaddleCheckout({ planId, userId: user.id, email: sess?.session?.user?.email });
+      // Card payment confirms via webhook, not a redirect — reuse the same
+      // polling used after an M-Pesa redirect to pick up credits once they land.
+      setPaidBanner(true);
+    } catch (e) {
+      setErr(e.message || "Could not open card checkout.");
+    }
+  }
+
+  async function payWithMpesa(planId) {
+    setErr("");
+    setMpesaMsg("");
+    if (!mpesaPhone.trim()) {
+      setErr("Enter your M-Pesa phone number first.");
+      return;
+    }
+    setMpesaBusy(true);
+    try {
+      const { data: sess } = await supabaseBrowser().auth.getSession();
+      const res = await fetch("/api/checkout-mpesa", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${sess?.session?.access_token}` },
+        body: JSON.stringify({ planId, phone: mpesaPhone }),
+      });
+      const data = await res.json();
+      if (!res.ok) setErr(data.error || "Could not send the M-Pesa prompt.");
+      else {
+        setMpesaMsg(data.message);
+        setPaidBanner(true); // start polling for credits, same as card/redirect flows
+      }
+    } catch {
+      setErr("Network error. Try again.");
+    } finally {
+      setMpesaBusy(false);
     }
   }
 
@@ -211,16 +258,68 @@ export default function Dashboard() {
         {!FREE_MODE && (
           <div className="dash-card span2">
             <h3>TOP UP</h3>
-            <div className="plan-row">
-              {Object.values(PLANS).map((p) => (
-                <button key={p.id} className="plan-card" onClick={() => buy(p.id)} disabled={!!buying}>
-                  <div className="plan-name">{p.name}</div>
-                  <div className="plan-price">KES {p.priceKes}</div>
-                  <div className="plan-blurb">{buying === p.id ? "Opening checkout…" : p.blurb}</div>
-                </button>
-              ))}
-            </div>
-            <p className="field-note">Pay with M-Pesa, Airtel Money, or Visa/Mastercard. Passes don't auto-renew.</p>
+            {MPESA_ENABLED ? (
+              <>
+                <div className="plan-row">
+                  {Object.values(PLANS).map((p) => (
+                    <button key={p.id} className="plan-card" onClick={() => buy(p.id)} disabled={!!buying}>
+                      <div className="plan-name">{p.name}</div>
+                      <div className="plan-price">KES {p.priceKes}</div>
+                      <div className="plan-blurb">{buying === p.id ? "Opening checkout…" : p.blurb}</div>
+                    </button>
+                  ))}
+                </div>
+                <p className="field-note">Pay with M-Pesa or Airtel Money.</p>
+              </>
+            ) : PADDLE_ENABLED ? (
+              <>
+                <div className="plan-row">
+                  {Object.values(PLANS).map((p) => (
+                    <button key={p.id} className="plan-card" onClick={() => payWithCard(p.id)} disabled={!paddlePriceIdFor(p.id)}>
+                      <div className="plan-name">{p.name}</div>
+                      <div className="plan-price">KES {p.priceKes}</div>
+                      <div className="field-note" style={{ marginTop: 2 }}>≈ ${toUsd(p.priceKes)}</div>
+                      <div className="plan-blurb">{p.blurb}</div>
+                    </button>
+                  ))}
+                </div>
+                <p className="field-note">
+                  Pay by Visa/Mastercard. M-Pesa and Airtel Money are coming back soon —{" "}
+                  <button className="linkish" onClick={() => setShowGlobalPay(!showGlobalPay)}>
+                    only have M-Pesa? Here's how to pay anyway →
+                  </button>
+                </p>
+                {showGlobalPay && <GlobalPayHelp />}
+              </>
+            ) : (
+              <div className="launching-soon">
+                <p className="step-hint" style={{ marginBottom: 0 }}>
+                  Paid plans are launching very soon — we're finishing M-Pesa payment approval so
+                  everyone can top up directly. Your {FREE_SIGNUP_CREDITS} free applications still work
+                  in the meantime, and nothing you've generated is affected.
+                </p>
+              </div>
+            )}
+            {DARAJA_ENABLED && (
+              <div className="mpesa-direct-box">
+                <p className="field-note" style={{ marginTop: 0 }}>Or pay directly with M-Pesa:</p>
+                <input
+                  type="tel"
+                  placeholder="07XX XXX XXX"
+                  value={mpesaPhone}
+                  onChange={(e) => setMpesaPhone(e.target.value)}
+                  style={{ marginBottom: 8, maxWidth: 220 }}
+                />
+                <div className="card-pay-buttons">
+                  {Object.values(PLANS).map((p) => (
+                    <button key={p.id} className="btn-ghost" disabled={mpesaBusy} onClick={() => payWithMpesa(p.id)}>
+                      {p.name} — KES {p.priceKes}
+                    </button>
+                  ))}
+                </div>
+                {mpesaMsg && <p className="success">{mpesaMsg}</p>}
+              </div>
+            )}
             {err && <p className="error">{err}</p>}
           </div>
         )}

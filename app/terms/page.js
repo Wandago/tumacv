@@ -41,9 +41,10 @@ export default function Terms() {
         <h2 style={{ marginBottom: 8 }}>Credits and payment</h2>
         <p className="step-hint" style={{ marginBottom: 0 }}>
           Paid plans give you a number of application credits or a time-limited unlimited pass, shown
-          clearly at purchase. Credits don't expire unless stated otherwise (the Unlimited pass runs
-          for 30 days). Payments are processed by IntaSend; we don't store your card or mobile money
-          details. If you're charged but a payment error means your credits never arrive, contact us
+          clearly at purchase. None of the plans expire — a bundle stays on your account until
+          you use it. Payments are processed by our payment partners (currently Paddle for card
+          payments); we don't store your card or mobile money details. If you're charged but a
+          payment error means your credits never arrive, contact us
           with your payment reference and we'll resolve it — refund or credit, whichever is faster to sort out.
         </p>
       </div>

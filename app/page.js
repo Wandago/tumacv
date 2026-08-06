@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Nav from "../components/Nav";
 import CvView from "../components/CvView";
 import { supabaseBrowser } from "../lib/supabaseClient";
-import { FREE_MODE } from "../lib/plans";
+import { FREE_MODE, MPESA_ENABLED, PADDLE_ENABLED } from "../lib/plans";
 import { extractPdfText } from "../lib/pdfText";
 import { generateCvDocx, downloadBlob } from "../lib/generateDocx";
 import CreditsModal from "../components/CreditsModal";
@@ -243,7 +243,11 @@ export default function Home() {
             keywords, ordering, emphasis — using only your real experience. Nothing invented.
           </p>
           <p className="price">
-            {FREE_MODE ? "Free during beta — create an account and generate as many as you like" : "5 free applications when you sign up · then as low as KES 2 each"}
+            {FREE_MODE
+              ? "Free during beta — create an account and generate as many as you like"
+              : (MPESA_ENABLED || PADDLE_ENABLED)
+              ? "5 free applications when you sign up · then as low as KES 1.33 each"
+              : "5 free applications when you sign up — paid plans launching very soon"}
           </p>
         </section>
 
@@ -453,7 +457,7 @@ export default function Home() {
         </div>
       </section>
 
-      {needCredits && <CreditsModal onClose={() => setNeedCredits(false)} />}
+      {needCredits && <CreditsModal onClose={() => setNeedCredits(false)} user={user} />}
       {genErr && <p className="error">{genErr}</p>}
       {loading && <div className="loading"><span className="spinner" /> Tailoring your CV to this job…</div>}
 
