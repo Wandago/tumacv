@@ -17,6 +17,8 @@ function friendly(message) {
     return "Too many attempts for now. Wait a few minutes and try again.";
   if (m.includes("password should be"))
     return "Password needs to be at least 6 characters.";
+  if (m.includes("captcha"))
+    return "The security check didn't load — this can happen with browser privacy tools like Brave Shields or an ad blocker. Try disabling them for this site, or use a different browser, then try again.";
   return message || "Something went wrong. Try again.";
 }
 
@@ -156,13 +158,18 @@ export default function Login() {
     }
   }
 
-  const captchaOk = !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || !!captchaToken;
+  // Don't hard-block on captchaToken client-side: privacy-focused browsers
+  // (Brave Shields, some ad blockers) commonly block Turnstile's script
+  // entirely, which would otherwise leave the button silently disabled
+  // forever with no visible error. Supabase verifies the token server-side
+  // and is the real source of truth — if it's genuinely required and
+  // missing, that error surfaces normally through the catch block below.
   const canSubmit =
-    (mode === "forgot"
+    mode === "forgot"
       ? !!email
       : mode === "signup"
       ? email && password.length >= 6 && confirm.length >= 6 && agreed
-      : email && password.length >= 6) && captchaOk;
+      : email && password.length >= 6;
 
   return (
     <main className="shell">
