@@ -20,6 +20,9 @@ export default function Admin() {
   const [articles, setArticles] = useState(null);
   const [promoCodes, setPromoCodes] = useState(null);
   const [supportMessages, setSupportMessages] = useState(null);
+  const [expandedTicket, setExpandedTicket] = useState(null);
+  const [adminReplyText, setAdminReplyText] = useState("");
+  const [adminReplyBusy, setAdminReplyBusy] = useState(false);
   const [supportFilter, setSupportFilter] = useState("open");
   const [newCode, setNewCode] = useState({ code: "", credits: "5", maxRedemptions: "", expiresAt: "", note: "" });
   const [creatingCode, setCreatingCode] = useState(false);
@@ -61,7 +64,7 @@ export default function Admin() {
     if (type === "payments") setPayments(data.payments);
     if (type === "articles") setArticles(data.articles);
     if (type === "promo_codes") setPromoCodes(data.codes);
-    if (type === "support_messages") setSupportMessages(data.messages);
+    if (type === "support_messages") setSupportMessages(data.tickets);
   }
 
   useEffect(() => {
@@ -206,6 +209,23 @@ export default function Admin() {
     const data = await act("resolve_support_message", { messageId, status });
     if (data) setSupportMessages((m) => m.map((x) => (x.id === messageId ? { ...x, status } : x)));
     setBusyId("");
+  }
+
+  async function sendAdminReply(ticketId) {
+    if (!adminReplyText.trim()) return;
+    setAdminReplyBusy(true);
+    const data = await act("admin_reply_ticket", { ticketId, message: adminReplyText });
+    if (data) {
+      setSupportMessages((list) =>
+        list.map((t) =>
+          t.id === ticketId
+            ? { ...t, support_ticket_messages: [...t.support_ticket_messages, { id: `temp-${Date.now()}`, sender: "admin", message: adminReplyText, created_at: new Date().toISOString() }] }
+            : t
+        )
+      );
+      setAdminReplyText("");
+    }
+    setAdminReplyBusy(false);
   }
 
   async function resolvePayment(paymentId, newStatus) {
@@ -530,38 +550,75 @@ export default function Admin() {
             ))}
           </div>
           {supportMessages === null ? (
-            <div className="loading"><span className="spinner" /> Loading messages…</div>
+            <div className="loading"><span className="spinner" /> Loading tickets…</div>
           ) : (
             <div className="history-list">
               {supportMessages
                 .filter((m) => supportFilter === "all" || m.status === supportFilter)
-                .map((m) => (
-                  <div key={m.id} className="history-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                      <span className="hi-title">
-                        <span className="credits-pill" style={{ marginRight: 8 }}>{m.type}</span>
-                        {m.email}
-                      </span>
-                      <span className="hi-meta">
-                        {new Date(m.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                        {m.status === "resolved" ? " · resolved" : ""}
-                      </span>
-                    </div>
-                    <p className="step-hint" style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.message}</p>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <a className="btn-ghost" style={{ textDecoration: "none" }} href={`mailto:${m.email}`}>Reply by email</a>
-                      {m.status === "open" ? (
-                        <button className="btn-ghost" disabled={busyId === m.id} onClick={() => resolveSupportMessage(m.id, "resolved")}>
-                          {busyId === m.id ? "…" : "Mark resolved"}
-                        </button>
-                      ) : (
-                        <button className="btn-ghost" disabled={busyId === m.id} onClick={() => resolveSupportMessage(m.id, "open")}>
-                          {busyId === m.id ? "…" : "Reopen"}
-                        </button>
+                .map((t) => {
+                  const last = t.support_ticket_messages[t.support_ticket_messages.length - 1];
+                  const isOpen = expandedTicket === t.id;
+                  return (
+                    <div key={t.id} className="history-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+                      <button
+                        style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, background: "none", padding: 0, textAlign: "left" }}
+                        onClick={() => setExpandedTicket(isOpen ? null : t.id)}
+                      >
+                        <span className="hi-title">
+                          <span className="credits-pill" style={{ marginRight: 8 }}>{t.type}</span>
+                          {t.subject} <span className="field-note" style={{ marginTop: 0 }}>— {t.email}</span>
+                        </span>
+                        <span className="hi-meta">
+                          {new Date(t.updated_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                          {t.status === "resolved" ? " · resolved" : ""}
+                        </span>
+                      </button>
+                      {!isOpen && last && (
+                        <p className="field-note" style={{ marginTop: 0 }}>
+                          {last.sender === "admin" ? "You: " : ""}{last.message.slice(0, 90)}{last.message.length > 90 ? "…" : ""}
+                        </p>
                       )}
+                      {isOpen && (
+                        <>
+                          <div className="ticket-thread" style={{ marginBottom: 10 }}>
+                            {t.support_ticket_messages.map((m) => (
+                              <div key={m.id} className={`ticket-bubble ${m.sender}`}>
+                                <div className="ticket-bubble-meta">
+                                  {m.sender === "admin" ? "You" : "User"} · {new Date(m.created_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                </div>
+                                <div className="ticket-bubble-text">{m.message}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <input
+                              type="text"
+                              placeholder="Reply…"
+                              value={adminReplyText}
+                              onChange={(e) => setAdminReplyText(e.target.value)}
+                              onKeyDown={(e) => e.key === "Enter" && sendAdminReply(t.id)}
+                            />
+                            <button className="btn-primary" disabled={adminReplyBusy} onClick={() => sendAdminReply(t.id)}>
+                              {adminReplyBusy ? "…" : "Send"}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <a className="btn-ghost" style={{ textDecoration: "none" }} href={`mailto:${t.email}`}>Reply by email instead</a>
+                        {t.status === "open" ? (
+                          <button className="btn-ghost" disabled={busyId === t.id} onClick={() => resolveSupportMessage(t.id, "resolved")}>
+                            {busyId === t.id ? "…" : "Mark resolved"}
+                          </button>
+                        ) : (
+                          <button className="btn-ghost" disabled={busyId === t.id} onClick={() => resolveSupportMessage(t.id, "open")}>
+                            {busyId === t.id ? "…" : "Reopen"}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               {supportMessages.filter((m) => supportFilter === "all" || m.status === supportFilter).length === 0 && (
                 <p className="step-hint">No {supportFilter !== "all" ? supportFilter : ""} messages.</p>
               )}

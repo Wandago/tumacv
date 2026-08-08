@@ -4,7 +4,7 @@ export const maxDuration = 20;
 
 export async function POST(req) {
   try {
-    const { type, message, email } = await req.json();
+    const { type, subject, message, email } = await req.json();
     const trimmed = (message || "").trim();
     if (trimmed.length < 10) {
       return Response.json({ error: "Please add a bit more detail (at least 10 characters)." }, { status: 400 });
@@ -17,9 +17,8 @@ export async function POST(req) {
     let userId = null;
     let finalEmail = (email || "").trim();
 
-    // Optional auth: if signed in, attach the account and use its email as
-    // a fallback — but this route must also work for someone who is locked
-    // out and can't sign in at all, so auth is never required here.
+    // Optional auth: works for a locked-out visitor too, which is exactly
+    // when someone most needs to reach support.
     const auth = req.headers.get("authorization") || "";
     const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
     if (token) {
@@ -34,18 +33,28 @@ export async function POST(req) {
       return Response.json({ error: "Please include an email so we can follow up." }, { status: 400 });
     }
 
-    const { error } = await admin.from("support_messages").insert({
-      user_id: userId,
-      email: finalEmail,
-      type: ["bug", "suggestion", "other"].includes(type) ? type : "other",
-      message: trimmed,
-    });
-    if (error) {
-      console.error("Support message insert failed:", error);
+    const finalType = ["bug", "suggestion", "other"].includes(type) ? type : "other";
+    const finalSubject = (subject || "").trim().slice(0, 80) || trimmed.slice(0, 60);
+
+    const { data: ticket, error: ticketErr } = await admin
+      .from("support_tickets")
+      .insert({ user_id: userId, email: finalEmail, type: finalType, subject: finalSubject })
+      .select()
+      .single();
+    if (ticketErr) {
+      console.error("Ticket creation failed:", ticketErr);
       return Response.json({ error: "Could not send your message. Try again." }, { status: 500 });
     }
 
-    return Response.json({ ok: true });
+    const { error: msgErr } = await admin
+      .from("support_ticket_messages")
+      .insert({ ticket_id: ticket.id, sender: "user", message: trimmed });
+    if (msgErr) {
+      console.error("First ticket message failed:", msgErr);
+      return Response.json({ error: "Could not send your message. Try again." }, { status: 500 });
+    }
+
+    return Response.json({ ok: true, ticketId: ticket.id });
   } catch (err) {
     console.error(err);
     return Response.json({ error: "Something went wrong. Try again." }, { status: 500 });

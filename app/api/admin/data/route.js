@@ -130,12 +130,18 @@ export async function GET(req) {
 
   if (type === "support_messages") {
     const { data, error } = await admin
-      .from("support_messages")
-      .select("id, user_id, email, type, message, status, created_at")
-      .order("created_at", { ascending: false })
-      .limit(500);
+      .from("support_tickets")
+      .select("*, support_ticket_messages(*)")
+      .order("updated_at", { ascending: false })
+      .limit(300);
     if (error) return Response.json({ error: error.message }, { status: 500 });
-    return Response.json({ messages: data });
+    const tickets = (data || []).map((t) => ({
+      ...t,
+      support_ticket_messages: (t.support_ticket_messages || []).sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      ),
+    }));
+    return Response.json({ tickets });
   }
 
   return Response.json({ error: "Unknown type." }, { status: 400 });

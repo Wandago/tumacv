@@ -171,8 +171,20 @@ export async function POST(req) {
 
   if (body.action === "resolve_support_message") {
     const { messageId, status } = body;
-    const { error } = await admin.from("support_messages").update({ status }).eq("id", messageId);
+    const { error } = await admin.from("support_tickets").update({ status }).eq("id", messageId);
     if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: true });
+  }
+
+  if (body.action === "admin_reply_ticket") {
+    const { ticketId, message } = body;
+    const trimmed = (message || "").trim();
+    if (!trimmed) return Response.json({ error: "Write a reply first." }, { status: 400 });
+    const { error: msgErr } = await admin
+      .from("support_ticket_messages")
+      .insert({ ticket_id: ticketId, sender: "admin", message: trimmed });
+    if (msgErr) return Response.json({ error: msgErr.message }, { status: 500 });
+    await admin.from("support_tickets").update({ updated_at: new Date().toISOString() }).eq("id", ticketId);
     return Response.json({ ok: true });
   }
 
