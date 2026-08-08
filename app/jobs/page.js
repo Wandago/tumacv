@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Nav from "../../components/Nav";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 
@@ -11,6 +10,7 @@ export default function Jobs() {
   const [form, setForm] = useState({ title: "", company: "", location: "", job_type: "Full-time", description: "", how_to_apply: "" });
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(null);
 
   useEffect(() => {
     const sb = supabaseBrowser();
@@ -99,8 +99,8 @@ export default function Jobs() {
       ) : (
         <div className="job-list">
           {jobs.map((j) => (
-            <Link key={j.id} href={`/jobs/${j.id}`} className="job-card">
-              <div className="job-head">
+            <div key={j.id} className={`job-card ${open === j.id ? "open" : ""}`}>
+              <button className="job-head" onClick={() => setOpen(open === j.id ? null : j.id)}>
                 <div>
                   <div className="job-title">{j.title}</div>
                   <div className="job-meta">
@@ -108,9 +108,19 @@ export default function Jobs() {
                     {new Date(j.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
                   </div>
                 </div>
-                <span className="job-chev">→</span>
-              </div>
-            </Link>
+                <span className="job-chev">{open === j.id ? "−" : "+"}</span>
+              </button>
+              {open === j.id && (
+                <div className="job-body">
+                  <p style={{ whiteSpace: "pre-wrap" }}>{j.description}</p>
+                  <p className="job-apply"><b>How to apply:</b> {j.how_to_apply}</p>
+                  <a className="btn-primary" style={{ textDecoration: "none", display: "inline-block", marginTop: 10 }}
+                    href={`/?jobid=${j.id}`}>
+                    Tailor my CV for this job
+                  </a>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
