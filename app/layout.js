@@ -1,6 +1,19 @@
 import "./globals.css";
 
+// Guarded: a malformed NEXT_PUBLIC_SITE_URL (missing https://, stray space,
+// etc.) would otherwise throw here and fail the ENTIRE build, since this
+// module loads for every single page via the root layout.
+function safeMetadataBase() {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://tumacv.vercel.app");
+  } catch {
+    console.error("NEXT_PUBLIC_SITE_URL is malformed — falling back to the default domain.");
+    return new URL("https://tumacv.vercel.app");
+  }
+}
+
 export const metadata = {
+  metadataBase: safeMetadataBase(),
   title: "TumaCV — Tailored CV + cover letter in minutes",
   description:
     "Paste a job description, get a CV and cover letter tailored to it. Built for Kenyan job seekers. Pay per application via M-Pesa.",
