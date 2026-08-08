@@ -10,6 +10,10 @@ export async function POST(req) {
     const { user, admin } = authed;
 
     const { planId } = await req.json();
+    const { data: profileCheck } = await admin.from("profiles").select("banned").eq("id", user.id).single();
+    if (profileCheck?.banned) {
+      return Response.json({ error: "This account has been suspended." }, { status: 403 });
+    }
     const plan = PLANS[planId];
     if (!plan) return Response.json({ error: "Unknown plan." }, { status: 400 });
 

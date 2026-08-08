@@ -56,6 +56,7 @@ export default function Nav() {
       <Link href="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link>
       <Link href="/jobs" onClick={() => setMenuOpen(false)}>Jobs board</Link>
       <Link href="/news" onClick={() => setMenuOpen(false)}>News</Link>
+      <Link href="/support" onClick={() => setMenuOpen(false)}>Support</Link>
       <div className="nav-theme-row">
         <span>Theme</span>
         <ThemeToggle />

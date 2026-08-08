@@ -12,6 +12,11 @@ export async function POST(req) {
     const normalized = (code || "").trim().toUpperCase();
     if (!normalized) return Response.json({ error: "Enter a code." }, { status: 400 });
 
+    const { data: profile } = await admin.from("profiles").select("banned, credits").eq("id", user.id).single();
+    if (profile?.banned) {
+      return Response.json({ error: "This account has been suspended." }, { status: 403 });
+    }
+
     const { data: promo } = await admin.from("promo_codes").select("*").eq("code", normalized).single();
     if (!promo || !promo.active) {
       return Response.json({ error: "That code isn't valid." }, { status: 404 });
@@ -40,7 +45,6 @@ export async function POST(req) {
       return Response.json({ error: "You've already used this code." }, { status: 409 });
     }
 
-    const { data: profile } = await admin.from("profiles").select("credits").eq("id", user.id).single();
     await admin.from("profiles").update({ credits: (profile?.credits || 0) + promo.credits }).eq("id", user.id);
     await admin.from("promo_codes").update({ redemptions_count: promo.redemptions_count + 1 }).eq("id", promo.id);
 

@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Nav from "../../components/Nav";
+import Turnstile from "../../components/Turnstile";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 
 function friendly(message) {
@@ -75,6 +76,8 @@ export default function Login() {
   const [agreed, setAgreed] = useState(false);
   const [resendBusy, setResendBusy] = useState(false);
   const [resendMsg, setResendMsg] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const turnstileRef = useRef(null);
 
   function switchMode(m) {
     setMode(m);
@@ -96,14 +99,17 @@ export default function Login() {
     setErr("");
     setMsg("");
     const sb = supabaseBrowser();
+    const captchaOptions = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? { captchaToken } : {};
 
     if (mode === "forgot") {
       if (!email) { setErr("Enter your email first."); return; }
       setBusy(true);
       const { error } = await sb.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset`,
+        ...captchaOptions,
       });
       setBusy(false);
+      turnstileRef.current?.reset();
       if (error) setErr(friendly(error.message));
       else setMsg("Reset link sent — check your email (and spam folder). The link takes you back here to set a new password.");
       return;
@@ -115,7 +121,7 @@ export default function Login() {
       if (!agreed) { setErr("Please accept the Privacy Policy and Terms of Use to continue."); return; }
       setBusy(true);
       try {
-        const { data, error } = await sb.auth.signUp({ email, password });
+        const { data, error } = await sb.auth.signUp({ email, password, options: captchaOptions });
         if (error) throw error;
         if (data.session) router.push("/onboarding");
         else {
@@ -126,13 +132,14 @@ export default function Login() {
         setErr(friendly(e.message));
       } finally {
         setBusy(false);
+        turnstileRef.current?.reset();
       }
       return;
     }
 
     setBusy(true);
     try {
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      const { data, error } = await sb.auth.signInWithPassword({ email, password, options: captchaOptions });
       if (error) throw error;
       const { data: profile } = await sb
         .from("profiles")
@@ -145,15 +152,17 @@ export default function Login() {
       if ((e.message || "").toLowerCase().includes("email not confirmed")) setPendingConfirm(true);
     } finally {
       setBusy(false);
+      turnstileRef.current?.reset();
     }
   }
 
+  const captchaOk = !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || !!captchaToken;
   const canSubmit =
-    mode === "forgot"
+    (mode === "forgot"
       ? !!email
       : mode === "signup"
       ? email && password.length >= 6 && confirm.length >= 6 && agreed
-      : email && password.length >= 6;
+      : email && password.length >= 6) && captchaOk;
 
   return (
     <main className="shell">
@@ -249,6 +258,8 @@ export default function Login() {
             {resendMsg && <span> — {resendMsg}</span>}
           </p>
         )}
+
+        <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
 
         <button className="btn-primary" style={{ width: "100%", marginTop: 14 }} onClick={submit}
           disabled={busy || !canSubmit}>

@@ -23,7 +23,7 @@ export async function GET(req) {
   if (type === "users") {
     const { data, error } = await admin
       .from("profiles")
-      .select("id, email, credits, plan, plan_expires, industry, experience_level, referral_source, streak_count, hired, is_admin, created_at")
+      .select("id, email, credits, plan, plan_expires, industry, experience_level, referral_source, streak_count, hired, is_admin, banned, created_at")
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -126,6 +126,16 @@ export async function GET(req) {
       .order("created_at", { ascending: false });
     if (error) return Response.json({ error: error.message }, { status: 500 });
     return Response.json({ codes: data });
+  }
+
+  if (type === "support_messages") {
+    const { data, error } = await admin
+      .from("support_messages")
+      .select("id, user_id, email, type, message, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ messages: data });
   }
 
   return Response.json({ error: "Unknown type." }, { status: 400 });

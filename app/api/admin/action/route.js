@@ -162,5 +162,19 @@ export async function POST(req) {
     return Response.json({ ok: true });
   }
 
+  if (body.action === "toggle_ban") {
+    const { userId, value } = body;
+    const { error } = await admin.from("profiles").update({ banned: value }).eq("id", userId);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: true });
+  }
+
+  if (body.action === "resolve_support_message") {
+    const { messageId, status } = body;
+    const { error } = await admin.from("support_messages").update({ status }).eq("id", messageId);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: true });
+  }
+
   return Response.json({ error: "Unknown action." }, { status: 400 });
 }

@@ -583,3 +583,6 @@ select:focus {
 .news-reader-panel { max-width: 640px; }
 .news-reader-title { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: -0.02em; margin: 10px 0 4px; line-height: 1.25; }
 .news-reader-body { font-family: var(--serif); font-size: 15px; line-height: 1.75; color: var(--ink); white-space: pre-wrap; }
+
+/* ---------- admin: banned/suspended badge ---------- */
+.danger-pill { background: color-mix(in srgb, var(--moto) 18%, transparent); color: var(--moto); }

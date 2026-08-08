@@ -52,12 +52,15 @@ export async function POST(req) {
 
     const { data: profile, error: pErr } = await admin
       .from("profiles")
-      .select("credits, plan, plan_expires, streak_count, longest_streak, last_generation_date")
+      .select("credits, plan, plan_expires, streak_count, longest_streak, last_generation_date, banned")
       .eq("id", user.id)
       .single();
     if (pErr || !profile) {
       console.error("Profile lookup failed for", user.id, pErr);
       return Response.json({ error: "Could not load your account. Try signing out and in." }, { status: 500 });
+    }
+    if (profile.banned) {
+      return Response.json({ error: "This account has been suspended. Contact support if you think this is a mistake." }, { status: 403 });
     }
     const unlimited = FREE_MODE || isUnlimited(profile);
     if (!unlimited && profile.credits < 1) {

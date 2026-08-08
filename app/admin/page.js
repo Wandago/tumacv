@@ -19,6 +19,8 @@ export default function Admin() {
   const [payments, setPayments] = useState(null);
   const [articles, setArticles] = useState(null);
   const [promoCodes, setPromoCodes] = useState(null);
+  const [supportMessages, setSupportMessages] = useState(null);
+  const [supportFilter, setSupportFilter] = useState("open");
   const [newCode, setNewCode] = useState({ code: "", credits: "5", maxRedemptions: "", expiresAt: "", note: "" });
   const [creatingCode, setCreatingCode] = useState(false);
   const [expandedUser, setExpandedUser] = useState(null);
@@ -59,6 +61,7 @@ export default function Admin() {
     if (type === "payments") setPayments(data.payments);
     if (type === "articles") setArticles(data.articles);
     if (type === "promo_codes") setPromoCodes(data.codes);
+    if (type === "support_messages") setSupportMessages(data.messages);
   }
 
   useEffect(() => {
@@ -72,6 +75,7 @@ export default function Admin() {
     if (tab === "payments" && payments === null) load("payments");
     if (tab === "articles" && articles === null) load("articles");
     if (tab === "promo" && promoCodes === null) load("promo_codes");
+    if (tab === "support" && supportMessages === null) load("support_messages");
   }, [authorized, tab]); // eslint-disable-line
 
   async function act(action, payload) {
@@ -98,6 +102,14 @@ export default function Admin() {
     setBusyId(userId);
     const data = await act("toggle_admin", { userId, value });
     if (data) setUsers((u) => u.map((x) => (x.id === userId ? { ...x, is_admin: value } : x)));
+    setBusyId("");
+  }
+
+  async function toggleBan(userId, value) {
+    if (!confirm(value ? "Suspend this account? They won't be able to generate, pay, or redeem codes until unbanned." : "Unban this account?")) return;
+    setBusyId(userId);
+    const data = await act("toggle_ban", { userId, value });
+    if (data) setUsers((u) => u.map((x) => (x.id === userId ? { ...x, banned: value } : x)));
     setBusyId("");
   }
 
@@ -189,6 +201,13 @@ export default function Admin() {
     setBusyId("");
   }
 
+  async function resolveSupportMessage(messageId, status) {
+    setBusyId(messageId);
+    const data = await act("resolve_support_message", { messageId, status });
+    if (data) setSupportMessages((m) => m.map((x) => (x.id === messageId ? { ...x, status } : x)));
+    setBusyId("");
+  }
+
   async function resolvePayment(paymentId, newStatus) {
     const label = newStatus === "complete" ? "mark this payment COMPLETE and credit the user's account" : "mark this payment FAILED";
     if (!confirm(`Are you sure you want to ${label}? This is meant for fixing a payment where the automatic webhook missed it.`)) return;
@@ -234,6 +253,7 @@ export default function Admin() {
         <button className={tab === "payments" ? "on" : "btn-ghost"} onClick={() => setTab("payments")}>Payments</button>
         <button className={tab === "articles" ? "on" : "btn-ghost"} onClick={() => setTab("articles")}>News articles</button>
         <button className={tab === "promo" ? "on" : "btn-ghost"} onClick={() => setTab("promo")}>Promo codes</button>
+        <button className={tab === "support" ? "on" : "btn-ghost"} onClick={() => setTab("support")}>Support</button>
       </div>
 
       {err && <p className="error">{err}</p>}
@@ -289,6 +309,7 @@ export default function Admin() {
                     <span className="hi-title">
                       {u.email} {u.is_admin && <span className="credits-pill" style={{ marginLeft: 6 }}>admin</span>}
                       {u.hired && <span className="credits-pill" style={{ marginLeft: 6 }}>hired</span>}
+                      {u.banned && <span className="credits-pill danger-pill" style={{ marginLeft: 6 }}>suspended</span>}
                     </span>
                     <span className="hi-meta">
                       {new Date(u.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
@@ -307,6 +328,9 @@ export default function Admin() {
                     </button>
                     <button className="btn-ghost" disabled={busyId === u.id} onClick={() => toggleAdmin(u.id, !u.is_admin)}>
                       {u.is_admin ? "Remove admin" : "Make admin"}
+                    </button>
+                    <button className="btn-ghost danger-btn" disabled={busyId === u.id} onClick={() => toggleBan(u.id, !u.banned)}>
+                      {u.banned ? "Unban" : "Suspend account"}
                     </button>
                     <button className="btn-ghost" onClick={() => viewActivity(u.id)}>
                       {expandedUser === u.id ? "Hide activity" : "View activity"}
@@ -493,6 +517,54 @@ export default function Admin() {
                 </div>
               ))}
               {promoCodes.length === 0 && <p className="step-hint">No promo codes yet — create one above.</p>}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === "support" && (
+        <>
+          <div className="news-filter-row">
+            {["open", "resolved", "all"].map((s) => (
+              <button key={s} className={`news-filter-chip ${supportFilter === s ? "on" : ""}`} onClick={() => setSupportFilter(s)}>{s}</button>
+            ))}
+          </div>
+          {supportMessages === null ? (
+            <div className="loading"><span className="spinner" /> Loading messages…</div>
+          ) : (
+            <div className="history-list">
+              {supportMessages
+                .filter((m) => supportFilter === "all" || m.status === supportFilter)
+                .map((m) => (
+                  <div key={m.id} className="history-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                      <span className="hi-title">
+                        <span className="credits-pill" style={{ marginRight: 8 }}>{m.type}</span>
+                        {m.email}
+                      </span>
+                      <span className="hi-meta">
+                        {new Date(m.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                        {m.status === "resolved" ? " · resolved" : ""}
+                      </span>
+                    </div>
+                    <p className="step-hint" style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.message}</p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <a className="btn-ghost" style={{ textDecoration: "none" }} href={`mailto:${m.email}`}>Reply by email</a>
+                      {m.status === "open" ? (
+                        <button className="btn-ghost" disabled={busyId === m.id} onClick={() => resolveSupportMessage(m.id, "resolved")}>
+                          {busyId === m.id ? "…" : "Mark resolved"}
+                        </button>
+                      ) : (
+                        <button className="btn-ghost" disabled={busyId === m.id} onClick={() => resolveSupportMessage(m.id, "open")}>
+                          {busyId === m.id ? "…" : "Reopen"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              {supportMessages.filter((m) => supportFilter === "all" || m.status === supportFilter).length === 0 && (
+                <p className="step-hint">No {supportFilter !== "all" ? supportFilter : ""} messages.</p>
+              )}
             </div>
           )}
         </>
