@@ -136,5 +136,31 @@ export async function POST(req) {
     return Response.json({ ok: true });
   }
 
+  if (body.action === "create_promo_code") {
+    const { code, credits, maxRedemptions, expiresAt, note } = body;
+    const normalized = (code || "").trim().toUpperCase();
+    if (!normalized || !credits) return Response.json({ error: "Code and credits are required." }, { status: 400 });
+    const { data, error } = await admin
+      .from("promo_codes")
+      .insert({
+        code: normalized,
+        credits: Number(credits),
+        max_redemptions: maxRedemptions ? Number(maxRedemptions) : null,
+        expires_at: expiresAt || null,
+        note: note || null,
+      })
+      .select()
+      .single();
+    if (error) return Response.json({ error: error.message.includes("duplicate") ? "That code already exists." : error.message }, { status: 500 });
+    return Response.json({ ok: true, code: data });
+  }
+
+  if (body.action === "toggle_promo_code") {
+    const { codeId, active } = body;
+    const { error } = await admin.from("promo_codes").update({ active }).eq("id", codeId);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: true });
+  }
+
   return Response.json({ error: "Unknown action." }, { status: 400 });
 }

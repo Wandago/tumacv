@@ -2,12 +2,11 @@
 import { useEffect, useState } from "react";
 import Nav from "../../components/Nav";
 import { supabaseBrowser } from "../../lib/supabaseClient";
-import { INDUSTRIES } from "../../lib/gamification";
 
 export default function News() {
   const [articles, setArticles] = useState(null);
   const [filter, setFilter] = useState("all");
-  const [open, setOpen] = useState(null);
+  const [reading, setReading] = useState(null); // full article object, or null
 
   useEffect(() => {
     supabaseBrowser().from("articles").select("*").order("created_at", { ascending: false }).limit(100)
@@ -45,19 +44,30 @@ export default function News() {
       ) : (
         <div className="news-grid">
           {filtered.map((a) => (
-            <button key={a.id} className="news-card" onClick={() => setOpen(open === a.id ? null : a.id)}>
+            <button key={a.id} className="news-card" onClick={() => setReading(a)}>
               <span className="news-industry">{a.industry}</span>
               <h3>{a.title}</h3>
               <div className="news-meta">
                 {new Date(a.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
               </div>
-              {open === a.id ? (
-                <div className="news-body">{a.content}</div>
-              ) : (
-                <div className="news-preview">{a.content?.slice(0, 160)}…</div>
-              )}
+              <div className="news-preview">{a.content?.slice(0, 160)}…</div>
+              <span className="news-read-more">Read full article →</span>
             </button>
           ))}
+        </div>
+      )}
+
+      {reading && (
+        <div className="modal-overlay" onClick={() => setReading(null)}>
+          <div className="modal-panel news-reader-panel" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setReading(null)} aria-label="Close">✕</button>
+            <span className="news-industry">{reading.industry}</span>
+            <h1 className="news-reader-title">{reading.title}</h1>
+            <div className="news-meta" style={{ marginBottom: 18 }}>
+              {new Date(reading.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+            </div>
+            <div className="news-reader-body">{reading.content}</div>
+          </div>
         </div>
       )}
     </main>

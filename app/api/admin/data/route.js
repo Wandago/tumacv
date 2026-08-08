@@ -119,5 +119,14 @@ export async function GET(req) {
     return Response.json({ stats, totalViews: (data || []).length });
   }
 
+  if (type === "promo_codes") {
+    const { data, error } = await admin
+      .from("promo_codes")
+      .select("id, code, credits, max_redemptions, redemptions_count, active, expires_at, note, created_at")
+      .order("created_at", { ascending: false });
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ codes: data });
+  }
+
   return Response.json({ error: "Unknown type." }, { status: 400 });
 }

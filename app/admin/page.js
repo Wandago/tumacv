@@ -18,6 +18,9 @@ export default function Admin() {
   const [jobs, setJobs] = useState(null);
   const [payments, setPayments] = useState(null);
   const [articles, setArticles] = useState(null);
+  const [promoCodes, setPromoCodes] = useState(null);
+  const [newCode, setNewCode] = useState({ code: "", credits: "5", maxRedemptions: "", expiresAt: "", note: "" });
+  const [creatingCode, setCreatingCode] = useState(false);
   const [expandedUser, setExpandedUser] = useState(null);
   const [userGens, setUserGens] = useState({});
   const [q, setQ] = useState("");
@@ -55,6 +58,7 @@ export default function Admin() {
     if (type === "jobs") setJobs(data.jobs);
     if (type === "payments") setPayments(data.payments);
     if (type === "articles") setArticles(data.articles);
+    if (type === "promo_codes") setPromoCodes(data.codes);
   }
 
   useEffect(() => {
@@ -67,6 +71,7 @@ export default function Admin() {
     if (tab === "jobs" && jobs === null) load("jobs");
     if (tab === "payments" && payments === null) load("payments");
     if (tab === "articles" && articles === null) load("articles");
+    if (tab === "promo" && promoCodes === null) load("promo_codes");
   }, [authorized, tab]); // eslint-disable-line
 
   async function act(action, payload) {
@@ -156,6 +161,34 @@ export default function Admin() {
     setBusyId("");
   }
 
+  async function createPromoCode() {
+    setErr("");
+    if (!newCode.code.trim() || !newCode.credits) {
+      setErr("Code and credits are required.");
+      return;
+    }
+    setCreatingCode(true);
+    const data = await act("create_promo_code", {
+      code: newCode.code,
+      credits: newCode.credits,
+      maxRedemptions: newCode.maxRedemptions,
+      expiresAt: newCode.expiresAt,
+      note: newCode.note,
+    });
+    if (data) {
+      setPromoCodes((c) => [data.code, ...(c || [])]);
+      setNewCode({ code: "", credits: "5", maxRedemptions: "", expiresAt: "", note: "" });
+    }
+    setCreatingCode(false);
+  }
+
+  async function togglePromoCode(codeId, active) {
+    setBusyId(codeId);
+    const data = await act("toggle_promo_code", { codeId, active });
+    if (data) setPromoCodes((c) => c.map((x) => (x.id === codeId ? { ...x, active } : x)));
+    setBusyId("");
+  }
+
   async function resolvePayment(paymentId, newStatus) {
     const label = newStatus === "complete" ? "mark this payment COMPLETE and credit the user's account" : "mark this payment FAILED";
     if (!confirm(`Are you sure you want to ${label}? This is meant for fixing a payment where the automatic webhook missed it.`)) return;
@@ -200,6 +233,7 @@ export default function Admin() {
         <button className={tab === "jobs" ? "on" : "btn-ghost"} onClick={() => { setTab("jobs"); setQ(""); }}>Jobs board</button>
         <button className={tab === "payments" ? "on" : "btn-ghost"} onClick={() => setTab("payments")}>Payments</button>
         <button className={tab === "articles" ? "on" : "btn-ghost"} onClick={() => setTab("articles")}>News articles</button>
+        <button className={tab === "promo" ? "on" : "btn-ghost"} onClick={() => setTab("promo")}>Promo codes</button>
       </div>
 
       {err && <p className="error">{err}</p>}
@@ -404,6 +438,64 @@ export default function Admin() {
             {articles.length === 0 && <p className="step-hint">No articles generated yet.</p>}
           </div>
         )
+      )}
+
+      {tab === "promo" && (
+        <>
+          <div className="post-card">
+            <h3 style={{ marginBottom: 10 }}>Create a new code</h3>
+            <div className="two-col">
+              <div>
+                <label className="field-label">Code</label>
+                <input type="text" value={newCode.code} onChange={(e) => setNewCode((f) => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="e.g. TIKTOK5" />
+              </div>
+              <div>
+                <label className="field-label">Credits to give</label>
+                <input type="number" value={newCode.credits} onChange={(e) => setNewCode((f) => ({ ...f, credits: e.target.value }))} placeholder="5" />
+              </div>
+              <div>
+                <label className="field-label">Max redemptions (blank = unlimited)</label>
+                <input type="number" value={newCode.maxRedemptions} onChange={(e) => setNewCode((f) => ({ ...f, maxRedemptions: e.target.value }))} placeholder="e.g. 200" />
+              </div>
+              <div>
+                <label className="field-label">Expires (optional)</label>
+                <input type="date" value={newCode.expiresAt} onChange={(e) => setNewCode((f) => ({ ...f, expiresAt: e.target.value }))} />
+              </div>
+            </div>
+            <label className="field-label">Note (for you — not shown to users)</label>
+            <input type="text" value={newCode.note} onChange={(e) => setNewCode((f) => ({ ...f, note: e.target.value }))} placeholder="e.g. TikTok launch video, Aug 2026" />
+            {err && <p className="error">{err}</p>}
+            <button className="btn-primary" style={{ marginTop: 12 }} disabled={creatingCode} onClick={createPromoCode}>
+              {creatingCode ? "Creating…" : "Create code"}
+            </button>
+          </div>
+
+          {promoCodes === null ? (
+            <div className="loading"><span className="spinner" /> Loading codes…</div>
+          ) : (
+            <div className="history-list">
+              {promoCodes.map((c) => (
+                <div key={c.id} className="history-item">
+                  <div>
+                    <span className="hi-title">
+                      {c.code} <span className="credits-pill" style={{ marginLeft: 6 }}>+{c.credits} credits</span>
+                      {!c.active && <span className="credits-pill" style={{ marginLeft: 6 }}>inactive</span>}
+                    </span>
+                    <div className="field-note" style={{ marginTop: 2 }}>
+                      {c.redemptions_count} used{c.max_redemptions ? ` / ${c.max_redemptions} max` : " / unlimited"}
+                      {c.expires_at ? ` · expires ${new Date(c.expires_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}` : ""}
+                      {c.note ? ` · ${c.note}` : ""}
+                    </div>
+                  </div>
+                  <button className="btn-ghost" disabled={busyId === c.id} onClick={() => togglePromoCode(c.id, !c.active)}>
+                    {busyId === c.id ? "…" : c.active ? "Deactivate" : "Activate"}
+                  </button>
+                </div>
+              ))}
+              {promoCodes.length === 0 && <p className="step-hint">No promo codes yet — create one above.</p>}
+            </div>
+          )}
+        </>
       )}
     </main>
   );

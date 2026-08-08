@@ -246,7 +246,7 @@ export default function Home() {
             {FREE_MODE
               ? "Free during beta — create an account and generate as many as you like"
               : (MPESA_ENABLED || PADDLE_ENABLED)
-              ? "5 free applications when you sign up · then as low as KES 1.33 each"
+              ? "5 free applications when you sign up · then as low as KES 0.71 each"
               : "5 free applications when you sign up — paid plans launching very soon"}
           </p>
         </section>

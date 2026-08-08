@@ -25,6 +25,10 @@ export default function Dashboard() {
   const [mpesaPhone, setMpesaPhone] = useState("");
   const [mpesaBusy, setMpesaBusy] = useState(false);
   const [mpesaMsg, setMpesaMsg] = useState("");
+  const [promoCode, setPromoCode] = useState("");
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoMsg, setPromoMsg] = useState("");
+  const [promoErr, setPromoErr] = useState("");
   const [paidBanner, setPaidBanner] = useState(false);
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
@@ -147,6 +151,35 @@ export default function Dashboard() {
       setErr("Network error. Try again.");
     } finally {
       setMpesaBusy(false);
+    }
+  }
+
+  async function redeemCode() {
+    setPromoErr("");
+    setPromoMsg("");
+    if (!promoCode.trim()) {
+      setPromoErr("Enter a code first.");
+      return;
+    }
+    setPromoBusy(true);
+    try {
+      const { data: sess } = await supabaseBrowser().auth.getSession();
+      const res = await fetch("/api/redeem-code", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${sess?.session?.access_token}` },
+        body: JSON.stringify({ code: promoCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) setPromoErr(data.error || "Could not redeem that code.");
+      else {
+        setPromoMsg(`+${data.credits} credits added!`);
+        setPromoCode("");
+        loadData(user); // refresh the visible balance immediately
+      }
+    } catch {
+      setPromoErr("Network error. Try again.");
+    } finally {
+      setPromoBusy(false);
     }
   }
 
@@ -321,6 +354,25 @@ export default function Dashboard() {
               </div>
             )}
             {err && <p className="error">{err}</p>}
+
+            <div className="promo-box">
+              <p className="field-note" style={{ marginTop: 0 }}>Have a promo code?</p>
+              <div className="upload-row">
+                <input
+                  type="text"
+                  placeholder="e.g. TIKTOK5"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value)}
+                  style={{ maxWidth: 180, textTransform: "uppercase" }}
+                  onKeyDown={(e) => e.key === "Enter" && redeemCode()}
+                />
+                <button className="btn-ghost" onClick={redeemCode} disabled={promoBusy}>
+                  {promoBusy ? "Checking…" : "Redeem"}
+                </button>
+              </div>
+              {promoMsg && <p className="success">{promoMsg}</p>}
+              {promoErr && <p className="error">{promoErr}</p>}
+            </div>
           </div>
         )}
       </div>
