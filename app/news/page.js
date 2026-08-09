@@ -6,7 +6,7 @@ import { supabaseBrowser } from "../../lib/supabaseClient";
 export default function News() {
   const [articles, setArticles] = useState(null);
   const [filter, setFilter] = useState("all");
-  const [reading, setReading] = useState(null); // full article object, or null
+  const [reading, setReading] = useState(null);
 
   useEffect(() => {
     supabaseBrowser().from("articles").select("*").order("created_at", { ascending: false }).limit(100)
