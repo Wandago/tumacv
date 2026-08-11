@@ -118,7 +118,53 @@ async function handleData(req, admin) {
     for (const row of data || []) {
       counts[row.path] = (counts[row.path] || 0) + 1;
     }
-    const stats = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([label, count]) => ({ label, count }));
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+    const FRIENDLY_PATHS = {
+      "/": "Home",
+      "/dashboard": "Dashboard",
+      "/admin": "Admin",
+      "/login": "Sign in / Sign up",
+      "/pricing": "Pricing",
+      "/support": "Support",
+      "/news": "News",
+      "/jobs": "Jobs board",
+      "/onboarding": "Onboarding",
+      "/privacy": "Privacy policy",
+      "/terms": "Terms",
+    };
+    const jobIds = [], articleIds = [];
+    for (const [path] of top) {
+      const jobMatch = path.match(/^\/jobs\/([^/]+)$/);
+      const newsMatch = path.match(/^\/news\/([^/]+)$/);
+      if (jobMatch) jobIds.push(jobMatch[1]);
+      if (newsMatch) articleIds.push(newsMatch[1]);
+    }
+    const [jobTitles, articleTitles] = await Promise.all([
+      jobIds.length
+        ? admin.from("jobs").select("id, title, company").in("id", jobIds).then(({ data }) => data || [])
+        : [],
+      articleIds.length
+        ? admin.from("articles").select("id, title").in("id", articleIds).then(({ data }) => data || [])
+        : [],
+    ]);
+    const jobById = Object.fromEntries(jobTitles.map((j) => [j.id, j]));
+    const articleById = Object.fromEntries(articleTitles.map((a) => [a.id, a]));
+
+    const stats = top.map(([path, count]) => {
+      if (FRIENDLY_PATHS[path]) return { label: FRIENDLY_PATHS[path], count };
+      const jobMatch = path.match(/^\/jobs\/([^/]+)$/);
+      if (jobMatch) {
+        const job = jobById[jobMatch[1]];
+        return { label: job ? `Job: ${job.title} — ${job.company}` : `Job posting (${path})`, count };
+      }
+      const newsMatch = path.match(/^\/news\/([^/]+)$/);
+      if (newsMatch) {
+        const article = articleById[newsMatch[1]];
+        return { label: article ? `Article: ${article.title}` : `News article (${path})`, count };
+      }
+      return { label: path, count };
+    });
     return Response.json({ stats, totalViews: (data || []).length });
   }
 

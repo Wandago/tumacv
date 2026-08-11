@@ -7,6 +7,8 @@ import { extractPdfText } from "../../lib/pdfText";
 import { extractImagesToText } from "../../lib/imageExtract";
 import { INDUSTRIES } from "../../lib/gamification";
 import { getSavedProfile, setSavedProfile } from "../../lib/storage";
+import LinkedInGuide from "../../components/LinkedInGuide";
+import { looksLikeBareLinkedInUrl } from "../../lib/linkedin";
 
 const LEVELS = [
   { id: "graduate", label: "Entry-level / recent graduate" },
@@ -244,12 +246,19 @@ export default function Onboarding() {
           On iPhone, can't find your saved PDF? Try the photo option instead — a picture of a printed
           CV or a few LinkedIn screenshots works well, straight from Camera or Photos.
         </p>
+        <LinkedInGuide />
         <textarea
           style={{ minHeight: 160 }}
           placeholder="Paste your CV or LinkedIn export text here…"
           value={profileText}
           onChange={(e) => setProfileText(e.target.value)}
         />
+        {looksLikeBareLinkedInUrl(profileText) && (
+          <p className="error">
+            That's a LinkedIn profile link, not your profile content — LinkedIn doesn't let other
+            sites read it directly. Export it as a PDF instead (steps above) and upload that.
+          </p>
+        )}
 
         {err && <p className="error">{err}</p>}
         {saved && <p className="success">Saved.</p>}

@@ -688,6 +688,15 @@ select:focus {
 .globalpay-list { padding-left: 20px; font-size: 13px; line-height: 1.6; }
 .globalpay-list li { margin-bottom: 4px; }
 
+/* ---------- generic "how to" guide box (e.g. LinkedIn PDF export) ---------- */
+.howto-box {
+  background: color-mix(in srgb, var(--kijani) 6%, var(--sheet)); border: 1px solid color-mix(in srgb, var(--kijani) 22%, var(--stone));
+  border-radius: 14px; padding: 14px 16px; margin: 10px 0;
+}
+.howto-title { font-family: var(--display); font-weight: 700; font-size: 13.5px; margin-bottom: 8px; color: var(--kijani-dark); }
+.howto-list { padding-left: 20px; font-size: 12.5px; line-height: 1.65; color: var(--ink); }
+.howto-list li { margin-bottom: 3px; }
+
 /* ---------- direct M-Pesa (Daraja) box ---------- */
 .mpesa-direct-box {
   border-top: 1px solid var(--stone); padding-top: 12px; margin-top: 12px;

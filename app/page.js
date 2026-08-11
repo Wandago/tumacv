@@ -10,6 +10,8 @@ import CreditsModal from "../components/CreditsModal";
 import { extractImagesToText } from "../lib/imageExtract";
 import { getSavedProfile, setSavedProfile, clearLegacySharedDraft } from "../lib/storage";
 import ShareButtons from "../components/ShareButtons";
+import LinkedInGuide from "../components/LinkedInGuide";
+import { isLinkedInUrl, looksLikeBareLinkedInUrl } from "../lib/linkedin";
 
 const TEMPLATES = [
   { id: "classic", name: "Classic", desc: "Serif, formal. Banks, gov, NGOs." },
@@ -86,6 +88,12 @@ export default function Home() {
 
   async function fetchJd() {
     setFetchErr("");
+    if (isLinkedInUrl(jobUrl)) {
+      setFetchErr(
+        "LinkedIn blocks outside tools from reading job posts. Open the listing on LinkedIn, copy the job description text, and paste it into the box below instead."
+      );
+      return;
+    }
     setFetching(true);
     try {
       const res = await fetch("/api/fetch-jd", {
@@ -397,10 +405,10 @@ export default function Home() {
       <section className="step">
         <div className="step-head"><span className="step-no">02</span><h2>You</h2></div>
         <p className="step-hint">
-          Upload your LinkedIn profile as a PDF (on LinkedIn: open your profile → the "More" button →
-          Save to PDF), or a photo of your CV, and we'll read it automatically — or paste your CV text
-          below. Saved on this device so you only do it once.
+          Upload your LinkedIn profile as a PDF, or a photo of your CV, and we'll read it automatically
+          — or paste your CV text below. Saved on this device so you only do it once.
         </p>
+        <LinkedInGuide />
         <div className="upload-row">
           <input
             ref={fileInputRef}
@@ -439,6 +447,12 @@ export default function Home() {
           value={profileText}
           onChange={(e) => setProfileText(e.target.value)}
         />
+        {looksLikeBareLinkedInUrl(profileText) && (
+          <p className="error">
+            That's a LinkedIn profile link, not your profile content — LinkedIn doesn't let other
+            sites read it directly. Export it as a PDF instead (steps above) and upload that.
+          </p>
+        )}
       </section>
 
       <section className="step" style={{ borderBottom: "none" }}>
