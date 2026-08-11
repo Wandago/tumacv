@@ -13,6 +13,7 @@ import ShareButtons from "../components/ShareButtons";
 import LinkedInGuide from "../components/LinkedInGuide";
 import { isLinkedInUrl, looksLikeBareLinkedInUrl } from "../lib/linkedin";
 import HeroArt from "../components/HeroArt";
+import { SAMPLE_CV } from "../lib/sampleCv";
 
 const IconPaste = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -43,6 +44,7 @@ const TEMPLATES = [
 export default function Home() {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [publicStats, setPublicStats] = useState(null);
   const [jobText, setJobText] = useState("");
   const [jobUrl, setJobUrl] = useState("");
   const [profileText, setProfileText] = useState("");
@@ -97,6 +99,13 @@ export default function Home() {
         }
       });
     }
+
+    // Real trust stat for the logged-out homepage — fails silently since
+    // it's a nice-to-have, never something that should block the page.
+    fetch("/api/admin/public-stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setPublicStats(d))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -313,6 +322,28 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <section className="example-showcase">
+          <span className="eyebrow">Real output, not a mockup</span>
+          <h2>See what you get</h2>
+          <p className="step-hint">
+            This is the actual "Modern" template, rendered live by TumaCV with example data —
+            the same component every real CV goes through.
+          </p>
+          <div className="example-frame">
+            <div className="sheet example-sheet">
+              <CvView data={SAMPLE_CV} template="modern" />
+            </div>
+            <div className="example-fade" />
+          </div>
+        </section>
+
+        {publicStats && publicStats.totalGenerations > 0 && (
+          <p className="trust-stat">
+            Joined by {publicStats.totalUsers.toLocaleString()}+ Kenyan job seekers ·{" "}
+            {publicStats.totalGenerations.toLocaleString()}+ tailored applications generated
+          </p>
+        )}
 
         <div style={{ textAlign: "center", padding: "22px 0 40px" }}>
           <a href="/login?mode=signup" className="btn-primary" style={{ textDecoration: "none", display: "inline-block", padding: "14px 32px", fontSize: 15 }}>

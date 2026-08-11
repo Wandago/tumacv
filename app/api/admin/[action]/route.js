@@ -1,4 +1,4 @@
-import { requireUser } from "../../../../lib/supabaseAdmin";
+import { requireUser, supabaseAdmin } from "../../../../lib/supabaseAdmin";
 import { PLANS } from "../../../../lib/plans";
 
 export const maxDuration = 20;
@@ -432,8 +432,21 @@ async function handleAction(req, admin) {
   return Response.json({ error: "Unknown action." }, { status: 400 });
 }
 
+// Deliberately unauthenticated — used by the public homepage to show a real
+// trust stat. Returns only two harmless aggregate counts, nothing per-user
+// or financial. Kept in this file (rather than a new route) to avoid adding
+// another function to the Vercel Hobby plan's serverless function count.
+async function handlePublicStats(admin) {
+  const [{ count: totalUsers }, { count: totalGenerations }] = await Promise.all([
+    admin.from("profiles").select("*", { count: "exact", head: true }),
+    admin.from("generations").select("*", { count: "exact", head: true }),
+  ]);
+  return Response.json({ totalUsers: totalUsers || 0, totalGenerations: totalGenerations || 0 });
+}
+
 export async function GET(req, { params }) {
   const { action } = await params;
+  if (action === "public-stats") return handlePublicStats(supabaseAdmin());
   if (action !== "data") return Response.json({ error: "Not found" }, { status: 404 });
   const authed = await assertAdmin(req);
   if (!authed) return Response.json({ error: "Not authorized." }, { status: 403 });
