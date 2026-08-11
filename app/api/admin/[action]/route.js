@@ -140,6 +140,16 @@ async function handleData(req, admin) {
     return Response.json({ articles: data });
   }
 
+  if (type === "hub_profiles") {
+    const { data, error } = await admin
+      .from("hub_profiles")
+      .select("id, display_name, title, industry, experience_level, skills, blurb, updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(500);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ hubProfiles: data });
+  }
+
   if (type === "user_generations") {
     const userId = new URL(req.url).searchParams.get("userId");
     const { data, error } = await admin
@@ -299,6 +309,12 @@ async function handleAction(req, admin) {
 
   if (body.action === "delete_article") {
     const { error } = await admin.from("articles").delete().eq("id", body.articleId);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: true });
+  }
+
+  if (body.action === "delete_hub_profile") {
+    const { error } = await admin.from("hub_profiles").delete().eq("id", body.hubProfileId);
     if (error) return Response.json({ error: error.message }, { status: 500 });
     return Response.json({ ok: true });
   }

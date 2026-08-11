@@ -10,6 +10,7 @@ import ThemeToggle from "./ThemeToggle";
 const EXPLORE_LINKS = [
   { href: "/pricing", label: "Pricing" },
   { href: "/jobs", label: "Jobs board" },
+  { href: "/hub", label: "Talent Hub" },
   { href: "/news", label: "News" },
   { href: "/support", label: "Support" },
 ];

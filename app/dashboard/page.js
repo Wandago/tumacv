@@ -10,6 +10,7 @@ import { clearLegacySharedDraft } from "../../lib/storage";
 import { generateCvDocx, downloadBlob } from "../../lib/generateDocx";
 import { openPaddleCheckout, paddlePriceIdFor } from "../../lib/paddle";
 import GlobalPayHelp from "../../components/GlobalPayHelp";
+import TalentHubCard from "../../components/TalentHubCard";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -418,6 +419,8 @@ export default function Dashboard() {
           </p>
         )}
       </section>
+
+      <TalentHubCard user={user} profile={profile} latestGeneration={history[0]} />
 
       <section style={{ marginTop: 34 }}>
         <div className="step-head">
