@@ -12,6 +12,25 @@ import { getSavedProfile, setSavedProfile, clearLegacySharedDraft } from "../lib
 import ShareButtons from "../components/ShareButtons";
 import LinkedInGuide from "../components/LinkedInGuide";
 import { isLinkedInUrl, looksLikeBareLinkedInUrl } from "../lib/linkedin";
+import HeroArt from "../components/HeroArt";
+
+const IconPaste = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    <path d="M9 12h6M9 16h4" />
+  </svg>
+);
+const IconUser = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+  </svg>
+);
+const IconSparkle = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" />
+    <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" />
+  </svg>
+);
 
 const TEMPLATES = [
   { id: "classic", name: "Classic", desc: "Serif, formal. Banks, gov, NGOs." },
@@ -244,39 +263,57 @@ export default function Home() {
     return (
       <main className="shell">
         <Nav />
-        <section className="hero">
-          <h1>One job. One <em>tailored</em> CV. Five minutes.</h1>
-          <p>
-            Paste any job posting. TumaCV rewrites your CV and cover letter to match it —
-            keywords, ordering, emphasis — using only your real experience. Nothing invented.
-          </p>
-          <p className="price">
-            {FREE_MODE
-              ? "Free during beta — create an account and generate as many as you like"
-              : (MPESA_ENABLED || PADDLE_ENABLED)
-              ? "5 free applications when you sign up · then as low as KES 0.71 each"
-              : "5 free applications when you sign up — paid plans launching very soon"}
-          </p>
+        <section className="hero hero-split">
+          <div className="hero-copy">
+            <span className="eyebrow">Built for Kenyan job seekers</span>
+            <h1>One job. One <em>tailored</em> CV. Five minutes.</h1>
+            <p>
+              Paste any job posting. TumaCV rewrites your CV and cover letter to match it —
+              keywords, ordering, emphasis — using only your real experience. Nothing invented.
+            </p>
+            <p className="price">
+              {FREE_MODE
+                ? "Free during beta — create an account and generate as many as you like"
+                : (MPESA_ENABLED || PADDLE_ENABLED)
+                ? "5 free applications when you sign up · then as low as KES 0.71 each"
+                : "5 free applications when you sign up — paid plans launching very soon"}
+            </p>
+          </div>
+          <HeroArt />
         </section>
 
-        <section className="step">
-          <div className="step-head"><span className="step-no">01</span><h2>Paste a job</h2></div>
-          <p className="step-hint">
-            A link from BrighterMonday, Fuzu, MyJobMag, a company careers page, or just the
-            description text. Pick one straight from our <a href="/jobs">jobs board</a> if you'd rather.
-          </p>
-        </section>
-        <section className="step">
-          <div className="step-head"><span className="step-no">02</span><h2>Add your CV</h2></div>
-          <p className="step-hint">
-            Upload your LinkedIn PDF export or paste your CV — saved to your account so you only do it once.
-          </p>
-        </section>
-        <section className="step" style={{ borderBottom: "none" }}>
-          <div className="step-head"><span className="step-no">03</span><h2>Get your documents</h2></div>
-          <p className="step-hint">
-            A tailored CV in your choice of layout, plus a matching cover letter, ready in under a minute.
-          </p>
+        <section className="step-flow">
+          <div className="step-flow-item">
+            <div className="step-flow-marker"><IconPaste /></div>
+            <div className="step-flow-body">
+              <span className="step-flow-no">01</span>
+              <h2>Paste a job</h2>
+              <p className="step-hint">
+                A link from BrighterMonday, Fuzu, MyJobMag, a company careers page, or just the
+                description text. Pick one straight from our <a href="/jobs">jobs board</a> if you'd rather.
+              </p>
+            </div>
+          </div>
+          <div className="step-flow-item">
+            <div className="step-flow-marker"><IconUser /></div>
+            <div className="step-flow-body">
+              <span className="step-flow-no">02</span>
+              <h2>Add your CV</h2>
+              <p className="step-hint">
+                Upload your LinkedIn PDF export or paste your CV — saved to your account so you only do it once.
+              </p>
+            </div>
+          </div>
+          <div className="step-flow-item">
+            <div className="step-flow-marker"><IconSparkle /></div>
+            <div className="step-flow-body">
+              <span className="step-flow-no">03</span>
+              <h2>Get your documents</h2>
+              <p className="step-hint">
+                A tailored CV in your choice of layout, plus a matching cover letter, ready in under a minute.
+              </p>
+            </div>
+          </div>
         </section>
 
         <div style={{ textAlign: "center", padding: "22px 0 40px" }}>
