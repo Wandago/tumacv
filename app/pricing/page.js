@@ -89,6 +89,7 @@ export default function Pricing() {
       <Nav />
 
       <section className="hero">
+        <span className="eyebrow">No subscriptions, ever</span>
         <h1>Pay only for the <em>applications</em> you send</h1>
         <p>
           No subscription, no lock-in. Every plan works out to roughly KES 2 or less per

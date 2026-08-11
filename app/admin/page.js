@@ -295,6 +295,26 @@ export default function Admin() {
           <div className="loading"><span className="spinner" /> Loading stats…</div>
         ) : (
           <>
+            {(stats.needsAttention?.openTickets > 0 || stats.needsAttention?.pendingPayments > 0 || stats.needsAttention?.underpaidPayments > 0) && (
+              <div className="attention-row">
+                {stats.needsAttention.openTickets > 0 && (
+                  <button className="attention-chip" onClick={() => setTab("support")}>
+                    <b>{stats.needsAttention.openTickets}</b> open support ticket{stats.needsAttention.openTickets === 1 ? "" : "s"} →
+                  </button>
+                )}
+                {stats.needsAttention.pendingPayments > 0 && (
+                  <button className="attention-chip warn" onClick={() => setTab("payments")}>
+                    <b>{stats.needsAttention.pendingPayments}</b> pending payment{stats.needsAttention.pendingPayments === 1 ? "" : "s"} →
+                  </button>
+                )}
+                {stats.needsAttention.underpaidPayments > 0 && (
+                  <button className="attention-chip warn" onClick={() => setTab("payments")}>
+                    <b>{stats.needsAttention.underpaidPayments}</b> underpaid payment{stats.needsAttention.underpaidPayments === 1 ? "" : "s"} →
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="dash-grid">
               <div className="dash-card"><h3>TOTAL USERS</h3><div className="big-number">{stats.totalUsers}</div></div>
               <div className="dash-card"><h3>SIGNUPS · 7 DAYS</h3><div className="big-number">{stats.signupsWeek}</div></div>
@@ -305,7 +325,18 @@ export default function Admin() {
             </div>
 
             <div className="breakdown-grid">
+              <TrendChart title="SIGNUPS (30 DAYS)" series={stats.trends?.signups} />
+              <TrendChart title="APPLICATIONS GENERATED (30 DAYS)" series={stats.trends?.generations} />
+              <TrendChart title="REVENUE (30 DAYS)" series={stats.trends?.revenue} format={(n) => `KES ${n}`} />
+            </div>
+
+            <div className="breakdown-grid">
+              <FunnelCard funnel={stats.funnel} />
+              <BarCard title="REVENUE BY PLAN" data={stats.planBreakdown} />
               <BarCard title="WHERE USERS HEARD ABOUT US" data={referralStats} />
+            </div>
+
+            <div className="breakdown-grid">
               <BarCard title="USERS BY INDUSTRY" data={industryStats} />
               <BarCard
                 title={`MOST VISITED PAGES ${pageStats ? `(${pageStats.totalViews} views, 30 days)` : ""}`}
@@ -650,7 +681,7 @@ function BarCard({ title, data }) {
         <div className="bar-list">
           {top.map((d) => (
             <div className="bar-row" key={d.label}>
-              <span className="bar-label">{d.label}</span>
+              <span className="bar-label" title={d.label}>{d.label}</span>
               <div className="bar-track">
                 <div className="bar-fill" style={{ width: `${(d.count / max) * 100}%` }} />
               </div>
@@ -659,6 +690,77 @@ function BarCard({ title, data }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function TrendChart({ title, series, format = (n) => n }) {
+  if (!series) {
+    return (
+      <div className="dash-card trend-card">
+        <h3>{title}</h3>
+        <div className="loading" style={{ padding: "16px 0" }}><span className="spinner" /></div>
+      </div>
+    );
+  }
+  const values = series.map((d) => d.value);
+  const max = Math.max(1, ...values);
+  const w = 100, h = 34;
+  const points = series
+    .map((d, i) => `${(i / Math.max(1, series.length - 1)) * w},${h - (d.value / max) * h}`)
+    .join(" ");
+  const areaPoints = `0,${h} ${points} ${w},${h}`;
+  const total = values.reduce((a, b) => a + b, 0);
+  const fmtDate = (d) => new Date(d).toLocaleDateString("en-KE", { day: "numeric", month: "short" });
+  return (
+    <div className="dash-card trend-card">
+      <div className="trend-head">
+        <h3>{title}</h3>
+        <span className="trend-total">{format(total)}</span>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="trend-svg">
+        <polygon points={areaPoints} className="trend-area" />
+        <polyline points={points} className="trend-line" />
+      </svg>
+      <div className="trend-foot">
+        <span>{series[0] ? fmtDate(series[0].date) : ""}</span>
+        <span>{series[series.length - 1] ? fmtDate(series[series.length - 1].date) : ""}</span>
+      </div>
+    </div>
+  );
+}
+
+function FunnelCard({ funnel }) {
+  if (!funnel) {
+    return (
+      <div className="dash-card funnel-card">
+        <h3>USER JOURNEY</h3>
+        <div className="loading" style={{ padding: "16px 0" }}><span className="spinner" /></div>
+      </div>
+    );
+  }
+  const stages = [
+    { label: "Signed up", value: funnel.signups },
+    { label: "Generated a CV", value: funnel.generated },
+    { label: "Paid", value: funnel.paid },
+    { label: "Hired", value: funnel.hired },
+  ];
+  const max = stages[0].value || 1;
+  return (
+    <div className="dash-card funnel-card">
+      <h3>USER JOURNEY</h3>
+      <div className="funnel-list">
+        {stages.map((s) => {
+          const pct = max ? Math.round((s.value / max) * 100) : 0;
+          return (
+            <div className="funnel-row" key={s.label}>
+              <span className="funnel-label">{s.label}</span>
+              <div className="funnel-track"><div className="funnel-fill" style={{ width: `${pct}%` }} /></div>
+              <span className="funnel-value">{s.value} <span className="funnel-pct">{pct}%</span></span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

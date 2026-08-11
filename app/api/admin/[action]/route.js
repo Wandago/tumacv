@@ -54,17 +54,80 @@ async function handleData(req, admin) {
   }
 
   if (type === "stats") {
-    const [{ count: totalUsers }, { count: signupsWeek }, { count: totalGenerations }, { count: hiredCount }, { count: activeStreaks }] =
-      await Promise.all([
-        admin.from("profiles").select("*", { count: "exact", head: true }),
-        admin.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
-        admin.from("generations").select("*", { count: "exact", head: true }),
-        admin.from("profiles").select("*", { count: "exact", head: true }).eq("hired", true),
-        admin.from("profiles").select("*", { count: "exact", head: true }).gte("streak_count", 3),
-      ]);
-    const { data: completedPayments } = await admin.from("payments").select("amount").eq("status", "complete").limit(5000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+    const [
+      { count: totalUsers },
+      { count: signupsWeek },
+      { count: totalGenerations },
+      { count: hiredCount },
+      { count: activeStreaks },
+      { count: generatedUsers },
+      { count: openTickets },
+      { count: pendingPayments },
+      { count: underpaidPayments },
+      { data: signupRows },
+      { data: generationRows },
+      { data: completedPayments },
+    ] = await Promise.all([
+      admin.from("profiles").select("*", { count: "exact", head: true }),
+      admin.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
+      admin.from("generations").select("*", { count: "exact", head: true }),
+      admin.from("profiles").select("*", { count: "exact", head: true }).eq("hired", true),
+      admin.from("profiles").select("*", { count: "exact", head: true }).gte("streak_count", 3),
+      admin.from("profiles").select("*", { count: "exact", head: true }).not("last_generation_date", "is", null),
+      admin.from("support_tickets").select("*", { count: "exact", head: true }).eq("status", "open"),
+      admin.from("payments").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      admin.from("payments").select("*", { count: "exact", head: true }).eq("status", "underpaid"),
+      admin.from("profiles").select("created_at").gte("created_at", thirtyDaysAgo).limit(20000),
+      admin.from("generations").select("created_at").gte("created_at", thirtyDaysAgo).limit(20000),
+      admin.from("payments").select("user_id, amount, plan_id, created_at").eq("status", "complete").limit(20000),
+    ]);
+
     const totalRevenue = (completedPayments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-    return Response.json({ stats: { totalUsers, signupsWeek, totalGenerations, hiredCount, activeStreaks, totalRevenue } });
+    const paidUsers = new Set((completedPayments || []).map((p) => p.user_id)).size;
+
+    // Bucket a set of rows into daily counts (or summed amounts) over the trailing 30 days,
+    // so "no activity that day" still shows as a real zero rather than a gap.
+    function dailyBuckets(rows, valueKey) {
+      const counts = {};
+      for (const row of rows || []) {
+        const day = row.created_at.slice(0, 10);
+        counts[day] = (counts[day] || 0) + (valueKey ? row[valueKey] || 0 : 1);
+      }
+      const days = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+        days.push({ date: d, value: counts[d] || 0 });
+      }
+      return days;
+    }
+
+    const planCounts = {};
+    for (const p of completedPayments || []) {
+      planCounts[p.plan_id] = (planCounts[p.plan_id] || 0) + 1;
+    }
+    const planBreakdown = Object.entries(planCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([planId, count]) => ({ label: PLANS[planId] ? `${PLANS[planId].name} — KES ${PLANS[planId].priceKes}` : planId, count }));
+
+    return Response.json({
+      stats: {
+        totalUsers,
+        signupsWeek,
+        totalGenerations,
+        hiredCount,
+        activeStreaks,
+        totalRevenue,
+        needsAttention: { openTickets, pendingPayments, underpaidPayments },
+        funnel: { signups: totalUsers, generated: generatedUsers, paid: paidUsers, hired: hiredCount },
+        trends: {
+          signups: dailyBuckets(signupRows),
+          generations: dailyBuckets(generationRows),
+          revenue: dailyBuckets(completedPayments, "amount"),
+        },
+        planBreakdown,
+      },
+    });
   }
 
   if (type === "articles") {
