@@ -84,14 +84,12 @@ export async function POST(req) {
           ],
         },
       ],
-      generationConfig: {
-        maxOutputTokens: 8192,
-        responseMimeType: "application/json",
-        // Disable thinking: this is a formatting task, not a reasoning one,
-        // and thinking tokens otherwise eat into maxOutputTokens on the
-        // 2.5/3.x model family, which was cutting long CVs off mid-JSON.
-        thinkingConfig: { thinkingBudget: 0 },
-      },
+      // maxOutputTokens raised from 4000: long CVs (multi-role careers,
+      // longer cover letters) were hitting the old cap and coming back
+      // truncated. (Not setting thinkingConfig here — not every candidate
+      // model in MODEL_CANDIDATES accepts it, and an unsupported field
+      // makes Gemini reject the whole request with a non-retryable 400.)
+      generationConfig: { maxOutputTokens: 8192, responseMimeType: "application/json" },
     });
 
     if (!res.ok) {
