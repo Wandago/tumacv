@@ -304,7 +304,7 @@ button:focus-visible { outline: 2px solid var(--kijani); outline-offset: 2px; }
 
 @media print {
   body { background: #fff; margin: 0; }
-  header.top, .gen-bar, .doc-tabs, .results-head, .fit, footer, .share-prompt { display: none !important; }
+  header.top, .gen-bar, .doc-tabs, .results-head, .fit, footer, .share-prompt, .no-print { display: none !important; }
   .shell, .shell.wide { max-width: none; margin: 0; padding: 0; }
   .sheet-wrap { display: block; padding: 0; }
   .sheet { box-shadow: none; max-width: none; width: 100%; margin: 0; }
