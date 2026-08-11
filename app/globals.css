@@ -142,6 +142,52 @@ header.top {
 .hero .price b { font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .hero { animation: none; } }
 
+/* ---------- marketing homepage: split hero + step-flow timeline ---------- */
+.eyebrow {
+  display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--kijani-dark);
+  background: color-mix(in srgb, var(--kijani) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kijani) 26%, transparent);
+  padding: 4px 12px; border-radius: 99px; margin-bottom: 14px;
+}
+.hero-split { display: flex; align-items: center; gap: 32px; }
+.hero-copy { flex: 1; min-width: 0; }
+.hero-art { width: clamp(180px, 26vw, 280px); flex-shrink: 0; overflow: visible; }
+@media (max-width: 720px) {
+  .hero-split { flex-direction: column; align-items: stretch; text-align: center; gap: 18px; }
+  .hero-copy { display: flex; flex-direction: column; align-items: center; }
+  .hero-copy h1, .hero-copy p, .hero-copy .price { max-width: 46ch; }
+  .hero-art { width: clamp(150px, 46vw, 220px); align-self: center; }
+}
+
+.step-flow { display: flex; flex-direction: column; gap: 26px; padding: 10px 0 22px; }
+.step-flow-item {
+  display: flex; gap: 18px; position: relative;
+  animation: fade-up 0.5s var(--ease) both;
+}
+.step-flow-item:nth-child(2) { animation-delay: 0.08s; }
+.step-flow-item:nth-child(3) { animation-delay: 0.16s; }
+.step-flow-item:not(:last-child)::after {
+  content: ""; position: absolute; left: 21.5px; top: 46px; bottom: -26px; width: 2px;
+  background: color-mix(in srgb, var(--kijani) 22%, transparent);
+}
+.step-flow-marker {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; z-index: 1;
+  background: linear-gradient(135deg, var(--kijani), var(--kijani-dark)); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--kijani) 35%, transparent);
+}
+.step-flow-body { padding-top: 2px; min-width: 0; }
+.step-flow-no {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: var(--kijani-dark);
+  font-weight: 600;
+}
+.step-flow-body h2 {
+  font-family: var(--display); font-weight: 600; font-size: 17.5px; letter-spacing: -0.015em;
+  margin: 3px 0 5px;
+}
+@media (prefers-reduced-motion: reduce) { .step-flow-item { animation: none; } }
+
 .step {
   background: var(--sheet); border: 1px solid var(--stone); border-radius: 20px;
   padding: 22px 24px; margin-bottom: 14px; box-shadow: var(--shadow-1);
