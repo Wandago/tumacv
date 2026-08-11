@@ -143,7 +143,7 @@ async function handleData(req, admin) {
   if (type === "hub_profiles") {
     const { data, error } = await admin
       .from("hub_profiles")
-      .select("id, display_name, title, industry, experience_level, skills, blurb, updated_at")
+      .select("id, display_name, title, industry, experience_level, skills, blurb, experience, education, updated_at")
       .order("updated_at", { ascending: false })
       .limit(500);
     if (error) return Response.json({ error: error.message }, { status: 500 });
