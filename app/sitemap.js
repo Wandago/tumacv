@@ -7,7 +7,7 @@ function supabasePublic() {
 export default async function sitemap() {
   const base = process.env.NEXT_PUBLIC_SITE_URL || "https://tumacv.vercel.app";
 
-  const staticRoutes = ["", "/pricing", "/jobs", "/news", "/support", "/login"].map((path) => ({
+  const staticRoutes = ["", "/pricing", "/jobs", "/hub", "/news", "/support", "/login"].map((path) => ({
     url: `${base}${path}`,
     lastModified: new Date(),
   }));

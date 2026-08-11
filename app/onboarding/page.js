@@ -5,17 +5,10 @@ import Nav from "../../components/Nav";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { extractPdfText } from "../../lib/pdfText";
 import { extractImagesToText } from "../../lib/imageExtract";
-import { INDUSTRIES } from "../../lib/gamification";
+import { INDUSTRIES, EXPERIENCE_LEVELS as LEVELS } from "../../lib/gamification";
 import { getSavedProfile, setSavedProfile } from "../../lib/storage";
 import LinkedInGuide from "../../components/LinkedInGuide";
 import { looksLikeBareLinkedInUrl } from "../../lib/linkedin";
-
-const LEVELS = [
-  { id: "graduate", label: "Entry-level / recent graduate" },
-  { id: "junior", label: "1–3 years experience" },
-  { id: "mid", label: "3–7 years experience" },
-  { id: "senior", label: "7+ years / senior" },
-];
 
 const REFERRAL_SOURCES = [
   { id: "whatsapp", label: "WhatsApp", emoji: "💬" },

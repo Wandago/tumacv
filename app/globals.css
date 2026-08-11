@@ -205,6 +205,34 @@ header.top {
   background: linear-gradient(to bottom, transparent, var(--paper));
 }
 
+/* ---------- Talent Hub: dashboard opt-in card ---------- */
+.hub-card-section { margin-top: 34px; }
+.hub-optin-prompt {
+  background: var(--sheet); border: 1px solid var(--stone); border-radius: 16px;
+  padding: 16px 18px; margin-top: 10px; box-shadow: var(--shadow-1);
+}
+.hub-preview-card { border: 1px dashed var(--stone); border-radius: 12px; padding: 14px; margin-top: 4px; }
+.hub-preview-name { font-family: var(--display); font-weight: 700; font-size: 15px; }
+.hub-preview-title { color: var(--kijani-dark); font-weight: 600; font-size: 13px; margin-top: 2px; }
+.hub-preview-skills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+
+/* ---------- Talent Hub: public listing page ---------- */
+.hub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-bottom: 40px; }
+@media (max-width: 900px) { .hub-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .hub-grid { grid-template-columns: 1fr; } }
+.hub-profile-card {
+  background: var(--sheet); border: 1px solid var(--stone); border-radius: 16px;
+  padding: 16px; box-shadow: var(--shadow-1); transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .hub-profile-card:hover { box-shadow: var(--shadow-2); border-color: color-mix(in srgb, var(--kijani) 30%, var(--stone)); }
+}
+.hub-profile-name { font-family: var(--display); font-weight: 700; font-size: 15.5px; }
+.hub-profile-title { color: var(--kijani-dark); font-weight: 600; font-size: 12.5px; margin-top: 2px; }
+.hub-profile-meta { font-family: var(--mono); font-size: 10.5px; color: var(--soil); margin-top: 6px; }
+.hub-profile-blurb { font-size: 12.5px; color: var(--ink); margin-top: 8px; line-height: 1.5; }
+.hub-profile-skills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+
 .step {
   background: var(--sheet); border: 1px solid var(--stone); border-radius: 20px;
   padding: 22px 24px; margin-bottom: 14px; box-shadow: var(--shadow-1);

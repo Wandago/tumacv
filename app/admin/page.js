@@ -18,6 +18,7 @@ export default function Admin() {
   const [jobs, setJobs] = useState(null);
   const [payments, setPayments] = useState(null);
   const [articles, setArticles] = useState(null);
+  const [hubProfiles, setHubProfiles] = useState(null);
   const [promoCodes, setPromoCodes] = useState(null);
   const [supportMessages, setSupportMessages] = useState(null);
   const [expandedTicket, setExpandedTicket] = useState(null);
@@ -63,6 +64,7 @@ export default function Admin() {
     if (type === "jobs") setJobs(data.jobs);
     if (type === "payments") setPayments(data.payments);
     if (type === "articles") setArticles(data.articles);
+    if (type === "hub_profiles") setHubProfiles(data.hubProfiles);
     if (type === "promo_codes") setPromoCodes(data.codes);
     if (type === "support_messages") setSupportMessages(data.tickets);
   }
@@ -77,6 +79,7 @@ export default function Admin() {
     if (tab === "jobs" && jobs === null) load("jobs");
     if (tab === "payments" && payments === null) load("payments");
     if (tab === "articles" && articles === null) load("articles");
+    if (tab === "hub" && hubProfiles === null) load("hub_profiles");
     if (tab === "promo" && promoCodes === null) load("promo_codes");
     if (tab === "support" && supportMessages === null) load("support_messages");
   }, [authorized, tab]); // eslint-disable-line
@@ -176,6 +179,14 @@ export default function Admin() {
     setBusyId("");
   }
 
+  async function deleteHubProfile(hubProfileId) {
+    if (!confirm("Remove this profile from the public Talent Hub? The user can rejoin themselves anytime.")) return;
+    setBusyId(hubProfileId);
+    const data = await act("delete_hub_profile", { hubProfileId });
+    if (data) setHubProfiles((h) => h.filter((x) => x.id !== hubProfileId));
+    setBusyId("");
+  }
+
   async function createPromoCode() {
     setErr("");
     if (!newCode.code.trim() || !newCode.credits) {
@@ -272,6 +283,7 @@ export default function Admin() {
         <button className={tab === "jobs" ? "on" : "btn-ghost"} onClick={() => { setTab("jobs"); setQ(""); }}>Jobs board</button>
         <button className={tab === "payments" ? "on" : "btn-ghost"} onClick={() => setTab("payments")}>Payments</button>
         <button className={tab === "articles" ? "on" : "btn-ghost"} onClick={() => setTab("articles")}>News articles</button>
+        <button className={tab === "hub" ? "on" : "btn-ghost"} onClick={() => setTab("hub")}>Talent Hub</button>
         <button className={tab === "promo" ? "on" : "btn-ghost"} onClick={() => setTab("promo")}>Promo codes</button>
         <button className={tab === "support" ? "on" : "btn-ghost"} onClick={() => setTab("support")}>Support</button>
       </div>
@@ -511,6 +523,31 @@ export default function Admin() {
               </div>
             ))}
             {articles.length === 0 && <p className="step-hint">No articles generated yet.</p>}
+          </div>
+        )
+      )}
+
+      {tab === "hub" && (
+        hubProfiles === null ? (
+          <div className="loading"><span className="spinner" /> Loading Talent Hub profiles…</div>
+        ) : (
+          <div className="history-list">
+            {hubProfiles.map((p) => (
+              <div key={p.id} className="history-item">
+                <div>
+                  <span className="hi-title">{p.display_name} — {p.title}</span>
+                  <div className="field-note" style={{ marginTop: 2 }}>
+                    {[p.industry, p.experience_level].filter(Boolean).join(" · ")}
+                    {(p.skills || []).length > 0 ? ` · ${p.skills.join(", ")}` : ""}
+                    {p.blurb ? ` · "${p.blurb}"` : ""}
+                  </div>
+                </div>
+                <button className="btn-ghost danger-btn" disabled={busyId === p.id} onClick={() => deleteHubProfile(p.id)}>
+                  {busyId === p.id ? "…" : "Remove"}
+                </button>
+              </div>
+            ))}
+            {hubProfiles.length === 0 && <p className="step-hint">No one has joined the Talent Hub yet.</p>}
           </div>
         )
       )}
