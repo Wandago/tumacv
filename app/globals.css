@@ -188,6 +188,23 @@ header.top {
 }
 @media (prefers-reduced-motion: reduce) { .step-flow-item { animation: none; } }
 
+.trust-stat {
+  text-align: center; font-family: var(--mono); font-size: 12px; color: var(--soil);
+  padding-top: 6px;
+}
+.trust-stat::before { content: "✦ "; color: var(--kijani-dark); }
+
+/* ---------- homepage: real-output example showcase ---------- */
+.example-showcase { text-align: center; padding: 12px 0 4px; }
+.example-showcase h2 { font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; margin: 4px 0 8px; }
+.example-showcase .step-hint { max-width: 50ch; margin: 0 auto 22px; }
+.example-frame { position: relative; max-height: 420px; overflow: hidden; border-radius: 8px; }
+.example-sheet { margin: 0 auto; pointer-events: none; user-select: none; }
+.example-fade {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 150px;
+  background: linear-gradient(to bottom, transparent, var(--paper));
+}
+
 .step {
   background: var(--sheet); border: 1px solid var(--stone); border-radius: 20px;
   padding: 22px 24px; margin-bottom: 14px; box-shadow: var(--shadow-1);
