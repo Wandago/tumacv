@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Nav from "../components/Nav";
 import CvView from "../components/CvView";
 import { supabaseBrowser } from "../lib/supabaseClient";
-import { FREE_MODE, MPESA_ENABLED, PADDLE_ENABLED } from "../lib/plans";
+import { FREE_MODE } from "../lib/plans";
 import { extractPdfText } from "../lib/pdfText";
 import { generateCvDocx, downloadBlob } from "../lib/generateDocx";
 import CreditsModal from "../components/CreditsModal";
@@ -274,9 +274,7 @@ export default function Home() {
             <p className="price">
               {FREE_MODE
                 ? "Free during beta — create an account and generate as many as you like"
-                : (MPESA_ENABLED || PADDLE_ENABLED)
-                ? "5 free applications when you sign up · then as low as KES 0.71 each"
-                : "5 free applications when you sign up — paid plans launching very soon"}
+                : "5 free applications when you sign up — no card required"}
             </p>
           </div>
           <HeroArt />

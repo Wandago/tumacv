@@ -713,6 +713,40 @@ select:focus {
 .bar-fill { background: linear-gradient(90deg, var(--kijani), var(--kijani-dark)); height: 100%; border-radius: 999px; }
 .bar-count { font-family: var(--mono); font-size: 11px; color: var(--soil); text-align: right; }
 
+/* ---------- admin: needs-attention row ---------- */
+.attention-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.attention-chip {
+  font-family: var(--mono); font-size: 12px; font-weight: 600; border-radius: 999px;
+  padding: 8px 14px; background: color-mix(in srgb, var(--kijani) 12%, var(--sheet));
+  border: 1px solid color-mix(in srgb, var(--kijani) 28%, transparent); color: var(--kijani-dark);
+}
+.attention-chip:hover { background: color-mix(in srgb, var(--kijani) 20%, var(--sheet)); }
+.attention-chip.warn {
+  background: color-mix(in srgb, #ff9f0a 14%, var(--sheet)); border-color: color-mix(in srgb, #ff9f0a 34%, transparent);
+  color: #b06a00;
+}
+.attention-chip.warn:hover { background: color-mix(in srgb, #ff9f0a 22%, var(--sheet)); }
+[data-theme="dark"] .attention-chip.warn { color: #ffb84d; }
+
+/* ---------- admin: trend charts ---------- */
+.trend-card { min-height: 180px; }
+.trend-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.trend-total { font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--kijani-dark); letter-spacing: -0.01em; }
+.trend-svg { width: 100%; height: 64px; margin-top: 10px; overflow: visible; }
+.trend-area { fill: color-mix(in srgb, var(--kijani) 16%, transparent); stroke: none; }
+.trend-line { fill: none; stroke: var(--kijani-dark); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.trend-foot { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--soil); margin-top: 4px; }
+
+/* ---------- admin: conversion funnel ---------- */
+.funnel-card { min-height: 180px; }
+.funnel-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.funnel-row { display: grid; grid-template-columns: 96px 1fr 64px; align-items: center; gap: 8px; }
+.funnel-label { font-size: 11.5px; color: var(--ink); }
+.funnel-track { background: var(--surface-2); border-radius: 999px; height: 10px; overflow: hidden; }
+.funnel-fill { background: linear-gradient(90deg, var(--kijani), var(--kijani-dark)); height: 100%; border-radius: 999px; transition: width 0.4s var(--ease); }
+.funnel-value { font-family: var(--mono); font-size: 11px; color: var(--ink); text-align: right; }
+.funnel-pct { color: var(--soil); }
+
 .edit-user-form {
   border-top: 1px solid var(--stone); padding-top: 12px; margin-top: 2px;
   display: grid; gap: 2px; max-width: 340px;
