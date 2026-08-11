@@ -338,7 +338,7 @@ export default function Home() {
             {tab === "cv" ? <CvView data={result.cv} template={template} /> : <div className="letter">{result.coverLetter}</div>}
           </div>
         </div>
-        <p className="field-note" style={{ textAlign: "center", paddingBottom: 10 }}>
+        <p className="field-note no-print" style={{ textAlign: "center", paddingBottom: 10 }}>
           Saved to your <a href="/dashboard">dashboard</a>
           {!FREE_MODE && typeof result.creditsLeft === "number" ? ` · ${result.creditsLeft} applications left` : ""}
         </p>
@@ -346,7 +346,7 @@ export default function Home() {
           <span className="field-note" style={{ marginTop: 0 }}>Know someone else job hunting?</span>
           <ShareButtons compact />
         </div>
-        <div style={{ textAlign: "center", padding: "18px 0 30px" }}>
+        <div className="no-print" style={{ textAlign: "center", padding: "18px 0 30px" }}>
           <button className="btn-primary" onClick={newApplication} style={{ padding: "12px 28px" }}>
             Apply to another job →
           </button>
