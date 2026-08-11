@@ -541,6 +541,16 @@ export default function Admin() {
                     {(p.skills || []).length > 0 ? ` · ${p.skills.join(", ")}` : ""}
                     {p.blurb ? ` · "${p.blurb}"` : ""}
                   </div>
+                  {(p.experience || []).length > 0 && (
+                    <div className="field-note" style={{ marginTop: 2 }}>
+                      Experience: {p.experience.map((e) => `${e.role}${e.company ? ` @ ${e.company}` : ""}`).join("; ")}
+                    </div>
+                  )}
+                  {(p.education || []).length > 0 && (
+                    <div className="field-note" style={{ marginTop: 2 }}>
+                      Education: {p.education.map((e) => `${e.degree}${e.school ? ` @ ${e.school}` : ""}`).join("; ")}
+                    </div>
+                  )}
                 </div>
                 <button className="btn-ghost danger-btn" disabled={busyId === p.id} onClick={() => deleteHubProfile(p.id)}>
                   {busyId === p.id ? "…" : "Remove"}

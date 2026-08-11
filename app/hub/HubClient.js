@@ -65,6 +65,28 @@ export default function HubClient() {
                   {p.skills.map((s) => <span className="chip" key={s}>{s}</span>)}
                 </div>
               )}
+              {(p.experience || []).length > 0 && (
+                <div className="hub-profile-section">
+                  <span className="hub-profile-section-label">Experience</span>
+                  {p.experience.map((e, i) => (
+                    <div className="hub-profile-line" key={i}>
+                      <b>{e.role}</b>{e.company ? ` · ${e.company}` : ""}
+                      {e.dates ? <span className="hub-profile-dates"> — {e.dates}</span> : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(p.education || []).length > 0 && (
+                <div className="hub-profile-section">
+                  <span className="hub-profile-section-label">Education</span>
+                  {p.education.map((e, i) => (
+                    <div className="hub-profile-line" key={i}>
+                      <b>{e.degree}</b>{e.school ? ` · ${e.school}` : ""}
+                      {e.dates ? <span className="hub-profile-dates"> — {e.dates}</span> : null}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

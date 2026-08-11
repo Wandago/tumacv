@@ -232,6 +232,28 @@ header.top {
 .hub-profile-meta { font-family: var(--mono); font-size: 10.5px; color: var(--soil); margin-top: 6px; }
 .hub-profile-blurb { font-size: 12.5px; color: var(--ink); margin-top: 8px; line-height: 1.5; }
 .hub-profile-skills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.hub-profile-section { margin-top: 10px; }
+.hub-profile-section-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soil); }
+.hub-profile-line { font-size: 12px; margin-top: 3px; color: var(--ink); }
+.hub-profile-dates { color: var(--soil); }
+.hub-preview-list { font-size: 12px; color: var(--soil); margin-top: 6px; line-height: 1.6; }
+
+/* ---------- Talent Hub: skill picker ---------- */
+.skill-picker { margin-bottom: 6px; }
+.skill-picker-selected { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.chip-removable { border: none; cursor: pointer; }
+.skill-picker-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; max-height: 220px; overflow-y: auto; padding: 2px; }
+.skill-pick {
+  font-size: 12px; padding: 6px 12px; border-radius: 999px; background: var(--surface-2); color: var(--ink);
+  border: 1px solid transparent; transition: background-color 0.15s ease;
+}
+.skill-pick:hover { background: var(--stone); }
+.skill-pick.add-custom { background: color-mix(in srgb, var(--kijani) 12%, transparent); color: var(--kijani-dark); font-weight: 600; }
+
+/* ---------- Talent Hub: repeatable experience/education rows ---------- */
+.hub-repeat-row { display: grid; grid-template-columns: 1fr 1fr 96px 34px; gap: 6px; margin-bottom: 6px; align-items: center; }
+@media (max-width: 560px) { .hub-repeat-row { grid-template-columns: 1fr; } }
+.hub-repeat-remove { padding: 8px; flex-shrink: 0; }
 
 .step {
   background: var(--sheet); border: 1px solid var(--stone); border-radius: 20px;
