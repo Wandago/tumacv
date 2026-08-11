@@ -84,7 +84,14 @@ export async function POST(req) {
           ],
         },
       ],
-      generationConfig: { maxOutputTokens: 4000, responseMimeType: "application/json" },
+      generationConfig: {
+        maxOutputTokens: 8192,
+        responseMimeType: "application/json",
+        // Disable thinking: this is a formatting task, not a reasoning one,
+        // and thinking tokens otherwise eat into maxOutputTokens on the
+        // 2.5/3.x model family, which was cutting long CVs off mid-JSON.
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     });
 
     if (!res.ok) {
@@ -95,6 +102,12 @@ export async function POST(req) {
     }
 
     const data = await res.json();
+    if (data.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+      return Response.json(
+        { error: "Your CV came out longer than we could generate in one go. Try trimming the job description or your profile, and try again — no credit was used." },
+        { status: 502 }
+      );
+    }
     const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
     const clean = text.replace(/```json|```/g, "").trim();
 
