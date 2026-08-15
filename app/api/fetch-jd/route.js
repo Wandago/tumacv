@@ -1,4 +1,49 @@
+import dns from "dns/promises";
+import net from "net";
+
 export const maxDuration = 20;
+
+// Blocks SSRF: without this, a user could paste an internal URL (a Vercel
+// deployment's own health-check endpoint, a cloud metadata IP, a private
+// service on the same network) and have this server fetch it on their
+// behalf. We resolve the hostname ourselves and reject anything that lands
+// on a private/loopback/link-local address, then refuse to follow redirects
+// (a redirect could point somewhere that only looks safe pre-fetch).
+const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata.google.internal"]);
+
+function isBlockedIp(ip) {
+  const type = net.isIP(ip);
+  if (type === 4) {
+    const [a, b] = ip.split(".").map(Number);
+    if (a === 10) return true; // RFC1918
+    if (a === 127) return true; // loopback
+    if (a === 169 && b === 254) return true; // link-local + cloud metadata (169.254.169.254)
+    if (a === 172 && b >= 16 && b <= 31) return true; // RFC1918
+    if (a === 192 && b === 168) return true; // RFC1918
+    if (a === 0) return true;
+    return false;
+  }
+  if (type === 6) {
+    const lower = ip.toLowerCase();
+    if (lower === "::1") return true; // loopback
+    if (lower.startsWith("fe80:") || lower.startsWith("fc") || lower.startsWith("fd")) return true; // link-local + unique-local
+    if (lower.startsWith("::ffff:")) return isBlockedIp(lower.slice(7)); // IPv4-mapped
+    return false;
+  }
+  return true; // couldn't classify it — fail closed
+}
+
+async function assertSafeTarget(target) {
+  const hostname = target.hostname.toLowerCase();
+  if (BLOCKED_HOSTNAMES.has(hostname)) throw new Error("blocked host");
+  if (net.isIP(hostname)) {
+    if (isBlockedIp(hostname)) throw new Error("blocked host");
+    return;
+  }
+  const records = await dns.lookup(hostname, { all: true });
+  if (records.length === 0) throw new Error("could not resolve host");
+  if (records.some((r) => isBlockedIp(r.address))) throw new Error("blocked host");
+}
 
 export async function POST(req) {
   try {
@@ -11,15 +56,28 @@ export async function POST(req) {
       return Response.json({ error: "That doesn't look like a valid link." }, { status: 400 });
     }
 
+    try {
+      await assertSafeTarget(target);
+    } catch {
+      return Response.json({ error: "That link can't be fetched. Copy and paste the job description instead." }, { status: 400 });
+    }
+
     const res = await fetch(target.toString(), {
       headers: {
         "user-agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
         accept: "text/html,application/xhtml+xml",
       },
-      redirect: "follow",
+      redirect: "manual",
       signal: AbortSignal.timeout(12000),
     });
+
+    if (res.status >= 300 && res.status < 400) {
+      return Response.json(
+        { error: "That link redirects elsewhere — open it in a browser and paste the description instead." },
+        { status: 422 }
+      );
+    }
 
     if (!res.ok) {
       return Response.json(
