@@ -12,10 +12,8 @@ import { getSavedProfile, setSavedProfile, clearLegacySharedDraft } from "../lib
 import ShareButtons from "../components/ShareButtons";
 import LinkedInGuide from "../components/LinkedInGuide";
 import { isLinkedInUrl, looksLikeBareLinkedInUrl } from "../lib/linkedin";
-import TemplateFan from "../components/TemplateFan";
-import HomeStats from "../components/HomeStats";
+import HeroArt from "../components/HeroArt";
 import { SAMPLE_CV } from "../lib/sampleCv";
-import { motion } from "framer-motion";
 
 const IconPaste = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -32,11 +30,6 @@ const IconSparkle = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" />
     <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" />
-  </svg>
-);
-const IconArrow = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12h14M13 6l6 6-6 6" />
   </svg>
 );
 
@@ -293,18 +286,10 @@ export default function Home() {
                 : "5 free applications when you sign up — no card required"}
             </p>
           </div>
-          <TemplateFan />
+          <HeroArt />
         </section>
 
-        <HomeStats stats={publicStats} />
-
-        <motion.section
-          className="step-flow"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.5 }}
-        >
+        <section className="step-flow">
           <div className="step-flow-item">
             <div className="step-flow-marker"><IconPaste /></div>
             <div className="step-flow-body">
@@ -336,15 +321,9 @@ export default function Home() {
               </p>
             </div>
           </div>
-        </motion.section>
+        </section>
 
-        <motion.section
-          className="example-showcase"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.5 }}
-        >
+        <section className="example-showcase">
           <span className="eyebrow">Real output, not a mockup</span>
           <h2>See what you get</h2>
           <p className="step-hint">
@@ -357,20 +336,20 @@ export default function Home() {
             </div>
             <div className="example-fade" />
           </div>
-        </motion.section>
+        </section>
+
+        {publicStats && publicStats.totalGenerations > 0 && (
+          <p className="trust-stat">
+            Joined by {publicStats.totalUsers.toLocaleString()}+ Kenyan job seekers ·{" "}
+            {publicStats.totalGenerations.toLocaleString()}+ tailored applications generated
+          </p>
+        )}
 
         <div style={{ textAlign: "center", padding: "22px 0 40px" }}>
-          <motion.a
-            href="/login?mode=signup"
-            className="btn-pill"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ duration: 0.15 }}
-          >
+          <a href="/login?mode=signup" className="btn-primary" style={{ textDecoration: "none", display: "inline-block", padding: "14px 32px", fontSize: 15 }}>
             Generate CV — create your free account
-            <span className="btn-pill-icon"><IconArrow /></span>
-          </motion.a>
-          <p className="field-note" style={{ marginTop: 12 }}>
+          </a>
+          <p className="field-note" style={{ marginTop: 10 }}>
             5 free applications, no card required. Already have an account?{" "}
             <a href="/login" style={{ color: "var(--kijani-dark)" }}>Sign in</a>.
           </p>
