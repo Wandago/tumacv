@@ -19,12 +19,17 @@ export default function Admin() {
   const [payments, setPayments] = useState(null);
   const [articles, setArticles] = useState(null);
   const [hubProfiles, setHubProfiles] = useState(null);
+  const [hubServices, setHubServices] = useState(null);
   const [promoCodes, setPromoCodes] = useState(null);
   const [supportMessages, setSupportMessages] = useState(null);
   const [marketingContent, setMarketingContent] = useState(null);
   const [marketingChannels, setMarketingChannels] = useState(null);
   const [runningMarketing, setRunningMarketing] = useState(false);
   const [marketingRunResult, setMarketingRunResult] = useState(null);
+  const [dailyTraffic, setDailyTraffic] = useState(null);
+  const [expandedDay, setExpandedDay] = useState(null);
+  const [dayDetail, setDayDetail] = useState({});
+  const [dayDetailLoading, setDayDetailLoading] = useState(null);
   const [expandedTicket, setExpandedTicket] = useState(null);
   const [adminReplyText, setAdminReplyText] = useState("");
   const [adminReplyBusy, setAdminReplyBusy] = useState(false);
@@ -69,9 +74,22 @@ export default function Admin() {
     if (type === "payments") setPayments(data.payments);
     if (type === "articles") setArticles(data.articles);
     if (type === "hub_profiles") setHubProfiles(data.hubProfiles);
+    if (type === "hub_services") setHubServices(data.hubServices);
     if (type === "promo_codes") setPromoCodes(data.codes);
     if (type === "support_messages") setSupportMessages(data.tickets);
     if (type === "marketing_content") { setMarketingContent(data.content); setMarketingChannels(data.channels); }
+    if (type === "daily_traffic") setDailyTraffic(data.days);
+  }
+
+  async function toggleDay(date) {
+    if (expandedDay === date) { setExpandedDay(null); return; }
+    setExpandedDay(date);
+    if (dayDetail[date]) return;
+    setDayDetailLoading(date);
+    const res = await fetch(`/api/admin/data?type=day_detail&date=${date}`, { headers: await authHeader() });
+    const data = await res.json();
+    setDayDetailLoading(null);
+    if (res.ok) setDayDetail((d) => ({ ...d, [date]: data }));
   }
 
   useEffect(() => {
@@ -85,9 +103,11 @@ export default function Admin() {
     if (tab === "payments" && payments === null) load("payments");
     if (tab === "articles" && articles === null) load("articles");
     if (tab === "hub" && hubProfiles === null) load("hub_profiles");
+    if (tab === "hub" && hubServices === null) load("hub_services");
     if (tab === "promo" && promoCodes === null) load("promo_codes");
     if (tab === "support" && supportMessages === null) load("support_messages");
     if (tab === "marketing" && marketingContent === null) load("marketing_content");
+    if (tab === "traffic" && dailyTraffic === null) load("daily_traffic");
   }, [authorized, tab]); // eslint-disable-line
 
   async function runMarketingNow() {
@@ -204,6 +224,14 @@ export default function Admin() {
     setBusyId("");
   }
 
+  async function deleteHubService(hubServiceId) {
+    if (!confirm("Remove this service listing?")) return;
+    setBusyId(hubServiceId);
+    const data = await act("delete_hub_service", { hubServiceId });
+    if (data) setHubServices((s) => s.filter((x) => x.id !== hubServiceId));
+    setBusyId("");
+  }
+
   async function createPromoCode() {
     setErr("");
     if (!newCode.code.trim() || !newCode.credits) {
@@ -304,6 +332,7 @@ export default function Admin() {
         <button className={tab === "promo" ? "on" : "btn-ghost"} onClick={() => setTab("promo")}>Promo codes</button>
         <button className={tab === "support" ? "on" : "btn-ghost"} onClick={() => setTab("support")}>Support</button>
         <button className={tab === "marketing" ? "on" : "btn-ghost"} onClick={() => setTab("marketing")}>Marketing</button>
+        <button className={tab === "traffic" ? "on" : "btn-ghost"} onClick={() => setTab("traffic")}>Traffic</button>
       </div>
 
       {err && <p className="error">{err}</p>}
@@ -546,38 +575,66 @@ export default function Admin() {
       )}
 
       {tab === "hub" && (
-        hubProfiles === null ? (
-          <div className="loading"><span className="spinner" /> Loading Talent Hub profiles…</div>
-        ) : (
-          <div className="history-list">
-            {hubProfiles.map((p) => (
-              <div key={p.id} className="history-item">
-                <div>
-                  <span className="hi-title">{p.display_name} — {p.title}</span>
-                  <div className="field-note" style={{ marginTop: 2 }}>
-                    {[p.industry, p.experience_level].filter(Boolean).join(" · ")}
-                    {(p.skills || []).length > 0 ? ` · ${p.skills.join(", ")}` : ""}
-                    {p.blurb ? ` · "${p.blurb}"` : ""}
+        <>
+          {hubProfiles === null ? (
+            <div className="loading"><span className="spinner" /> Loading Talent Hub profiles…</div>
+          ) : (
+            <div className="history-list">
+              {hubProfiles.map((p) => (
+                <div key={p.id} className="history-item">
+                  <div>
+                    <span className="hi-title">{p.display_name} — {p.title}</span>
+                    <div className="field-note" style={{ marginTop: 2 }}>
+                      {[p.industry, p.experience_level].filter(Boolean).join(" · ")}
+                      {(p.skills || []).length > 0 ? ` · ${p.skills.join(", ")}` : ""}
+                      {p.blurb ? ` · "${p.blurb}"` : ""}
+                    </div>
+                    {(p.experience || []).length > 0 && (
+                      <div className="field-note" style={{ marginTop: 2 }}>
+                        Experience: {p.experience.map((e) => `${e.role}${e.company ? ` @ ${e.company}` : ""}`).join("; ")}
+                      </div>
+                    )}
+                    {(p.education || []).length > 0 && (
+                      <div className="field-note" style={{ marginTop: 2 }}>
+                        Education: {p.education.map((e) => `${e.degree}${e.school ? ` @ ${e.school}` : ""}`).join("; ")}
+                      </div>
+                    )}
                   </div>
-                  {(p.experience || []).length > 0 && (
-                    <div className="field-note" style={{ marginTop: 2 }}>
-                      Experience: {p.experience.map((e) => `${e.role}${e.company ? ` @ ${e.company}` : ""}`).join("; ")}
-                    </div>
-                  )}
-                  {(p.education || []).length > 0 && (
-                    <div className="field-note" style={{ marginTop: 2 }}>
-                      Education: {p.education.map((e) => `${e.degree}${e.school ? ` @ ${e.school}` : ""}`).join("; ")}
-                    </div>
-                  )}
+                  <button className="btn-ghost danger-btn" disabled={busyId === p.id} onClick={() => deleteHubProfile(p.id)}>
+                    {busyId === p.id ? "…" : "Remove"}
+                  </button>
                 </div>
-                <button className="btn-ghost danger-btn" disabled={busyId === p.id} onClick={() => deleteHubProfile(p.id)}>
-                  {busyId === p.id ? "…" : "Remove"}
-                </button>
-              </div>
-            ))}
-            {hubProfiles.length === 0 && <p className="step-hint">No one has joined the Talent Hub yet.</p>}
-          </div>
-        )
+              ))}
+              {hubProfiles.length === 0 && <p className="step-hint">No one has joined the Talent Hub yet.</p>}
+            </div>
+          )}
+
+          <h3 style={{ margin: "24px 0 10px" }}>Service listings</h3>
+          {hubServices === null ? (
+            <div className="loading"><span className="spinner" /> Loading service listings…</div>
+          ) : (
+            <div className="history-list">
+              {hubServices.map((s) => (
+                <div key={s.id} className="history-item">
+                  <div>
+                    <span className="hi-title">
+                      <span className="credits-pill" style={{ marginRight: 8 }}>{s.category}</span>
+                      {s.title} — KES {s.price_kes.toLocaleString()}
+                    </span>
+                    <div className="field-note" style={{ marginTop: 2 }}>
+                      {s.hub_profiles?.display_name || "Unknown"}{s.delivery_days ? ` · ${s.delivery_days}-day delivery` : ""}
+                      {" · "}{s.description.slice(0, 140)}
+                    </div>
+                  </div>
+                  <button className="btn-ghost danger-btn" disabled={busyId === s.id} onClick={() => deleteHubService(s.id)}>
+                    {busyId === s.id ? "…" : "Remove"}
+                  </button>
+                </div>
+              ))}
+              {hubServices.length === 0 && <p className="step-hint">No services listed yet.</p>}
+            </div>
+          )}
+        </>
       )}
 
       {tab === "promo" && (
@@ -777,6 +834,67 @@ export default function Admin() {
                 </div>
               ))}
               {marketingContent.length === 0 && <p className="step-hint">Nothing generated yet — hit "Run now" above.</p>}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === "traffic" && (
+        <>
+          <p className="field-note" style={{ marginBottom: 12 }}>
+            Excludes page views and CV generations made from admin accounts — this is real visitor
+            activity only. Click a day to see its most-viewed pages.
+          </p>
+          {dailyTraffic === null ? (
+            <div className="loading"><span className="spinner" /> Loading…</div>
+          ) : (
+            <div className="history-list" style={{ overflowX: "auto" }}>
+              <div className="history-item" style={{ fontFamily: "var(--mono)", fontSize: 10.5, letterSpacing: "0.04em", color: "var(--soil)", fontWeight: 600 }}>
+                <span style={{ flex: 1, minWidth: 100 }}>DATE</span>
+                <span style={{ width: 80, textAlign: "right" }}>VIEWS</span>
+                <span style={{ width: 80, textAlign: "right" }}>SIGNUPS</span>
+                <span style={{ width: 100, textAlign: "right" }}>GENERATIONS</span>
+                <span style={{ width: 110, textAlign: "right" }}>REVENUE KES</span>
+              </div>
+              {[...dailyTraffic].reverse().map((d) => {
+                const isOpen = expandedDay === d.date;
+                const detail = dayDetail[d.date];
+                return (
+                  <div key={d.date} className="history-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+                    <button
+                      style={{ display: "flex", background: "none", padding: 0, textAlign: "left", width: "100%" }}
+                      onClick={() => toggleDay(d.date)}
+                    >
+                      <span className="hi-title" style={{ flex: 1, minWidth: 100 }}>
+                        {new Date(`${d.date}T00:00:00`).toLocaleDateString("en-KE", { weekday: "short", day: "numeric", month: "short" })}
+                      </span>
+                      <span style={{ width: 80, textAlign: "right" }}>{d.pageViews}</span>
+                      <span style={{ width: 80, textAlign: "right" }}>{d.signups}</span>
+                      <span style={{ width: 100, textAlign: "right" }}>{d.generations}</span>
+                      <span style={{ width: 110, textAlign: "right" }}>{d.revenueKes.toLocaleString()}</span>
+                    </button>
+                    {isOpen && (
+                      <div style={{ paddingLeft: 4 }}>
+                        {dayDetailLoading === d.date ? (
+                          <p className="field-note">Loading top pages…</p>
+                        ) : detail ? (
+                          detail.topPages.length === 0 ? (
+                            <p className="field-note">No page views that day.</p>
+                          ) : (
+                            <div className="field-note">
+                              {detail.topPages.map((p) => (
+                                <div key={p.path} style={{ display: "flex", justifyContent: "space-between", maxWidth: 420 }}>
+                                  <span>{p.path}</span><span>{p.count}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </>

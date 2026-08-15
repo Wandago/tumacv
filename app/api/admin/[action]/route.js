@@ -22,6 +22,21 @@ async function assertAdmin(req) {
   return authed;
 }
 
+// Admin accounts browsing/testing the live site generate real page_views and
+// generations rows just like anyone else — without this, every stat below
+// is polluted by the person reading the dashboard. Applied to page views
+// (traffic) and generations (product usage); left out of signups/revenue
+// since an admin account showing up once in signup history isn't ongoing
+// noise the way repeated browsing/testing is.
+async function adminUserIds(admin) {
+  const { data } = await admin.from("profiles").select("id").eq("is_admin", true);
+  return (data || []).map((r) => r.id);
+}
+
+function excludingAdmins(query, adminIds) {
+  return adminIds.length ? query.not("user_id", "in", `(${adminIds.join(",")})`) : query;
+}
+
 async function handleData(req, admin) {
   const type = new URL(req.url).searchParams.get("type");
 
@@ -57,6 +72,7 @@ async function handleData(req, admin) {
 
   if (type === "stats") {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+    const adminIds = await adminUserIds(admin);
     const [
       { count: totalUsers },
       { count: signupsWeek },
@@ -73,7 +89,7 @@ async function handleData(req, admin) {
     ] = await Promise.all([
       admin.from("profiles").select("*", { count: "exact", head: true }),
       admin.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()),
-      admin.from("generations").select("*", { count: "exact", head: true }),
+      excludingAdmins(admin.from("generations").select("*", { count: "exact", head: true }), adminIds),
       admin.from("profiles").select("*", { count: "exact", head: true }).eq("hired", true),
       admin.from("profiles").select("*", { count: "exact", head: true }).gte("streak_count", 3),
       admin.from("profiles").select("*", { count: "exact", head: true }).not("last_generation_date", "is", null),
@@ -81,7 +97,7 @@ async function handleData(req, admin) {
       admin.from("payments").select("*", { count: "exact", head: true }).eq("status", "pending"),
       admin.from("payments").select("*", { count: "exact", head: true }).eq("status", "underpaid"),
       admin.from("profiles").select("created_at").gte("created_at", thirtyDaysAgo).limit(20000),
-      admin.from("generations").select("created_at").gte("created_at", thirtyDaysAgo).limit(20000),
+      excludingAdmins(admin.from("generations").select("created_at").gte("created_at", thirtyDaysAgo).limit(20000), adminIds),
       admin.from("payments").select("user_id, amount, plan_id, created_at").eq("status", "complete").limit(20000),
     ]);
 
@@ -152,6 +168,16 @@ async function handleData(req, admin) {
     return Response.json({ hubProfiles: data });
   }
 
+  if (type === "hub_services") {
+    const { data, error } = await admin
+      .from("hub_services")
+      .select("id, user_id, category, title, description, price_kes, delivery_days, created_at, hub_profiles(display_name)")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ hubServices: data });
+  }
+
   if (type === "user_generations") {
     const userId = new URL(req.url).searchParams.get("userId");
     const { data, error } = await admin
@@ -188,7 +214,11 @@ async function handleData(req, admin) {
 
   if (type === "page_stats") {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-    const { data } = await admin.from("page_views").select("path").gte("created_at", thirtyDaysAgo).limit(20000);
+    const adminIds = await adminUserIds(admin);
+    const { data } = await excludingAdmins(
+      admin.from("page_views").select("path").gte("created_at", thirtyDaysAgo).limit(20000),
+      adminIds
+    );
     const counts = {};
     for (const row of data || []) {
       counts[row.path] = (counts[row.path] || 0) + 1;
@@ -241,6 +271,66 @@ async function handleData(req, admin) {
       return { label: path, count };
     });
     return Response.json({ stats, totalViews: (data || []).length });
+  }
+
+  if (type === "daily_traffic") {
+    const DAYS = 60;
+    const since = new Date(Date.now() - DAYS * 86400000).toISOString();
+    const adminIds = await adminUserIds(admin);
+
+    const [{ data: views }, { data: signups }, { data: gens }, { data: payments }] = await Promise.all([
+      excludingAdmins(admin.from("page_views").select("created_at").gte("created_at", since).limit(60000), adminIds),
+      admin.from("profiles").select("created_at").gte("created_at", since).limit(20000),
+      excludingAdmins(admin.from("generations").select("created_at").gte("created_at", since).limit(30000), adminIds),
+      admin.from("payments").select("created_at, amount").eq("status", "complete").gte("created_at", since).limit(20000),
+    ]);
+
+    function bucket(rows, valueKey) {
+      const counts = {};
+      for (const row of rows || []) {
+        const day = row.created_at.slice(0, 10);
+        counts[day] = (counts[day] || 0) + (valueKey ? row[valueKey] || 0 : 1);
+      }
+      return counts;
+    }
+    const viewCounts = bucket(views);
+    const signupCounts = bucket(signups);
+    const genCounts = bucket(gens);
+    const revenueCounts = bucket(payments, "amount");
+
+    const days = [];
+    for (let i = DAYS - 1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+      days.push({
+        date: d,
+        pageViews: viewCounts[d] || 0,
+        signups: signupCounts[d] || 0,
+        generations: genCounts[d] || 0,
+        revenueKes: revenueCounts[d] || 0,
+      });
+    }
+    return Response.json({ days });
+  }
+
+  if (type === "day_detail") {
+    const date = new URL(req.url).searchParams.get("date");
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return Response.json({ error: "Invalid date." }, { status: 400 });
+    }
+    const start = `${date}T00:00:00.000Z`;
+    const end = new Date(new Date(start).getTime() + 86400000).toISOString();
+    const adminIds = await adminUserIds(admin);
+    const { data } = await excludingAdmins(
+      admin.from("page_views").select("path").gte("created_at", start).lt("created_at", end).limit(20000),
+      adminIds
+    );
+    const counts = {};
+    for (const row of data || []) counts[row.path] = (counts[row.path] || 0) + 1;
+    const topPages = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15)
+      .map(([path, count]) => ({ path, count }));
+    return Response.json({ date, topPages, totalViews: (data || []).length });
   }
 
   if (type === "marketing_content") {
@@ -327,6 +417,12 @@ async function handleAction(req, admin) {
 
   if (body.action === "delete_article") {
     const { error } = await admin.from("articles").delete().eq("id", body.articleId);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: true });
+  }
+
+  if (body.action === "delete_hub_service") {
+    const { error } = await admin.from("hub_services").delete().eq("id", body.hubServiceId);
     if (error) return Response.json({ error: error.message }, { status: 500 });
     return Response.json({ ok: true });
   }
