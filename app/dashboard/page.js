@@ -13,6 +13,14 @@ import GlobalPayHelp from "../../components/GlobalPayHelp";
 import TalentHubCard from "../../components/TalentHubCard";
 import ReferralCard from "../../components/ReferralCard";
 import InAppMarketingBanner from "../../components/InAppMarketingBanner";
+import CountUp from "../../components/CountUp";
+import { motion } from "motion/react";
+
+const staggerContainer = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
+const staggerItem = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+};
 
 export default function Dashboard() {
   const router = useRouter();
@@ -275,7 +283,9 @@ export default function Dashboard() {
       <div className="dash-grid">
         <div className="dash-card stat">
           <h3>BALANCE</h3>
-          <div className="big-number">{FREE_MODE || unlimited ? "∞" : profile?.credits ?? "…"}</div>
+          <div className="big-number">
+            {FREE_MODE || unlimited ? "∞" : profile?.credits != null ? <CountUp value={profile.credits} /> : "…"}
+          </div>
           <p>
             {FREE_MODE
               ? "Free during beta — generate as many as you like"
@@ -288,7 +298,7 @@ export default function Dashboard() {
         <div className="dash-card stat">
           <h3>STREAK</h3>
           <div className="big-number streak-number">
-            {profile?.streak_count > 0 ? `🔥 ${profile.streak_count}` : "—"}
+            {profile?.streak_count > 0 ? <>🔥 <CountUp value={profile.streak_count} /></> : "—"}
           </div>
           <p>{profile?.streak_count > 0 ? `day${profile.streak_count === 1 ? "" : "s"} in a row` : "Generate today to start a streak"}</p>
         </div>
@@ -405,18 +415,18 @@ export default function Dashboard() {
 
       <section className="badges-section">
         <div className="step-head"><span className="step-no">PROGRESS</span><h2>Your badges</h2></div>
-        <div className="badge-grid">
+        <motion.div className="badge-grid" variants={staggerContainer} initial="hidden" animate="show">
           {BADGES.map((b) => {
             const on = history.length >= b.threshold;
             return (
-              <div key={b.id} className={`badge-item ${on ? "on" : ""}`}>
+              <motion.div key={b.id} variants={staggerItem} className={`badge-item ${on ? "on" : ""}`}>
                 <span className="badge-emoji">{b.emoji}</span>
                 <span className="badge-label">{b.label}</span>
                 <span className="badge-threshold">{b.threshold} application{b.threshold === 1 ? "" : "s"}</span>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
         {nextBadge(history.length) && (
           <p className="field-note">
             {nextBadge(history.length).threshold - history.length} more to unlock "{nextBadge(history.length).label}" {nextBadge(history.length).emoji}
@@ -446,16 +456,16 @@ export default function Dashboard() {
             </a>
           </div>
         ) : (
-          <div className="history-list">
+          <motion.div className="history-list" variants={staggerContainer} initial="hidden" animate="show">
             {history.map((h) => (
-              <button key={h.id} className="history-item" onClick={() => { setViewing(h); setTab("cv"); }}>
+              <motion.button key={h.id} variants={staggerItem} className="history-item" onClick={() => { setViewing(h); setTab("cv"); }}>
                 <span className="hi-title">{h.job_title || "Application"}</span>
                 <span className="hi-meta">
                   {h.template} · {new Date(h.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
                 </span>
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
         )}
       </section>
     </main>

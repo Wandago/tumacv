@@ -1,7 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import Nav from "../../components/Nav";
 import { supabaseBrowser } from "../../lib/supabaseClient";
+
+const staggerContainer = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
+const staggerItem = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+};
 
 export default function JobsClient() {
   const [jobs, setJobs] = useState(null);
@@ -102,9 +109,9 @@ export default function JobsClient() {
           No jobs posted yet — be the first. Posting is free.
         </p>
       ) : (
-        <div className="job-list">
+        <motion.div className="job-list" variants={staggerContainer} initial="hidden" animate="show">
           {jobs.map((j) => (
-            <div key={j.id} className={`job-card ${open === j.id ? "open" : ""}`}>
+            <motion.div key={j.id} variants={staggerItem} className={`job-card ${open === j.id ? "open" : ""}`}>
               <button className="job-head" onClick={() => setOpen(open === j.id ? null : j.id)}>
                 <div>
                   <div className="job-title">{j.title}</div>
@@ -115,19 +122,28 @@ export default function JobsClient() {
                 </div>
                 <span className="job-chev">{open === j.id ? "−" : "+"}</span>
               </button>
-              {open === j.id && (
-                <div className="job-body">
-                  <p style={{ whiteSpace: "pre-wrap" }}>{j.description}</p>
-                  <p className="job-apply"><b>How to apply:</b> {j.how_to_apply}</p>
-                  <a className="btn-primary" style={{ textDecoration: "none", display: "inline-block", marginTop: 10 }}
-                    href={`/?jobid=${j.id}`}>
-                    Tailor my CV for this job
-                  </a>
-                </div>
-              )}
-            </div>
+              <AnimatePresence initial={false}>
+                {open === j.id && (
+                  <motion.div
+                    className="job-body"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <p style={{ whiteSpace: "pre-wrap" }}>{j.description}</p>
+                    <p className="job-apply"><b>How to apply:</b> {j.how_to_apply}</p>
+                    <a className="btn-primary" style={{ textDecoration: "none", display: "inline-block", marginTop: 10 }}
+                      href={`/?jobid=${j.id}`}>
+                      Tailor my CV for this job
+                    </a>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </main>
   );

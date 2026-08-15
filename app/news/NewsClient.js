@@ -1,7 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import Nav from "../../components/Nav";
 import { supabaseBrowser } from "../../lib/supabaseClient";
+
+const staggerContainer = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
+const staggerItem = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+};
 
 export default function NewsClient() {
   const [articles, setArticles] = useState(null);
@@ -42,9 +49,9 @@ export default function NewsClient() {
           No articles yet — check back soon, new ones are published daily.
         </p>
       ) : (
-        <div className="news-grid">
+        <motion.div className="news-grid" variants={staggerContainer} initial="hidden" animate="show">
           {filtered.map((a) => (
-            <button key={a.id} className="news-card" onClick={() => setReading(a)}>
+            <motion.button key={a.id} variants={staggerItem} className="news-card" onClick={() => setReading(a)}>
               <span className="news-industry">{a.industry}</span>
               <h3>{a.title}</h3>
               <div className="news-meta">
@@ -52,24 +59,40 @@ export default function NewsClient() {
               </div>
               <div className="news-preview">{a.content?.slice(0, 160)}…</div>
               <span className="news-read-more">Read full article →</span>
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
       )}
 
-      {reading && (
-        <div className="modal-overlay" onClick={() => setReading(null)}>
-          <div className="modal-panel news-reader-panel" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setReading(null)} aria-label="Close">✕</button>
-            <span className="news-industry">{reading.industry}</span>
-            <h1 className="news-reader-title">{reading.title}</h1>
-            <div className="news-meta" style={{ marginBottom: 18 }}>
-              {new Date(reading.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-            </div>
-            <div className="news-reader-body">{reading.content}</div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {reading && (
+          <motion.div
+            className="modal-overlay"
+            onClick={() => setReading(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="modal-panel news-reader-panel"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <button className="modal-close" onClick={() => setReading(null)} aria-label="Close">✕</button>
+              <span className="news-industry">{reading.industry}</span>
+              <h1 className="news-reader-title">{reading.title}</h1>
+              <div className="news-meta" style={{ marginBottom: 18 }}>
+                {new Date(reading.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+              </div>
+              <div className="news-reader-body">{reading.content}</div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
