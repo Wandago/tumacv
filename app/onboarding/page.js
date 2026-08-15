@@ -7,6 +7,7 @@ import { extractPdfText } from "../../lib/pdfText";
 import { extractImagesToText } from "../../lib/imageExtract";
 import { INDUSTRIES, EXPERIENCE_LEVELS as LEVELS } from "../../lib/gamification";
 import { getSavedProfile, setSavedProfile } from "../../lib/storage";
+import { getStoredReferralCode, clearStoredReferralCode } from "../../lib/referral";
 import LinkedInGuide from "../../components/LinkedInGuide";
 import { looksLikeBareLinkedInUrl } from "../../lib/linkedin";
 
@@ -108,6 +109,23 @@ export default function Onboarding() {
     }
   }
 
+  async function applyReferralIfPending() {
+    const code = getStoredReferralCode();
+    if (!code) return;
+    try {
+      const sb = supabaseBrowser();
+      const { data: sess } = await sb.auth.getSession();
+      const res = await fetch("/api/apply-referral", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${sess?.session?.access_token}` },
+        body: JSON.stringify({ code }),
+      });
+      // Anything but a server hiccup is a terminal outcome (applied,
+      // self-referral, already used, bad code) — stop retrying either way.
+      if (res.status !== 500) clearStoredReferralCode();
+    } catch {}
+  }
+
   async function save() {
     setErr("");
     setBusy(true);
@@ -131,6 +149,7 @@ export default function Onboarding() {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
       } else {
+        await applyReferralIfPending();
         router.push("/dashboard");
       }
     } catch (e) {
@@ -150,6 +169,7 @@ export default function Onboarding() {
       const sb = supabaseBrowser();
       const { data: userData } = await sb.auth.getUser();
       await sb.from("profiles").update({ onboarded: true }).eq("id", userData.user.id);
+      await applyReferralIfPending();
       router.push("/dashboard");
     } finally {
       setBusy(false);
