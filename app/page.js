@@ -15,7 +15,7 @@ import { isLinkedInUrl, looksLikeBareLinkedInUrl } from "../lib/linkedin";
 import TemplateFan from "../components/TemplateFan";
 import HomeStats from "../components/HomeStats";
 import { SAMPLE_CV } from "../lib/sampleCv";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 const IconPaste = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

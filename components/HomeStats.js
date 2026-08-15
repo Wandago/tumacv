@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView, useReducedMotion, animate } from "framer-motion";
+import { motion, useInView, useReducedMotion, animate } from "motion/react";
 
 function CountUp({ value, suffix = "" }) {
   const ref = useRef(null);
