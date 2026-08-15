@@ -25,6 +25,10 @@ export default function Admin() {
   const [marketingChannels, setMarketingChannels] = useState(null);
   const [runningMarketing, setRunningMarketing] = useState(false);
   const [marketingRunResult, setMarketingRunResult] = useState(null);
+  const [dailyTraffic, setDailyTraffic] = useState(null);
+  const [expandedDay, setExpandedDay] = useState(null);
+  const [dayDetail, setDayDetail] = useState({});
+  const [dayDetailLoading, setDayDetailLoading] = useState(null);
   const [expandedTicket, setExpandedTicket] = useState(null);
   const [adminReplyText, setAdminReplyText] = useState("");
   const [adminReplyBusy, setAdminReplyBusy] = useState(false);
@@ -72,6 +76,18 @@ export default function Admin() {
     if (type === "promo_codes") setPromoCodes(data.codes);
     if (type === "support_messages") setSupportMessages(data.tickets);
     if (type === "marketing_content") { setMarketingContent(data.content); setMarketingChannels(data.channels); }
+    if (type === "daily_traffic") setDailyTraffic(data.days);
+  }
+
+  async function toggleDay(date) {
+    if (expandedDay === date) { setExpandedDay(null); return; }
+    setExpandedDay(date);
+    if (dayDetail[date]) return;
+    setDayDetailLoading(date);
+    const res = await fetch(`/api/admin/data?type=day_detail&date=${date}`, { headers: await authHeader() });
+    const data = await res.json();
+    setDayDetailLoading(null);
+    if (res.ok) setDayDetail((d) => ({ ...d, [date]: data }));
   }
 
   useEffect(() => {
@@ -88,6 +104,7 @@ export default function Admin() {
     if (tab === "promo" && promoCodes === null) load("promo_codes");
     if (tab === "support" && supportMessages === null) load("support_messages");
     if (tab === "marketing" && marketingContent === null) load("marketing_content");
+    if (tab === "traffic" && dailyTraffic === null) load("daily_traffic");
   }, [authorized, tab]); // eslint-disable-line
 
   async function runMarketingNow() {
@@ -304,6 +321,7 @@ export default function Admin() {
         <button className={tab === "promo" ? "on" : "btn-ghost"} onClick={() => setTab("promo")}>Promo codes</button>
         <button className={tab === "support" ? "on" : "btn-ghost"} onClick={() => setTab("support")}>Support</button>
         <button className={tab === "marketing" ? "on" : "btn-ghost"} onClick={() => setTab("marketing")}>Marketing</button>
+        <button className={tab === "traffic" ? "on" : "btn-ghost"} onClick={() => setTab("traffic")}>Traffic</button>
       </div>
 
       {err && <p className="error">{err}</p>}
@@ -777,6 +795,67 @@ export default function Admin() {
                 </div>
               ))}
               {marketingContent.length === 0 && <p className="step-hint">Nothing generated yet — hit "Run now" above.</p>}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === "traffic" && (
+        <>
+          <p className="field-note" style={{ marginBottom: 12 }}>
+            Excludes page views and CV generations made from admin accounts — this is real visitor
+            activity only. Click a day to see its most-viewed pages.
+          </p>
+          {dailyTraffic === null ? (
+            <div className="loading"><span className="spinner" /> Loading…</div>
+          ) : (
+            <div className="history-list" style={{ overflowX: "auto" }}>
+              <div className="history-item" style={{ fontFamily: "var(--mono)", fontSize: 10.5, letterSpacing: "0.04em", color: "var(--soil)", fontWeight: 600 }}>
+                <span style={{ flex: 1, minWidth: 100 }}>DATE</span>
+                <span style={{ width: 80, textAlign: "right" }}>VIEWS</span>
+                <span style={{ width: 80, textAlign: "right" }}>SIGNUPS</span>
+                <span style={{ width: 100, textAlign: "right" }}>GENERATIONS</span>
+                <span style={{ width: 110, textAlign: "right" }}>REVENUE KES</span>
+              </div>
+              {[...dailyTraffic].reverse().map((d) => {
+                const isOpen = expandedDay === d.date;
+                const detail = dayDetail[d.date];
+                return (
+                  <div key={d.date} className="history-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+                    <button
+                      style={{ display: "flex", background: "none", padding: 0, textAlign: "left", width: "100%" }}
+                      onClick={() => toggleDay(d.date)}
+                    >
+                      <span className="hi-title" style={{ flex: 1, minWidth: 100 }}>
+                        {new Date(`${d.date}T00:00:00`).toLocaleDateString("en-KE", { weekday: "short", day: "numeric", month: "short" })}
+                      </span>
+                      <span style={{ width: 80, textAlign: "right" }}>{d.pageViews}</span>
+                      <span style={{ width: 80, textAlign: "right" }}>{d.signups}</span>
+                      <span style={{ width: 100, textAlign: "right" }}>{d.generations}</span>
+                      <span style={{ width: 110, textAlign: "right" }}>{d.revenueKes.toLocaleString()}</span>
+                    </button>
+                    {isOpen && (
+                      <div style={{ paddingLeft: 4 }}>
+                        {dayDetailLoading === d.date ? (
+                          <p className="field-note">Loading top pages…</p>
+                        ) : detail ? (
+                          detail.topPages.length === 0 ? (
+                            <p className="field-note">No page views that day.</p>
+                          ) : (
+                            <div className="field-note">
+                              {detail.topPages.map((p) => (
+                                <div key={p.path} style={{ display: "flex", justifyContent: "space-between", maxWidth: 420 }}>
+                                  <span>{p.path}</span><span>{p.count}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
