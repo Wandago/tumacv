@@ -12,7 +12,7 @@ export default function ReferralCard({ user }) {
     if (!user) return;
     (async () => {
       const { data: sess } = await supabaseBrowser().auth.getSession();
-      const res = await fetch("/api/referral-stats", {
+      const res = await fetch("/api/account/referral-stats", {
         headers: { authorization: `Bearer ${sess?.session?.access_token}` },
       });
       if (res.ok) {

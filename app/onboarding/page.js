@@ -8,6 +8,7 @@ import { extractImagesToText } from "../../lib/imageExtract";
 import { INDUSTRIES, EXPERIENCE_LEVELS as LEVELS } from "../../lib/gamification";
 import { getSavedProfile, setSavedProfile } from "../../lib/storage";
 import { getStoredReferralCode, clearStoredReferralCode } from "../../lib/referral";
+import { normalizeKenyanPhone } from "../../lib/daraja";
 import LinkedInGuide from "../../components/LinkedInGuide";
 import { looksLikeBareLinkedInUrl } from "../../lib/linkedin";
 
@@ -30,6 +31,8 @@ export default function Onboarding() {
   const [industry, setIndustry] = useState("");
   const [level, setLevel] = useState("");
   const [referral, setReferral] = useState("");
+  const [phone, setPhone] = useState("");
+  const [sendUpdates, setSendUpdates] = useState(true);
   const [profileText, setProfileText] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfErr, setPdfErr] = useState("");
@@ -47,7 +50,7 @@ export default function Onboarding() {
       if (!data?.user) { router.replace("/login"); return; }
       const { data: profile } = await sb
         .from("profiles")
-        .select("industry, experience_level, profile_text, onboarded, referral_source")
+        .select("industry, experience_level, profile_text, onboarded, referral_source, phone, marketing_opt_out")
         .eq("id", data.user.id)
         .single();
 
@@ -55,6 +58,8 @@ export default function Onboarding() {
       if (profile?.industry) setIndustry(profile.industry);
       if (profile?.experience_level) setLevel(profile.experience_level);
       if (profile?.referral_source) setReferral(profile.referral_source);
+      if (profile?.phone) setPhone(profile.phone);
+      setSendUpdates(!profile?.marketing_opt_out);
       if (profile?.profile_text) {
         setProfileText(profile.profile_text);
       } else {
@@ -115,7 +120,7 @@ export default function Onboarding() {
     try {
       const sb = supabaseBrowser();
       const { data: sess } = await sb.auth.getSession();
-      const res = await fetch("/api/apply-referral", {
+      const res = await fetch("/api/account/apply-referral", {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${sess?.session?.access_token}` },
         body: JSON.stringify({ code }),
@@ -130,6 +135,11 @@ export default function Onboarding() {
     setErr("");
     setBusy(true);
     setSaved(false);
+    if (phone.trim() && !normalizeKenyanPhone(phone)) {
+      setErr("That doesn't look like a valid Kenyan phone number.");
+      setBusy(false);
+      return;
+    }
     try {
       const sb = supabaseBrowser();
       const { data: userData } = await sb.auth.getUser();
@@ -140,6 +150,8 @@ export default function Onboarding() {
           experience_level: level || null,
           profile_text: profileText || null,
           onboarded: true,
+          phone: phone.trim() ? normalizeKenyanPhone(phone) : null,
+          marketing_opt_out: !sendUpdates,
           ...(isEditing ? {} : { referral_source: referral || null }),
         })
         .eq("id", userData.user.id);
@@ -209,6 +221,28 @@ export default function Onboarding() {
             </button>
           ))}
         </div>
+
+        <label className="field-label" htmlFor="phone">Phone number (optional)</label>
+        <input
+          id="phone"
+          type="tel"
+          placeholder="07XX XXX XXX"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          style={{ maxWidth: 220 }}
+        />
+        <p className="field-note" style={{ marginBottom: 10 }}>
+          Only used if you opt in to WhatsApp/SMS tips below — never shared, never required.
+        </p>
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, fontSize: 13, color: "var(--soil)", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={sendUpdates}
+            onChange={(e) => setSendUpdates(e.target.checked)}
+            style={{ width: "auto", marginTop: 2, accentColor: "var(--kijani)" }}
+          />
+          <span>Send me occasional tips, credit reminders and new-feature updates by email{phone.trim() ? ", WhatsApp or SMS" : ""}. You can turn this off any time here.</span>
+        </label>
 
         {!isEditing && (
           <>

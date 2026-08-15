@@ -12,6 +12,7 @@ import { openPaddleCheckout, paddlePriceIdFor } from "../../lib/paddle";
 import GlobalPayHelp from "../../components/GlobalPayHelp";
 import TalentHubCard from "../../components/TalentHubCard";
 import ReferralCard from "../../components/ReferralCard";
+import InAppMarketingBanner from "../../components/InAppMarketingBanner";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -166,7 +167,7 @@ export default function Dashboard() {
     setPromoBusy(true);
     try {
       const { data: sess } = await supabaseBrowser().auth.getSession();
-      const res = await fetch("/api/redeem-code", {
+      const res = await fetch("/api/account/redeem-code", {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${sess?.session?.access_token}` },
         body: JSON.stringify({ code: promoCode }),
@@ -247,6 +248,8 @@ export default function Dashboard() {
         <a href="/onboarding" className="btn-ghost" style={{ textDecoration: "none" }}>Edit profile</a>
         <button className="btn-ghost" onClick={signOut}>Sign out</button>
       </div>
+
+      <InAppMarketingBanner />
 
       {paidBanner && (
         <div className="banner">

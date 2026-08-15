@@ -1,7 +1,9 @@
 import { requireUser, supabaseAdmin } from "../../../../lib/supabaseAdmin";
 import { PLANS } from "../../../../lib/plans";
+import { runMarketingCron } from "../../../../lib/marketingEngine";
+import { CHANNEL_STATUS, CHANNEL_LABELS, UNSUPPORTED_REASON } from "../../../../lib/marketingChannels";
 
-export const maxDuration = 20;
+export const maxDuration = 60;
 
 // Consolidated under a single dynamic route to stay within Vercel's
 // serverless function count — /api/admin/action (POST) and /api/admin/data
@@ -241,6 +243,22 @@ async function handleData(req, admin) {
     return Response.json({ stats, totalViews: (data || []).length });
   }
 
+  if (type === "marketing_content") {
+    const { data, error } = await admin
+      .from("marketing_content")
+      .select("id, kind, channel, segment, subject, body, cta_url, status, error, recipient_user_id, created_at, sent_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    const channels = Object.keys(CHANNEL_STATUS).map((key) => ({
+      key,
+      label: CHANNEL_LABELS[key] || key,
+      enabled: CHANNEL_STATUS[key],
+      note: UNSUPPORTED_REASON[key] || null,
+    }));
+    return Response.json({ content: data, channels });
+  }
+
   if (type === "promo_codes") {
     const { data, error } = await admin
       .from("promo_codes")
@@ -433,6 +451,11 @@ async function handleAction(req, admin) {
     return Response.json({ ok: true });
   }
 
+  if (body.action === "run_marketing_now") {
+    const result = await runMarketingCron(admin);
+    return Response.json({ ok: true, result });
+  }
+
   if (body.action === "admin_reply_ticket") {
     const { ticketId, message } = body;
     const trimmed = (message || "").trim();
@@ -460,9 +483,24 @@ async function handlePublicStats(admin) {
   return Response.json({ totalUsers: totalUsers || 0, totalGenerations: totalGenerations || 0 });
 }
 
+function cronAuthorized(req) {
+  const url = new URL(req.url);
+  const provided = url.searchParams.get("secret") || req.headers.get("x-cron-secret");
+  const authHeader = req.headers.get("authorization");
+  return (
+    !!process.env.CRON_SECRET &&
+    (provided === process.env.CRON_SECRET || authHeader === `Bearer ${process.env.CRON_SECRET}`)
+  );
+}
+
 export async function GET(req, { params }) {
   const { action } = await params;
   if (action === "public-stats") return handlePublicStats(supabaseAdmin());
+  if (action === "cron-marketing") {
+    if (!cronAuthorized(req)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const result = await runMarketingCron(supabaseAdmin());
+    return Response.json({ ok: true, result });
+  }
   if (action !== "data") return Response.json({ error: "Not found" }, { status: 404 });
   const authed = await assertAdmin(req);
   if (!authed) return Response.json({ error: "Not authorized." }, { status: 403 });
