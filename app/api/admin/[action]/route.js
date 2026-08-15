@@ -168,6 +168,16 @@ async function handleData(req, admin) {
     return Response.json({ hubProfiles: data });
   }
 
+  if (type === "hub_services") {
+    const { data, error } = await admin
+      .from("hub_services")
+      .select("id, user_id, category, title, description, price_kes, delivery_days, created_at, hub_profiles(display_name)")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ hubServices: data });
+  }
+
   if (type === "user_generations") {
     const userId = new URL(req.url).searchParams.get("userId");
     const { data, error } = await admin
@@ -407,6 +417,12 @@ async function handleAction(req, admin) {
 
   if (body.action === "delete_article") {
     const { error } = await admin.from("articles").delete().eq("id", body.articleId);
+    if (error) return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: true });
+  }
+
+  if (body.action === "delete_hub_service") {
+    const { error } = await admin.from("hub_services").delete().eq("id", body.hubServiceId);
     if (error) return Response.json({ error: error.message }, { status: 500 });
     return Response.json({ ok: true });
   }

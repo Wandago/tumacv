@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabaseBrowser } from "../lib/supabaseClient";
 import { INDUSTRIES, EXPERIENCE_LEVELS } from "../lib/gamification";
 import SkillPicker from "./SkillPicker";
+import MyServices from "./MyServices";
 
 const MAX_EXPERIENCE = 5;
 const MAX_EDUCATION = 3;
@@ -163,6 +164,7 @@ export default function TalentHubCard({ user, profile, latestGeneration }) {
               {removing ? "…" : "Remove from Talent Hub"}
             </button>
           </div>
+          <MyServices userId={user.id} />
         </div>
       )}
 

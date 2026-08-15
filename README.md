@@ -53,8 +53,10 @@ lib/marketingEngine.js           Generates + sends all marketing content (see be
 lib/marketingChannels.js         Which channels are live, based on env vars present
 lib/channels/*.js                One file per channel's send/post API call
 components/InAppMarketingBanner.js  Dashboard "what's new" banner
+components/MyServices.js         Dashboard: manage your own Talent Hub service listings
+lib/serviceCategories.js         Categories for Talent Hub services
 supabase-schema.sql              Fresh-install schema (final state)
-supabase-migration-v4..v16.sql   Incremental migrations, run in order on an existing DB
+supabase-migration-v4..v18.sql   Incremental migrations, run in order on an existing DB
 ```
 
 ## A note on Vercel's Hobby plan limits
@@ -129,6 +131,24 @@ Posting API requires video plus a separate app-review process, and Snapchat
 has no public API for organic posting from a regular account at all (only
 paid ads). Wiring these up for real would mean building an image/video
 generation pipeline first — a much bigger project than adding an API key.
+
+## Talent Hub services (marketplace)
+
+Members who've opted into the Talent Hub (`hub_profiles`) can also list paid
+services — a CV rewrite, a logo design, a tutoring session — in
+`hub_services`: category, title, description, price in KES, optional
+delivery time. Managed from the dashboard (`components/MyServices.js`,
+rendered inside `TalentHubCard`), browsable and searchable on `/hub` under
+the "Services" tab (keyword search, category filter, sort by price).
+
+`hub_services.user_id` references `hub_profiles(id)` (not `auth.users`
+directly) with `on delete cascade` — a service can't exist without a public
+profile behind it, and leaving the Talent Hub removes your listings too, no
+orphaned rows. Like the jobs board (see `supabase-migration-v17.sql`),
+inserts happen directly from the authenticated Supabase client with no API
+route in between, so length/price bounds are enforced with CHECK
+constraints at the database level (`supabase-migration-v18.sql`), not just
+client-side.
 
 ## Model fallback
 
