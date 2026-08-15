@@ -285,18 +285,31 @@ header.top {
   .template-fan-inner { transform: scale(0.2519); }
 }
 
-/* stats strip embedded in the mockup footer — theme-invariant (sits on the dark frame) */
-.mockup-stats { display: flex; margin-top: 22px; border-top: 1px solid rgba(255,255,255,0.08); }
+/* stats cards embedded in the mockup footer — same individual dash-card
+   treatment as the dashboard/admin stat tiles, not a flat divided bar */
+.mockup-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  margin-top: 22px; padding: 18px 18px 22px; border-top: 1px solid rgba(255,255,255,0.08);
+}
 .mockup-stat {
-  flex: 1; text-align: center; padding: 16px 8px 18px;
-  border-right: 1px solid rgba(255,255,255,0.08);
+  text-align: left; padding: 14px 14px 15px; border-radius: 16px;
+  background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.09);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
-.mockup-stat:last-child { border-right: none; }
+@media (hover: hover) {
+  .mockup-stat:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.16); }
+}
 .mockup-stat-number {
-  font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; color: var(--onyx-fg);
-  font-size: clamp(18px, 3vw, 26px); line-height: 1;
+  font-variant-numeric: tabular-nums; font-family: var(--display); font-weight: 800;
+  letter-spacing: -0.02em; color: var(--onyx-fg); font-size: clamp(18px, 3vw, 26px); line-height: 1.1;
 }
-.mockup-stat-label { font-size: 11px; color: rgba(246,246,239,0.55); margin-top: 5px; line-height: 1.3; }
+.mockup-stat-label {
+  font-family: var(--mono); font-weight: 600; font-size: 9.5px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: rgba(246,246,239,0.5); margin-top: 7px; line-height: 1.3;
+}
+@media (max-width: 560px) {
+  .mockup-stats { grid-template-columns: repeat(2, 1fr); padding: 16px 14px 18px; }
+}
 
 /* ---------- pill CTA with icon, used for the main signup button ---------- */
 .btn-pill {
