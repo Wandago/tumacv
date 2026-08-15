@@ -27,6 +27,11 @@ export default function JobsClient() {
       setErr("Fill in the title, company, a real description (60+ characters), and how to apply.");
       return;
     }
+    if (form.title.length > 150 || form.company.length > 150 || form.location.length > 150 ||
+        form.job_type.length > 50 || form.description.length > 8000 || form.how_to_apply.length > 500) {
+      setErr("One of those fields is too long — trim it down and try again.");
+      return;
+    }
     setBusy(true);
     const sb = supabaseBrowser();
     const { data, error } = await sb.from("jobs")
@@ -62,26 +67,26 @@ export default function JobsClient() {
           <div className="two-col">
             <div>
               <label className="field-label">Job title</label>
-              <input type="text" value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Sales Executive" />
+              <input type="text" maxLength={150} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Sales Executive" />
             </div>
             <div>
               <label className="field-label">Company</label>
-              <input type="text" value={form.company} onChange={(e) => set("company", e.target.value)} placeholder="e.g. Acme Ltd" />
+              <input type="text" maxLength={150} value={form.company} onChange={(e) => set("company", e.target.value)} placeholder="e.g. Acme Ltd" />
             </div>
             <div>
               <label className="field-label">Location</label>
-              <input type="text" value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="e.g. Nairobi / Remote" />
+              <input type="text" maxLength={150} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="e.g. Nairobi / Remote" />
             </div>
             <div>
               <label className="field-label">Type</label>
-              <input type="text" value={form.job_type} onChange={(e) => set("job_type", e.target.value)} placeholder="Full-time / Part-time / Gig" />
+              <input type="text" maxLength={50} value={form.job_type} onChange={(e) => set("job_type", e.target.value)} placeholder="Full-time / Part-time / Gig" />
             </div>
           </div>
           <label className="field-label">Description & requirements</label>
-          <textarea value={form.description} onChange={(e) => set("description", e.target.value)}
+          <textarea maxLength={8000} value={form.description} onChange={(e) => set("description", e.target.value)}
             placeholder="Responsibilities, requirements, salary range if you can share it…" />
           <label className="field-label">How to apply</label>
-          <input type="text" value={form.how_to_apply} onChange={(e) => set("how_to_apply", e.target.value)}
+          <input type="text" maxLength={500} value={form.how_to_apply} onChange={(e) => set("how_to_apply", e.target.value)}
             placeholder="Email, phone, or application link" />
           {err && <p className="error">{err}</p>}
           <button className="btn-primary" style={{ marginTop: 12 }} onClick={post} disabled={busy}>

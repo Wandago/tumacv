@@ -537,6 +537,10 @@ button:focus-visible, .btn-primary:focus-visible, .btn-ghost:focus-visible { out
   font-family: var(--mono); font-size: 11.5px; background: color-mix(in srgb, var(--kijani) 14%, transparent);
   color: var(--kijani-dark); border-radius: 999px; padding: 4px 11px;
 }
+.credits-pill.warn {
+  background: color-mix(in srgb, #ff9f0a 16%, transparent); color: #b06a00;
+}
+[data-theme="dark"] .credits-pill.warn { color: #ffb84d; }
 .theme-toggle {
   background: var(--surface-2); border-radius: 50%; width: 32px; height: 32px;
   padding: 0; display: flex; align-items: center; justify-content: center; font-size: 15px;

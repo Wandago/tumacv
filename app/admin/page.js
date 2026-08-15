@@ -21,6 +21,10 @@ export default function Admin() {
   const [hubProfiles, setHubProfiles] = useState(null);
   const [promoCodes, setPromoCodes] = useState(null);
   const [supportMessages, setSupportMessages] = useState(null);
+  const [marketingContent, setMarketingContent] = useState(null);
+  const [marketingChannels, setMarketingChannels] = useState(null);
+  const [runningMarketing, setRunningMarketing] = useState(false);
+  const [marketingRunResult, setMarketingRunResult] = useState(null);
   const [expandedTicket, setExpandedTicket] = useState(null);
   const [adminReplyText, setAdminReplyText] = useState("");
   const [adminReplyBusy, setAdminReplyBusy] = useState(false);
@@ -67,6 +71,7 @@ export default function Admin() {
     if (type === "hub_profiles") setHubProfiles(data.hubProfiles);
     if (type === "promo_codes") setPromoCodes(data.codes);
     if (type === "support_messages") setSupportMessages(data.tickets);
+    if (type === "marketing_content") { setMarketingContent(data.content); setMarketingChannels(data.channels); }
   }
 
   useEffect(() => {
@@ -82,7 +87,19 @@ export default function Admin() {
     if (tab === "hub" && hubProfiles === null) load("hub_profiles");
     if (tab === "promo" && promoCodes === null) load("promo_codes");
     if (tab === "support" && supportMessages === null) load("support_messages");
+    if (tab === "marketing" && marketingContent === null) load("marketing_content");
   }, [authorized, tab]); // eslint-disable-line
+
+  async function runMarketingNow() {
+    setRunningMarketing(true);
+    setMarketingRunResult(null);
+    const data = await act("run_marketing_now");
+    setRunningMarketing(false);
+    if (data) {
+      setMarketingRunResult(data.result);
+      load("marketing_content");
+    }
+  }
 
   async function act(action, payload) {
     setErr("");
@@ -286,6 +303,7 @@ export default function Admin() {
         <button className={tab === "hub" ? "on" : "btn-ghost"} onClick={() => setTab("hub")}>Talent Hub</button>
         <button className={tab === "promo" ? "on" : "btn-ghost"} onClick={() => setTab("promo")}>Promo codes</button>
         <button className={tab === "support" ? "on" : "btn-ghost"} onClick={() => setTab("support")}>Support</button>
+        <button className={tab === "marketing" ? "on" : "btn-ghost"} onClick={() => setTab("marketing")}>Marketing</button>
       </div>
 
       {err && <p className="error">{err}</p>}
@@ -700,6 +718,65 @@ export default function Admin() {
               {supportMessages.filter((m) => supportFilter === "all" || m.status === supportFilter).length === 0 && (
                 <p className="step-hint">No {supportFilter !== "all" ? supportFilter : ""} messages.</p>
               )}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === "marketing" && (
+        <>
+          <div className="post-card">
+            <h3 style={{ marginBottom: 10 }}>Channels</h3>
+            {marketingChannels === null ? (
+              <div className="loading"><span className="spinner" /> Loading…</div>
+            ) : (
+              <div className="history-list">
+                {marketingChannels.map((c) => (
+                  <div key={c.key} className="history-item">
+                    <div>
+                      <span className="hi-title">{c.label}</span>
+                      {c.note && <div className="field-note" style={{ marginTop: 2 }}>{c.note}</div>}
+                    </div>
+                    <span className={`credits-pill ${c.enabled ? "" : "warn"}`}>{c.enabled ? "Live" : "Not configured"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="field-note" style={{ marginTop: 12 }}>
+              Runs automatically once a day (see vercel.json's cron-marketing entry). Disabled channels are
+              skipped — set the matching env vars (see README) to turn one on.
+            </p>
+            <button className="btn-primary" style={{ marginTop: 10 }} disabled={runningMarketing} onClick={runMarketingNow}>
+              {runningMarketing ? "Running…" : "Run now"}
+            </button>
+            {marketingRunResult && (
+              <pre className="field-note" style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>
+                {JSON.stringify(marketingRunResult, null, 2)}
+              </pre>
+            )}
+          </div>
+
+          <h3 style={{ margin: "20px 0 10px" }}>Recent activity</h3>
+          {marketingContent === null ? (
+            <div className="loading"><span className="spinner" /> Loading…</div>
+          ) : (
+            <div className="history-list">
+              {marketingContent.map((m) => (
+                <div key={m.id} className="history-item">
+                  <div>
+                    <span className="hi-title">
+                      <span className="credits-pill" style={{ marginRight: 8 }}>{m.channel}</span>
+                      {m.subject || m.body.slice(0, 80)}
+                    </span>
+                    <div className="field-note" style={{ marginTop: 2 }}>
+                      {m.kind}{m.segment ? ` · ${m.segment}` : ""} · {m.status}
+                      {m.error ? ` · ${m.error.slice(0, 120)}` : ""}
+                      {" · "}{new Date(m.created_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {marketingContent.length === 0 && <p className="step-hint">Nothing generated yet — hit "Run now" above.</p>}
             </div>
           )}
         </>

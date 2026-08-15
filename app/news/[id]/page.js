@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import Nav from "../../../components/Nav";
+import { safeJsonLd } from "../../../lib/jsonLd";
 
 // Read-only, unauthenticated client is fine here — articles are publicly
 // readable by design (RLS: "articles are public"), and this runs server-side
@@ -56,7 +57,7 @@ export default async function ArticlePage({ params }) {
     <main className="shell">
       <Nav />
       {/* eslint-disable-next-line react/no-danger */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <div className="results-head">
         <Link href="/news" className="btn-ghost" style={{ textDecoration: "none" }}>← All articles</Link>
       </div>

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import Nav from "../../../components/Nav";
+import { safeJsonLd } from "../../../lib/jsonLd";
 
 function supabasePublic() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -57,7 +58,7 @@ export default async function JobPage({ params }) {
     <main className="shell">
       <Nav />
       {/* eslint-disable-next-line react/no-danger */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <div className="results-head">
         <Link href="/jobs" className="btn-ghost" style={{ textDecoration: "none" }}>← All jobs</Link>
       </div>

@@ -2,20 +2,20 @@
 import { useState } from "react";
 
 const SITE_URL = "https://tumacv.vercel.app";
-const MESSAGE = "I just tailored my CV to a real job posting in minutes with TumaCV — free to try:";
+const DEFAULT_MESSAGE = "I just tailored my CV to a real job posting in minutes with TumaCV — free to try:";
 
-export default function ShareButtons({ compact }) {
+export default function ShareButtons({ compact, url = SITE_URL, message = DEFAULT_MESSAGE }) {
   const [copied, setCopied] = useState(false);
 
   async function copyLink() {
-    await navigator.clipboard.writeText(`${MESSAGE} ${SITE_URL}`);
+    await navigator.clipboard.writeText(`${message} ${url}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
 
-  const wa = `https://wa.me/?text=${encodeURIComponent(`${MESSAGE} ${SITE_URL}`)}`;
-  const x = `https://twitter.com/intent/tweet?text=${encodeURIComponent(MESSAGE)}&url=${encodeURIComponent(SITE_URL)}`;
-  const li = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(SITE_URL)}`;
+  const wa = `https://wa.me/?text=${encodeURIComponent(`${message} ${url}`)}`;
+  const x = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(url)}`;
+  const li = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
 
   return (
     <div className={`share-row ${compact ? "compact" : ""}`}>

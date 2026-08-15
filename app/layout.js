@@ -1,4 +1,5 @@
 import "./globals.css";
+import ReferralCapture from "../components/ReferralCapture";
 
 export const metadata = {
   title: "TumaCV — Tailored CV + cover letter in minutes",
@@ -26,6 +27,7 @@ export default function RootLayout({ children }) {
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
       <body>
+        <ReferralCapture />
         {children}
         <footer style={{
           textAlign: "center", padding: "20px 18px 30px", fontSize: 11.5,
