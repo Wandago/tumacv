@@ -273,7 +273,7 @@ export default function Dashboard() {
       )}
 
       <div className="dash-grid">
-        <div className="dash-card">
+        <div className="dash-card stat">
           <h3>BALANCE</h3>
           <div className="big-number">{FREE_MODE || unlimited ? "∞" : profile?.credits ?? "…"}</div>
           <p>
@@ -285,7 +285,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="dash-card">
+        <div className="dash-card stat">
           <h3>STREAK</h3>
           <div className="big-number streak-number">
             {profile?.streak_count > 0 ? `🔥 ${profile.streak_count}` : "—"}
