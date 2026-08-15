@@ -2,30 +2,33 @@
 import { motion } from "motion/react";
 import CountUp from "./CountUp";
 
+// Rendered inside the hero's browser-chrome mockup (always on the dark
+// --onyx frame), so this is intentionally theme-invariant rather than
+// following light/dark mode like the rest of the page.
 export default function HomeStats({ stats }) {
   if (!stats || !stats.totalGenerations) return null;
 
   const items = [
     { value: stats.totalUsers, suffix: "+", label: "Kenyan job seekers" },
-    { value: stats.totalGenerations, suffix: "+", label: "tailored applications made" },
-    { value: 5, suffix: "", label: "CV styles to choose from" },
+    { value: stats.totalGenerations, suffix: "+", label: "tailored applications" },
+    { value: 5, suffix: "", label: "CV styles" },
+    { value: 5, suffix: " min", label: "avg. time to done" },
   ];
 
   return (
-    <div className="stat-row">
-      {items.map((it, i) => (
-        <motion.div
-          key={it.label}
-          className="stat-card"
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className="stat-number"><CountUp value={it.value} suffix={it.suffix} /></div>
-          <div className="stat-label">{it.label}</div>
-        </motion.div>
+    <motion.div
+      className="mockup-stats"
+      initial={{ opacity: 0, y: 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {items.map((it) => (
+        <div key={it.label} className="mockup-stat">
+          <div className="mockup-stat-number"><CountUp value={it.value} suffix={it.suffix} /></div>
+          <div className="mockup-stat-label">{it.label}</div>
+        </div>
       ))}
-    </div>
+    </motion.div>
   );
 }

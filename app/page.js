@@ -8,7 +8,7 @@ import { extractPdfText } from "../lib/pdfText";
 import { generateCvDocx, downloadBlob } from "../lib/generateDocx";
 import CreditsModal from "../components/CreditsModal";
 import { extractImagesToText } from "../lib/imageExtract";
-import { getSavedProfile, setSavedProfile, clearLegacySharedDraft } from "../lib/storage";
+import { getSavedProfile, setSavedProfile, clearLegacySharedDraft, setPendingJob, takePendingJob } from "../lib/storage";
 import ShareButtons from "../components/ShareButtons";
 import LinkedInGuide from "../components/LinkedInGuide";
 import { isLinkedInUrl, looksLikeBareLinkedInUrl } from "../lib/linkedin";
@@ -17,17 +17,6 @@ import HomeStats from "../components/HomeStats";
 import { SAMPLE_CV } from "../lib/sampleCv";
 import { motion } from "motion/react";
 
-const IconPaste = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-    <path d="M9 12h6M9 16h4" />
-  </svg>
-);
-const IconUser = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
-  </svg>
-);
 const IconSparkle = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" />
@@ -37,6 +26,11 @@ const IconSparkle = () => (
 const IconArrow = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+const IconArrowUp = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 19V5M5 12l7-7 7 7" />
   </svg>
 );
 
@@ -54,6 +48,7 @@ export default function Home() {
   const [publicStats, setPublicStats] = useState(null);
   const [jobText, setJobText] = useState("");
   const [jobUrl, setJobUrl] = useState("");
+  const [heroInput, setHeroInput] = useState("");
   const [profileText, setProfileText] = useState("");
   const [template, setTemplate] = useState("modern");
   const [fetching, setFetching] = useState(false);
@@ -96,6 +91,12 @@ export default function Home() {
           });
       }
     });
+
+    // Picks up whatever a visitor pasted into the hero's glass search pill
+    // before they had an account, so signing up doesn't lose that context.
+    const pending = takePendingJob();
+    if (pending?.url) setJobUrl(pending.url);
+    if (pending?.text) setJobText(pending.text);
 
     const params = new URLSearchParams(window.location.search);
     const jobid = params.get("jobid");
@@ -279,62 +280,114 @@ export default function Home() {
     return (
       <main className="shell">
         <Nav />
-        <section className="hero hero-split">
-          <div className="hero-copy">
-            <span className="eyebrow">Built for Kenyan job seekers</span>
-            <h1>One job. One <em>tailored</em> CV. Five minutes.</h1>
-            <p>
-              Paste any job posting. TumaCV rewrites your CV and cover letter to match it —
-              keywords, ordering, emphasis — using only your real experience. Nothing invented.
-            </p>
-            <p className="price">
-              {FREE_MODE
-                ? "Free during beta — create an account and generate as many as you like"
-                : "5 free applications when you sign up — no card required"}
-            </p>
+        <section className="hero-premium">
+          <span className="eyebrow">Built for Kenyan job seekers</span>
+          <h1>One job. One <em>tailored</em> CV.</h1>
+          <p>
+            Paste any job posting. TumaCV rewrites your CV and cover letter to match it —
+            keywords, ordering, emphasis — using only your real experience. Nothing invented.
+          </p>
+
+          <form
+            className="hero-glass-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const v = heroInput.trim();
+              if (!v) return;
+              if (/^https?:\/\//i.test(v)) setPendingJob({ url: v });
+              else setPendingJob({ text: v });
+              window.location.href = "/login?mode=signup";
+            }}
+          >
+            <input
+              type="text"
+              value={heroInput}
+              onChange={(e) => setHeroInput(e.target.value)}
+              placeholder="Paste a job link or description to get started"
+            />
+            <button type="submit" className="hero-glass-submit" aria-label="Get started">
+              <IconArrowUp />
+            </button>
+          </form>
+          <span className="hero-glass-hint">
+            {FREE_MODE
+              ? "Free during beta — create an account and generate as many as you like"
+              : "5 free applications when you sign up — no card required"}
+          </span>
+
+          <div className="hero-cta-row">
+            <a href="/login?mode=signup" className="hero-cta-primary">Try it free</a>
+            <a href="/jobs" className="hero-cta-secondary">Browse the jobs board</a>
           </div>
-          <TemplateFan />
+
+          <div className="hero-mockup-wrap">
+            <div className="browser-frame">
+              <div className="browser-frame-titlebar">
+                <div className="browser-frame-dots"><span /><span /><span /></div>
+                <div className="browser-frame-url">tumacv.co.ke</div>
+                <div style={{ width: 34 }} />
+              </div>
+              <div className="browser-frame-body">
+                <TemplateFan />
+              </div>
+              <HomeStats stats={publicStats} />
+            </div>
+          </div>
         </section>
 
-        <HomeStats stats={publicStats} />
-
         <motion.section
-          className="step-flow"
+          className="feature-triptych"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.5 }}
         >
-          <div className="step-flow-item">
-            <div className="step-flow-marker"><IconPaste /></div>
-            <div className="step-flow-body">
-              <span className="step-flow-no">01</span>
-              <h2>Paste a job</h2>
-              <p className="step-hint">
-                A link from BrighterMonday, Fuzu, MyJobMag, a company careers page, or just the
-                description text. Pick one straight from our <a href="/jobs">jobs board</a> if you'd rather.
-              </p>
+          <div className="feature-card">
+            <div className="feature-visual">
+              <div className="fv-bars" aria-hidden="true">
+                {[28, 42, 34, 55, 46, 62, 50, 70].map((h, i) => (
+                  <div key={i} className={`fv-bar ${i === 5 ? "on" : ""}`} style={{ height: `${h}%` }} />
+                ))}
+              </div>
+              <span className="fv-chip">5 min</span>
             </div>
+            <span className="feature-no">01</span>
+            <h3>Paste a job</h3>
+            <p>
+              A link from BrighterMonday, Fuzu, MyJobMag, a company careers page, or just the
+              description text — or pick one from our <a href="/jobs">jobs board</a>.
+            </p>
           </div>
-          <div className="step-flow-item">
-            <div className="step-flow-marker"><IconUser /></div>
-            <div className="step-flow-body">
-              <span className="step-flow-no">02</span>
-              <h2>Add your CV</h2>
-              <p className="step-hint">
-                Upload your LinkedIn PDF export or paste your CV — saved to your account so you only do it once.
-              </p>
+
+          <div className="feature-card">
+            <div className="feature-visual">
+              <div className="fv-prompt">
+                Upload your LinkedIn PDF or paste your CV — saved to your account so you only do it once.
+              </div>
+              <span className="fv-tailor"><IconSparkle /> Tailor</span>
             </div>
+            <span className="feature-no">02</span>
+            <h3>AI tailors your CV</h3>
+            <p>
+              Keywords, ordering, and emphasis rewritten to match the job — using only your real
+              experience. Nothing invented.
+            </p>
           </div>
-          <div className="step-flow-item">
-            <div className="step-flow-marker"><IconSparkle /></div>
-            <div className="step-flow-body">
-              <span className="step-flow-no">03</span>
-              <h2>Get your documents</h2>
-              <p className="step-hint">
-                A tailored CV in your choice of layout, plus a matching cover letter, ready in under a minute.
-              </p>
+
+          <div className="feature-card">
+            <div className="feature-visual">
+              <div className="fv-score"><b>92%</b><span>match</span></div>
+              <div className="fv-tags">
+                <span className="fv-tag">ATS-ready</span>
+                <span className="fv-tag">Cover letter</span>
+                <span className="fv-tag">Ready in 1 min</span>
+              </div>
             </div>
+            <span className="feature-no">03</span>
+            <h3>Get your documents</h3>
+            <p>
+              A tailored CV in your choice of layout, plus a matching cover letter, ready in under a minute.
+            </p>
           </div>
         </motion.section>
 
