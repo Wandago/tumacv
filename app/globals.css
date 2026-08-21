@@ -196,8 +196,8 @@ header.top {
   border: 1px solid var(--stone); border-radius: 999px;
   padding: 6px 6px 6px 22px; box-shadow: var(--shadow-2);
 }
-.hero-glass-form input {
-  flex: 1; min-width: 0; background: transparent; border: none; outline: none;
+.hero-glass-form input[type="text"] {
+  flex: 1; min-width: 0; width: auto; background: transparent; border: none; border-radius: 0; outline: none;
   font-size: 14.5px; color: var(--ink); padding: 11px 0;
 }
 .hero-glass-form input::placeholder { color: var(--soil); }
@@ -294,6 +294,15 @@ header.top {
 .floater-doc-line.big { height: 9px; width: 60%; background: var(--kijani-dark); opacity: 0.7; }
 .floater-doc-line.short { width: 65%; }
 .floater-doc-line.on { background: rgba(255,255,255,0.55); }
+.floater-doc-line.shimmer { position: relative; overflow: hidden; }
+.floater-doc-line.shimmer::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  animation: doc-shimmer 2.6s ease-in-out infinite;
+}
+.floater-doc-line.on.shimmer::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent); }
+@keyframes doc-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .floater-doc-line.shimmer::after { animation: none; } }
 .floater-1 { top: 0; left: 2%; transform: rotate(-9deg); z-index: 2; }
 .floater-2 { top: 10px; left: 24%; transform: rotate(4deg); z-index: 3; width: 150px; animation-delay: 0.06s; }
 .floater-3 { top: -6px; left: 47%; transform: rotate(-4deg) translateX(-50%); z-index: 4; width: 120px; animation-delay: 0.12s; }

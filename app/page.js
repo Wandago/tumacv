@@ -340,8 +340,8 @@ export default function Home() {
             <span className="bento-value">{TEMPLATES.length}</span>
           </div>
           <div className="bento-cell bento-plain">
-            <span className="bento-label">Avg. time to done</span>
-            <span className="bento-value">5 min</span>
+            <span className="bento-label">Paste job → ready CV</span>
+            <span className="bento-value">~5 min</span>
           </div>
           {publicStats && publicStats.totalGenerations > 0 && (
             <div className="bento-cell bento-plain span2">
@@ -350,8 +350,8 @@ export default function Home() {
             </div>
           )}
           <div className="bento-cell bento-accent">
-            <span className="bento-label">Invented</span>
-            <span className="bento-value">Nothing</span>
+            <span className="bento-label">Fabricated details</span>
+            <span className="bento-value">Zero</span>
           </div>
         </section>
 
