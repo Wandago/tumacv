@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Nav from "../../components/Nav";
+import AppSidebar from "../../components/AppSidebar";
 import CvView from "../../components/CvView";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { PLANS, FREE_MODE, MPESA_ENABLED, PADDLE_ENABLED, DARAJA_ENABLED, FREE_SIGNUP_CREDITS, toUsd } from "../../lib/plans";
@@ -14,6 +14,7 @@ import TalentHubCard from "../../components/TalentHubCard";
 import ReferralCard from "../../components/ReferralCard";
 import InAppMarketingBanner from "../../components/InAppMarketingBanner";
 import CountUp from "../../components/CountUp";
+import DonutChart from "../../components/DonutChart";
 import { motion } from "motion/react";
 
 const staggerContainer = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
@@ -217,24 +218,35 @@ export default function Dashboard() {
   const unlimited =
     profile?.plan === "unlimited" && profile?.plan_expires && new Date(profile.plan_expires) > new Date();
 
+  const sidebarItems = [
+    { key: "dashboard", label: "Dashboard", icon: "grid", href: "/dashboard" },
+    { key: "jobs", label: "Jobs board", icon: "briefcase", href: "/jobs" },
+    { key: "hub", label: "Talent Hub", icon: "users", href: "/hub" },
+    { key: "news", label: "News", icon: "doc", href: "/news" },
+    { key: "pricing", label: "Pricing", icon: "tag", href: "/pricing" },
+    ...(profile?.is_admin ? [{ key: "admin", label: "Admin", icon: "shield", href: "/admin" }] : []),
+  ];
+  const sidebarBottom = [
+    { key: "profile", label: "Edit profile", icon: "gear", href: "/onboarding" },
+    { key: "support", label: "Help", icon: "help", href: "/support" },
+    { key: "logout", label: "Sign out", icon: "logout", onClick: signOut },
+  ];
+
   if (viewing) {
     return (
-      <main className="shell wide">
-        <Nav />
-        <section className="hero hero-band hero-band-compact">
-          <div className="results-head">
-            <h2>{viewing.job_title || "Application"}</h2>
-            <button className="btn-ghost" onClick={() => setViewing(null)}>← Back to dashboard</button>
-            {tab === "cv" && (
-              <button className="btn-ghost" onClick={downloadDocx} disabled={docxBusy}>
-                {docxBusy ? "Preparing…" : "Download .docx"}
-              </button>
-            )}
-            <button className="btn-primary" onClick={() => window.print()}>
-              {tab === "cv" ? "Save CV as PDF" : "Save letter as PDF"}
+      <AppSidebar items={sidebarItems} bottomItems={sidebarBottom} activeKey="dashboard">
+        <div className="results-head">
+          <h2>{viewing.job_title || "Application"}</h2>
+          <button className="btn-ghost" onClick={() => setViewing(null)}>← Back to dashboard</button>
+          {tab === "cv" && (
+            <button className="btn-ghost" onClick={downloadDocx} disabled={docxBusy}>
+              {docxBusy ? "Preparing…" : "Download .docx"}
             </button>
-          </div>
-        </section>
+          )}
+          <button className="btn-primary" onClick={() => window.print()}>
+            {tab === "cv" ? "Save CV as PDF" : "Save letter as PDF"}
+          </button>
+        </div>
         <div className="doc-tabs">
           <button className={tab === "cv" ? "on" : "btn-ghost"} onClick={() => setTab("cv")}>CV</button>
           <button className={tab === "letter" ? "on" : "btn-ghost"} onClick={() => setTab("letter")}>Cover letter</button>
@@ -246,20 +258,16 @@ export default function Dashboard() {
               : <div className="letter">{viewing.result?.coverLetter}</div>}
           </div>
         </div>
-      </main>
+      </AppSidebar>
     );
   }
 
   return (
-    <main className="shell wide">
-      <Nav />
-      <section className="hero hero-band hero-band-compact">
-        <div className="results-head">
-          <h2>Your dashboard</h2>
-          <a href="/onboarding" className="btn-ghost" style={{ textDecoration: "none" }}>Edit profile</a>
-          <button className="btn-ghost" onClick={signOut}>Sign out</button>
-        </div>
-      </section>
+    <AppSidebar items={sidebarItems} bottomItems={sidebarBottom} activeKey="dashboard">
+      <div className="page-heading">
+        <h1>Your dashboard</h1>
+        <p>Track your credits, streak, and past applications.</p>
+      </div>
 
       <InAppMarketingBanner />
 
@@ -285,14 +293,17 @@ export default function Dashboard() {
       )}
 
       <div className="dash-grid">
-        <div className="dash-card stat">
+        <div className="dash-card accent">
+          <div className="stat-corner-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9" /></svg>
+          </div>
           <h3>BALANCE</h3>
           <div className="big-number">
             {FREE_MODE || unlimited ? "∞" : profile?.credits != null ? <CountUp value={profile.credits} /> : "…"}
           </div>
           <p>
             {FREE_MODE
-              ? "Free during beta — generate as many as you like"
+              ? "Free during beta"
               : unlimited
               ? `Unlimited until ${new Date(profile.plan_expires).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
               : "applications remaining"}
@@ -304,11 +315,27 @@ export default function Dashboard() {
           <div className="big-number streak-number">
             {profile?.streak_count > 0 ? <>🔥 <CountUp value={profile.streak_count} /></> : "—"}
           </div>
-          <p>{profile?.streak_count > 0 ? `day${profile.streak_count === 1 ? "" : "s"} in a row` : "Generate today to start a streak"}</p>
+          <p>{profile?.streak_count > 0 ? `day${profile.streak_count === 1 ? "" : "s"} in a row` : "Start a streak today"}</p>
         </div>
 
-        {!FREE_MODE && (
-          <div className="dash-card span2">
+        <div className="dash-card">
+          <h3>TOTAL APPLICATIONS</h3>
+          <div className="big-number"><CountUp value={history.length} /></div>
+          <p>all time</p>
+        </div>
+
+        <div className="dash-card">
+          <h3>THIS WEEK</h3>
+          <div className="big-number">
+            <CountUp value={history.filter((h) => Date.now() - new Date(h.created_at).getTime() < 7 * 86400000).length} />
+          </div>
+          <p>applications generated</p>
+        </div>
+      </div>
+
+      {!FREE_MODE && (
+        <div className="dash-grid" style={{ marginTop: 10 }}>
+          <div className="dash-card span2" style={{ gridColumn: "1 / -1" }}>
             <h3>TOP UP</h3>
             {MPESA_ENABLED ? (
               <>
@@ -393,8 +420,8 @@ export default function Dashboard() {
               {promoErr && <p className="error">{promoErr}</p>}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {profile?.industry && (
         <div className="insight-card">
@@ -419,18 +446,27 @@ export default function Dashboard() {
 
       <section className="badges-section">
         <div className="step-head"><span className="step-no">PROGRESS</span><h2>Your badges</h2></div>
-        <motion.div className="badge-grid" variants={staggerContainer} initial="hidden" animate="show">
-          {BADGES.map((b) => {
-            const on = history.length >= b.threshold;
-            return (
-              <motion.div key={b.id} variants={staggerItem} className={`badge-item ${on ? "on" : ""}`}>
-                <span className="badge-emoji">{b.emoji}</span>
-                <span className="badge-label">{b.label}</span>
-                <span className="badge-threshold">{b.threshold} application{b.threshold === 1 ? "" : "s"}</span>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+        <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <div className="dash-card" style={{ flexShrink: 0 }}>
+            <DonutChart
+              pct={(earnedBadges(history.length).length / BADGES.length) * 100}
+              value={`${earnedBadges(history.length).length}/${BADGES.length}`}
+              label="earned"
+            />
+          </div>
+          <motion.div className="badge-grid" style={{ flex: 1, minWidth: 260 }} variants={staggerContainer} initial="hidden" animate="show">
+            {BADGES.map((b) => {
+              const on = history.length >= b.threshold;
+              return (
+                <motion.div key={b.id} variants={staggerItem} className={`badge-item ${on ? "on" : ""}`}>
+                  <span className="badge-emoji">{b.emoji}</span>
+                  <span className="badge-label">{b.label}</span>
+                  <span className="badge-threshold">{b.threshold} application{b.threshold === 1 ? "" : "s"}</span>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
         {nextBadge(history.length) && (
           <p className="field-note">
             {nextBadge(history.length).threshold - history.length} more to unlock "{nextBadge(history.length).label}" {nextBadge(history.length).emoji}
@@ -460,18 +496,29 @@ export default function Dashboard() {
             </a>
           </div>
         ) : (
-          <motion.div className="history-list" variants={staggerContainer} initial="hidden" animate="show">
-            {history.map((h) => (
-              <motion.button key={h.id} variants={staggerItem} className="history-item" onClick={() => { setViewing(h); setTab("cv"); }}>
-                <span className="hi-title">{h.job_title || "Application"}</span>
-                <span className="hi-meta">
-                  {h.template} · {new Date(h.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                </span>
-              </motion.button>
-            ))}
-          </motion.div>
+          <div className="data-table">
+            <div className="data-table-head">
+              <span style={{ flex: 1 }}>Application</span>
+              <span style={{ width: 90, textAlign: "right" }}>Template</span>
+              <span style={{ width: 110, textAlign: "right" }}>Date</span>
+            </div>
+            <motion.div className="history-list" variants={staggerContainer} initial="hidden" animate="show">
+              {history.map((h) => (
+                <motion.button key={h.id} variants={staggerItem} className="history-item" onClick={() => { setViewing(h); setTab("cv"); }}>
+                  <span className="hi-title" style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+                    <span className="data-row-avatar">{(h.job_title || "A").slice(0, 1).toUpperCase()}</span>
+                    {h.job_title || "Application"}
+                  </span>
+                  <span className="hi-meta" style={{ width: 90, textAlign: "right", textTransform: "capitalize" }}>{h.template}</span>
+                  <span className="hi-meta" style={{ width: 110, textAlign: "right" }}>
+                    {new Date(h.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                </motion.button>
+              ))}
+            </motion.div>
+          </div>
         )}
       </section>
-    </main>
+    </AppSidebar>
   );
 }
