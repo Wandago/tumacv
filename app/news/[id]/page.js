@@ -58,15 +58,17 @@ export default async function ArticlePage({ params }) {
       <Nav />
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
-      <div className="results-head">
-        <Link href="/news" className="btn-ghost" style={{ textDecoration: "none" }}>← All articles</Link>
-      </div>
-      <div className="step">
+      <section className="hero hero-band hero-band-compact">
+        <div className="results-head">
+          <Link href="/news" className="btn-ghost" style={{ textDecoration: "none" }}>← All articles</Link>
+        </div>
         <span className="news-industry">{article.industry}</span>
         <h1 className="news-reader-title">{article.title}</h1>
-        <div className="news-meta" style={{ marginBottom: 18 }}>
+        <div className="news-meta">
           {new Date(article.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
         </div>
+      </section>
+      <div className="step">
         <div className="news-reader-body">{article.content}</div>
       </div>
     </main>

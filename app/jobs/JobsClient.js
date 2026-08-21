@@ -54,20 +54,22 @@ export default function JobsClient() {
   return (
     <main className="shell wide">
       <Nav />
-      <div className="results-head">
-        <h2>Jobs board</h2>
-        {user ? (
-          <button className="btn-primary" onClick={() => setPosting(!posting)}>
-            {posting ? "Close" : "Post a job — free"}
-          </button>
-        ) : (
-          <a className="btn-primary" style={{ textDecoration: "none" }} href="/login">Sign in to post a job — free</a>
-        )}
-      </div>
-      <p className="step-hint">
-        Hiring? Post here for free and reach job seekers who apply with properly tailored CVs.
-        Job seekers: tap any job to read it, then generate a CV matched to it in one click.
-      </p>
+      <section className="hero hero-band hero-band-compact">
+        <div className="results-head">
+          <h2>Jobs board</h2>
+          {user ? (
+            <button className="btn-primary" onClick={() => setPosting(!posting)}>
+              {posting ? "Close" : "Post a job — free"}
+            </button>
+          ) : (
+            <a className="btn-primary" style={{ textDecoration: "none" }} href="/login">Sign in to post a job — free</a>
+          )}
+        </div>
+        <p className="step-hint">
+          Hiring? Post here for free and reach job seekers who apply with properly tailored CVs.
+          Job seekers: tap any job to read it, then generate a CV matched to it in one click.
+        </p>
+      </section>
 
       {posting && (
         <div className="post-card">

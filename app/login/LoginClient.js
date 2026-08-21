@@ -174,7 +174,7 @@ export default function LoginClient() {
   return (
     <main className="shell">
       <Nav />
-      <div className="auth-card">
+      <section className="hero hero-band">
         {mode === "signup" && <p className="step-indicator">Step 1 of 2</p>}
         <h1>
           {mode === "signin" && "Welcome back"}
@@ -186,7 +186,9 @@ export default function LoginClient() {
           {mode === "signup" && "New accounts start with 5 free applications."}
           {mode === "forgot" && "We'll email you a link to set a new password."}
         </p>
+      </section>
 
+      <div className="auth-card">
         <label className="field-label" htmlFor="email">Email</label>
         <input id="email" type="text" inputMode="email" autoComplete="email" value={email}
           onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />

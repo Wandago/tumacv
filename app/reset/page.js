@@ -34,8 +34,11 @@ export default function ResetPassword() {
   return (
     <main className="shell">
       <Nav />
-      <div className="auth-card">
+      <section className="hero hero-band">
         <h1>Set a new password</h1>
+      </section>
+
+      <div className="auth-card">
         {!ready ? (
           <>
             <p className="step-hint">

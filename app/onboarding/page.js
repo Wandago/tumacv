@@ -193,7 +193,7 @@ export default function Onboarding() {
   return (
     <main className="shell">
       <Nav />
-      <div className="auth-card" style={{ maxWidth: 520 }}>
+      <section className="hero hero-band">
         {!isEditing && <p className="step-indicator">Step 2 of 2</p>}
         <h1>{isEditing ? "Your profile" : "A little about you"}</h1>
         <p className="step-hint">
@@ -201,7 +201,9 @@ export default function Onboarding() {
             ? "Update this any time — new job, new skills, new CV. Every generated application uses what's saved here."
             : "Optional, but it helps every generated CV sound right for your field from the start. Takes about a minute."}
         </p>
+      </section>
 
+      <div className="auth-card" style={{ maxWidth: 520 }}>
         <label className="field-label" htmlFor="industry">Industry</label>
         <select id="industry" value={industry} onChange={(e) => setIndustry(e.target.value)}>
           <option value="">Select…</option>

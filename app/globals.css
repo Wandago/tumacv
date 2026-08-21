@@ -249,6 +249,7 @@ header.top {
 .hero-band p { color: rgba(255,255,255,0.86); margin-left: auto; margin-right: auto; }
 .hero-band p a { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
 .hero-band .price { color: #fff; background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); }
+.hero-band .step-indicator { color: rgba(255,255,255,0.85); }
 
 .hero-premium.hero-band .hero-glass-form { background: rgba(255,255,255,0.94); box-shadow: 0 12px 32px rgba(0,0,0,0.18); }
 .hero-premium.hero-band .hero-glass-hint { color: #fff; background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); }
@@ -256,6 +257,21 @@ header.top {
 @media (hover: hover) { .hero-premium.hero-band .hero-cta-primary:hover { background: #eaffef; } }
 .hero-premium.hero-band .hero-cta-secondary { background: rgba(255,255,255,0.14); color: #fff; border-color: rgba(255,255,255,0.3); }
 @media (hover: hover) { .hero-premium.hero-band .hero-cta-secondary:hover { background: rgba(255,255,255,0.24); } }
+
+/* ---------- compact hero band: page-title header for listing/functional pages
+   (jobs board, news, dashboard, admin) — left-aligned, shorter than the
+   marketing hero-band, keeps the .results-head title + action row inline ---------- */
+.hero-band.hero-band-compact { text-align: left; padding: 26px 24px; margin-bottom: 20px; }
+.hero-band-compact .results-head { padding: 0; margin: 0; }
+.hero-band-compact .results-head h2 { color: #fff; }
+.hero-band-compact .step-hint { color: rgba(255,255,255,0.86); margin: 8px 0 0; }
+.hero-band-compact .results-head .btn-primary { background: #fff; color: var(--kijani-dark); }
+@media (hover: hover) { .hero-band-compact .results-head .btn-primary:hover { background: #eaffef; } }
+.hero-band-compact .results-head .btn-ghost { background: rgba(255,255,255,0.14); color: #fff; }
+@media (hover: hover) { .hero-band-compact .results-head .btn-ghost:hover { background: rgba(255,255,255,0.24); } }
+.hero-band-compact .news-reader-title { color: #fff; margin-top: 12px; }
+.hero-band-compact .job-meta, .hero-band-compact .news-meta { color: rgba(255,255,255,0.75); }
+.hero-band-compact .news-industry { color: #fff; background: rgba(255,255,255,0.16); }
 
 /* ---------- floating tilted card collage below the hero copy ---------- */
 .hero-collage { position: relative; height: 190px; width: 100%; max-width: 640px; margin: 44px auto 0; }

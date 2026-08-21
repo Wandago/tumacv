@@ -167,10 +167,12 @@ export default function SupportClient() {
     return (
       <main className="shell">
         <Nav />
-        <div className="results-head">
-          <h2>{selected.subject}</h2>
-          <button className="btn-ghost" onClick={() => setSelected(null)}>← All tickets</button>
-        </div>
+        <section className="hero hero-band hero-band-compact">
+          <div className="results-head">
+            <h2>{selected.subject}</h2>
+            <button className="btn-ghost" onClick={() => setSelected(null)}>← All tickets</button>
+          </div>
+        </section>
         <div className="ticket-meta-row">
           <span className="credits-pill">{selected.type}</span>
           <span className={`credits-pill ${selected.status === "open" ? "" : "danger-pill"}`}>{selected.status}</span>
@@ -204,12 +206,14 @@ export default function SupportClient() {
   return (
     <main className="shell">
       <Nav />
-      <div className="results-head">
-        <h2>Help & feedback</h2>
-        <button className="btn-primary" onClick={() => setShowNewForm(!showNewForm)}>
-          {showNewForm ? "Close" : "+ New ticket"}
-        </button>
-      </div>
+      <section className="hero hero-band hero-band-compact">
+        <div className="results-head">
+          <h2>Help & feedback</h2>
+          <button className="btn-primary" onClick={() => setShowNewForm(!showNewForm)}>
+            {showNewForm ? "Close" : "+ New ticket"}
+          </button>
+        </div>
+      </section>
 
       {showNewForm && (
         <div className="step">

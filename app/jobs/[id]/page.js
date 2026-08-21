@@ -59,15 +59,17 @@ export default async function JobPage({ params }) {
       <Nav />
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
-      <div className="results-head">
-        <Link href="/jobs" className="btn-ghost" style={{ textDecoration: "none" }}>← All jobs</Link>
-      </div>
-      <div className="step">
+      <section className="hero hero-band hero-band-compact">
+        <div className="results-head">
+          <Link href="/jobs" className="btn-ghost" style={{ textDecoration: "none" }}>← All jobs</Link>
+        </div>
         <h1 className="news-reader-title">{job.title}</h1>
-        <div className="job-meta" style={{ marginBottom: 16 }}>
+        <div className="job-meta">
           {job.company}{job.location ? ` · ${job.location}` : ""}{job.job_type ? ` · ${job.job_type}` : ""} ·{" "}
           {new Date(job.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
         </div>
+      </section>
+      <div className="step">
         <p style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>{job.description}</p>
         <p className="job-apply" style={{ marginTop: 16 }}><b>How to apply:</b> {job.how_to_apply}</p>
         <Link href={`/?jobid=${job.id}`} className="btn-primary" style={{ textDecoration: "none", display: "inline-block", marginTop: 16 }}>

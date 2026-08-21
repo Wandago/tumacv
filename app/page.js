@@ -462,25 +462,27 @@ export default function Home() {
     return (
       <main className="shell wide">
         <Nav />
-        <div className="results-head">
-          <h2>Your documents are ready</h2>
-          <button className="btn-ghost" onClick={() => setResult(null)}>← Edit inputs</button>
-          <button className="btn-ghost" onClick={newApplication}>+ Generate another CV</button>
-          {tab === "cv" && (
-            <>
-              <button className="btn-ghost" onClick={downloadDocx} disabled={docxBusy}>
-                {docxBusy ? "Preparing…" : "Download .docx"}
-              </button>
-              <button className="btn-primary" onClick={() => window.print()}>Save CV as PDF</button>
-            </>
-          )}
-          {tab === "letter" && (
-            <>
-              <button className="btn-ghost" onClick={copyLetter}>{copied ? "Copied" : "Copy letter"}</button>
-              <button className="btn-primary" onClick={() => window.print()}>Save letter as PDF</button>
-            </>
-          )}
-        </div>
+        <section className="hero hero-band hero-band-compact">
+          <div className="results-head">
+            <h2>Your documents are ready</h2>
+            <button className="btn-ghost" onClick={() => setResult(null)}>← Edit inputs</button>
+            <button className="btn-ghost" onClick={newApplication}>+ Generate another CV</button>
+            {tab === "cv" && (
+              <>
+                <button className="btn-ghost" onClick={downloadDocx} disabled={docxBusy}>
+                  {docxBusy ? "Preparing…" : "Download .docx"}
+                </button>
+                <button className="btn-primary" onClick={() => window.print()}>Save CV as PDF</button>
+              </>
+            )}
+            {tab === "letter" && (
+              <>
+                <button className="btn-ghost" onClick={copyLetter}>{copied ? "Copied" : "Copy letter"}</button>
+                <button className="btn-primary" onClick={() => window.print()}>Save letter as PDF</button>
+              </>
+            )}
+          </div>
+        </section>
 
         {result.fit && (
           <div className="fit">
@@ -533,7 +535,7 @@ export default function Home() {
     <main className="shell">
       <Nav />
 
-      <section className="hero">
+      <section className="hero hero-band">
         <h1>One job. One <em>tailored</em> CV. Five minutes.</h1>
         <p>
           Paste any job posting. TumaCV rewrites your CV and cover letter to match it —

@@ -95,6 +95,9 @@ export default function PricingClient() {
           No subscription, no lock-in. Every plan works out to roughly KES 2 or less per
           tailored CV and cover letter — start with {FREE_SIGNUP_CREDITS} free the moment you sign up.
         </p>
+        {!FREE_MODE && paymentsLive && (
+          <p className="price">{FREE_SIGNUP_CREDITS} free to try · then pay as you go</p>
+        )}
       </section>
 
       {FREE_MODE ? (
@@ -107,11 +110,7 @@ export default function PricingClient() {
           Paid plans are launching very soon — we're finishing M-Pesa payment approval so everyone
           can top up directly. Your {FREE_SIGNUP_CREDITS} free applications work right now.
         </div>
-      ) : (
-        <div className="hero" style={{ paddingTop: 4 }}>
-          <p className="price">{FREE_SIGNUP_CREDITS} free to try · then pay as you go</p>
-        </div>
-      )}
+      ) : null}
 
       <div className="plan-row" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginBottom: 6 }}>
         {Object.values(PLANS).map((p) => (
