@@ -7,9 +7,12 @@ export const maxDuration = 20;
 // deployment's own health-check endpoint, a cloud metadata IP, a private
 // service on the same network) and have this server fetch it on their
 // behalf. We resolve the hostname ourselves and reject anything that lands
-// on a private/loopback/link-local address, then refuse to follow redirects
-// (a redirect could point somewhere that only looks safe pre-fetch).
+// on a private/loopback/link-local address. Redirects are common for real
+// job postings (http->https, non-www->www, trailing slashes) so we do
+// follow them — but manually, re-validating every hop the same way, since
+// a redirect could otherwise point somewhere that only looked safe pre-fetch.
 const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata.google.internal"]);
+const MAX_REDIRECTS = 5;
 
 function isBlockedIp(ip) {
   const type = net.isIP(ip);
@@ -56,27 +59,46 @@ export async function POST(req) {
       return Response.json({ error: "That doesn't look like a valid link." }, { status: 400 });
     }
 
-    try {
-      await assertSafeTarget(target);
-    } catch {
-      return Response.json({ error: "That link can't be fetched. Copy and paste the job description instead." }, { status: 400 });
-    }
+    let res;
+    let hops = 0;
+    for (;;) {
+      try {
+        await assertSafeTarget(target);
+      } catch {
+        return Response.json({ error: "That link can't be fetched. Copy and paste the job description instead." }, { status: 400 });
+      }
 
-    const res = await fetch(target.toString(), {
-      headers: {
-        "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
-        accept: "text/html,application/xhtml+xml",
-      },
-      redirect: "manual",
-      signal: AbortSignal.timeout(12000),
-    });
+      res = await fetch(target.toString(), {
+        headers: {
+          "user-agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+          accept: "text/html,application/xhtml+xml",
+        },
+        redirect: "manual",
+        signal: AbortSignal.timeout(12000),
+      });
 
-    if (res.status >= 300 && res.status < 400) {
-      return Response.json(
-        { error: "That link redirects elsewhere — open it in a browser and paste the description instead." },
-        { status: 422 }
-      );
+      if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
+        if (++hops > MAX_REDIRECTS) {
+          return Response.json(
+            { error: "That link redirects too many times — open it in a browser and paste the description instead." },
+            { status: 422 }
+          );
+        }
+        let next;
+        try {
+          next = new URL(res.headers.get("location"), target);
+          if (!/^https?:$/.test(next.protocol)) throw new Error();
+        } catch {
+          return Response.json(
+            { error: "That link redirects elsewhere — open it in a browser and paste the description instead." },
+            { status: 422 }
+          );
+        }
+        target = next;
+        continue;
+      }
+      break;
     }
 
     if (!res.ok) {
