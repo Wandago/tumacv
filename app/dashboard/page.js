@@ -446,8 +446,8 @@ export default function Dashboard() {
 
       <section className="badges-section">
         <div className="step-head"><span className="step-no">PROGRESS</span><h2>Your badges</h2></div>
-        <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
-          <div className="dash-card" style={{ flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
+          <div className="dash-card" style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <DonutChart
               pct={(earnedBadges(history.length).length / BADGES.length) * 100}
               value={`${earnedBadges(history.length).length}/${BADGES.length}`}
