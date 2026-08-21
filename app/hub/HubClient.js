@@ -56,7 +56,7 @@ export default function HubClient() {
   return (
     <main className="shell wide">
       <Nav />
-      <section className="hero" style={{ paddingBottom: 6 }}>
+      <section className="hero hero-band">
         <span className="eyebrow">Open to work</span>
         <h1>Talent Hub</h1>
         <p>

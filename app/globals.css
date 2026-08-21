@@ -233,70 +233,81 @@ header.top {
   .hero-cta-secondary:hover { background: var(--surface-2); }
 }
 
-/* floating browser-chrome mockup: the real CV template fan, framed like a product screenshot */
-.hero-mockup-wrap { position: relative; z-index: 1; margin: 42px auto -64px; width: min(760px, 94%); flex-shrink: 0; }
-.browser-frame {
-  border-radius: 20px; overflow: hidden; background: var(--onyx);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.18);
+/* ---------- Aeline-style full-bleed hero band (shared by the homepage's
+   .hero-premium and the plain .hero used on pricing/support/hub) ---------- */
+.shell > .hero-band { margin: 0 -18px 0; width: calc(100% + 36px); }
+.hero-band {
+  border-radius: 0 0 32px 32px; min-height: 0; text-align: center;
+  background: radial-gradient(120% 140% at 15% -10%, color-mix(in srgb, var(--kijani) 55%, var(--kijani-dark)), var(--kijani-dark) 60%),
+              linear-gradient(160deg, var(--kijani), var(--kijani-dark));
+  padding: 60px 24px 56px;
 }
-.browser-frame-titlebar {
-  display: flex; align-items: center; gap: 14px; padding: 10px 14px;
-  background: color-mix(in srgb, var(--onyx) 90%, white 10%);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.browser-frame-dots { display: flex; gap: 6px; flex-shrink: 0; }
-.browser-frame-dots span { width: 10px; height: 10px; border-radius: 50%; display: block; }
-.browser-frame-dots span:nth-child(1) { background: #ff5f57; }
-.browser-frame-dots span:nth-child(2) { background: #febc2e; }
-.browser-frame-dots span:nth-child(3) { background: #28c840; }
-.browser-frame-url {
-  flex: 1; text-align: center; font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.45);
-  background: rgba(255,255,255,0.07); border-radius: 6px; padding: 4px 10px;
-  margin: 0 auto; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.browser-frame-body {
-  padding: 34px 16px 8px; display: flex; justify-content: center;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--onyx) 96%, white 4%), var(--onyx));
-}
-@media (max-width: 720px) {
-  .hero-mockup-wrap { margin-bottom: -40px; }
-  .browser-frame-body { padding: 24px 12px 4px; }
-}
+.hero-band::before, .hero-band::after { display: none; }
+.hero-band .eyebrow { color: #fff; background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); margin-left: auto; margin-right: auto; }
+.hero-band h1 { color: #fff; margin-left: auto; margin-right: auto; }
+.hero-band h1 em { background: none; -webkit-text-fill-color: initial; color: #eaffef; }
+.hero-band p { color: rgba(255,255,255,0.86); margin-left: auto; margin-right: auto; }
+.hero-band p a { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
+.hero-band .price { color: #fff; background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); }
 
-/* ---------- tilted CV template fan (real CvView renders, scaled down) ---------- */
-.template-fan {
-  position: relative; width: 100%; flex-shrink: 0;
-  height: 300px; max-width: 340px; margin: 0 auto;
-}
-.template-fan-card {
-  position: absolute; top: 0; left: 50%; margin-left: -140px;
-  width: 280px; height: 300px; overflow: hidden; border-radius: 14px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.4); background: #fff; border: 1px solid var(--stone);
-  transform-origin: bottom center; will-change: transform;
-}
-.template-fan-inner {
-  width: 794px; transform: scale(0.3525); transform-origin: top left;
-  pointer-events: none; user-select: none;
-}
-@media (max-width: 720px) {
-  .template-fan { height: 232px; max-width: 260px; }
-  .template-fan-card { width: 200px; height: 232px; margin-left: -100px; border-radius: 12px; }
-  .template-fan-inner { transform: scale(0.2519); }
-}
+.hero-premium.hero-band .hero-glass-form { background: rgba(255,255,255,0.94); box-shadow: 0 12px 32px rgba(0,0,0,0.18); }
+.hero-premium.hero-band .hero-glass-hint { color: #fff; background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); }
+.hero-premium.hero-band .hero-cta-primary { background: #fff; color: var(--kijani-dark); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+@media (hover: hover) { .hero-premium.hero-band .hero-cta-primary:hover { background: #eaffef; } }
+.hero-premium.hero-band .hero-cta-secondary { background: rgba(255,255,255,0.14); color: #fff; border-color: rgba(255,255,255,0.3); }
+@media (hover: hover) { .hero-premium.hero-band .hero-cta-secondary:hover { background: rgba(255,255,255,0.24); } }
 
-/* stats strip embedded in the mockup footer — theme-invariant (sits on the dark frame) */
-.mockup-stats { display: flex; margin-top: 22px; border-top: 1px solid rgba(255,255,255,0.08); }
-.mockup-stat {
-  flex: 1; text-align: center; padding: 16px 8px 18px;
-  border-right: 1px solid rgba(255,255,255,0.08);
+/* ---------- floating tilted card collage below the hero copy ---------- */
+.hero-collage { position: relative; height: 190px; width: 100%; max-width: 640px; margin: 44px auto 0; }
+.floater {
+  position: absolute; background: #fff; border-radius: 14px; padding: 12px 14px;
+  box-shadow: 0 16px 36px rgba(0,0,0,0.22); width: 132px;
+  animation: fade-up 0.6s var(--ease) both;
 }
-.mockup-stat:last-child { border-right: none; }
-.mockup-stat-number {
-  font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; color: var(--onyx-fg);
-  font-size: clamp(18px, 3vw, 26px); line-height: 1;
+.floater.accent { background: linear-gradient(160deg, var(--kijani), var(--kijani-dark)); color: #fff; }
+.floater-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; color: var(--soil); }
+.floater.accent .floater-label { color: rgba(255,255,255,0.75); }
+.floater-big { font-family: var(--display); font-weight: 800; font-size: 26px; color: var(--kijani-dark); letter-spacing: -0.02em; }
+.floater.accent .floater-big { color: #fff; }
+.floater-big.small { font-size: 20px; }
+.floater-row { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--ink); }
+.floater.accent .floater-row { color: #fff; }
+.floater-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.floater-chips .chip { font-size: 10px; padding: 3px 8px; }
+.floater-doc-line { height: 6px; border-radius: 3px; background: var(--surface-2); margin-top: 6px; width: 100%; }
+.floater-doc-line.big { height: 9px; width: 60%; background: var(--kijani-dark); opacity: 0.7; }
+.floater-doc-line.short { width: 65%; }
+.floater-doc-line.on { background: rgba(255,255,255,0.55); }
+.floater-1 { top: 0; left: 2%; transform: rotate(-9deg); z-index: 2; }
+.floater-2 { top: 10px; left: 24%; transform: rotate(4deg); z-index: 3; width: 150px; animation-delay: 0.06s; }
+.floater-3 { top: -6px; left: 47%; transform: rotate(-4deg) translateX(-50%); z-index: 4; width: 120px; animation-delay: 0.12s; }
+.floater-4 { top: 14px; right: 20%; transform: rotate(7deg); z-index: 3; animation-delay: 0.18s; }
+.floater-5 { top: -2px; right: 0; transform: rotate(-6deg); z-index: 2; width: 108px; animation-delay: 0.24s; }
+@media (max-width: 720px) {
+  .hero-collage { height: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 32px 0 0; max-width: none; }
+  .floater { position: static; width: auto !important; transform: none !important; animation-delay: 0s !important; }
+  .floater-3 { grid-column: 1 / -1; }
 }
-.mockup-stat-label { font-size: 11px; color: rgba(246,246,239,0.55); margin-top: 5px; line-height: 1.3; }
+@media (prefers-reduced-motion: reduce) { .floater { animation: none; } }
+
+/* ---------- section intro (eyebrow + heading + blurb) ---------- */
+.section-head { text-align: center; margin: 60px 0 28px; }
+.section-head h2 {
+  font-family: var(--display); font-weight: 700; font-size: clamp(22px, 3.4vw, 30px);
+  letter-spacing: -0.02em; margin: 4px 0 8px;
+}
+.section-head p { color: var(--soil); max-width: 52ch; margin: 0 auto; font-size: 14.5px; line-height: 1.55; }
+
+/* ---------- asymmetric bento stat grid ---------- */
+.bento-grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 110px; gap: 12px; margin: 40px 0; }
+@media (max-width: 780px) { .bento-grid { grid-template-columns: repeat(2, 1fr); } }
+.bento-cell { border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; }
+.bento-cell.span2 { grid-column: span 2; }
+.bento-plain { background: var(--sheet); border: 1px solid var(--stone); }
+.bento-accent { background: linear-gradient(150deg, var(--kijani), var(--kijani-dark)); color: #fff; }
+.bento-dark { background: #14140f; color: #fff; border: 1px solid rgba(255,255,255,0.08); }
+.bento-label { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; }
+.bento-value { display: block; font-family: var(--display); font-weight: 800; font-size: clamp(20px, 2.6vw, 28px); letter-spacing: -0.02em; }
 
 /* ---------- pill CTA with icon, used for the main signup button ---------- */
 .btn-pill {
@@ -313,7 +324,7 @@ header.top {
 /* ---------- feature triptych: three product cards below the hero ---------- */
 .feature-triptych {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
-  margin: 92px 0 8px;
+  margin: 0 0 8px;
 }
 .feature-card {
   background: var(--sheet); border: 1px solid var(--stone); border-radius: 20px;
@@ -366,7 +377,7 @@ header.top {
 }
 
 @media (max-width: 860px) {
-  .feature-triptych { grid-template-columns: 1fr; margin-top: 68px; gap: 14px; }
+  .feature-triptych { grid-template-columns: 1fr; margin-top: 0; gap: 14px; }
 }
 
 /* ---------- homepage: real-output example showcase ---------- */

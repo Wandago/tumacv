@@ -88,7 +88,7 @@ export default function PricingClient() {
     <main className="shell wide">
       <Nav />
 
-      <section className="hero">
+      <section className="hero hero-band">
         <span className="eyebrow">No subscriptions, ever</span>
         <h1>Pay only for the <em>applications</em> you send</h1>
         <p>

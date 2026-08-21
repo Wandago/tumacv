@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Nav from "../components/Nav";
 import CvView from "../components/CvView";
 import { supabaseBrowser } from "../lib/supabaseClient";
-import { FREE_MODE } from "../lib/plans";
+import { FREE_MODE, FREE_SIGNUP_CREDITS } from "../lib/plans";
 import { extractPdfText } from "../lib/pdfText";
 import { generateCvDocx, downloadBlob } from "../lib/generateDocx";
 import CreditsModal from "../components/CreditsModal";
@@ -12,8 +12,8 @@ import { getSavedProfile, setSavedProfile, clearLegacySharedDraft, setPendingJob
 import ShareButtons from "../components/ShareButtons";
 import LinkedInGuide from "../components/LinkedInGuide";
 import { isLinkedInUrl, looksLikeBareLinkedInUrl } from "../lib/linkedin";
-import TemplateFan from "../components/TemplateFan";
-import HomeStats from "../components/HomeStats";
+import HeroCollage from "../components/HeroCollage";
+import CountUp from "../components/CountUp";
 import { SAMPLE_CV } from "../lib/sampleCv";
 import { motion } from "motion/react";
 
@@ -280,7 +280,7 @@ export default function Home() {
     return (
       <main className="shell">
         <Nav />
-        <section className="hero-premium">
+        <section className="hero-premium hero-band">
           <span className="eyebrow">Built for Kenyan job seekers</span>
           <h1>One job. One <em>tailored</em> CV.</h1>
           <p>
@@ -320,19 +320,45 @@ export default function Home() {
             <a href="/jobs" className="hero-cta-secondary">Browse the jobs board</a>
           </div>
 
-          <div className="hero-mockup-wrap">
-            <div className="browser-frame">
-              <div className="browser-frame-titlebar">
-                <div className="browser-frame-dots"><span /><span /><span /></div>
-                <div className="browser-frame-url">tumacv.co.ke</div>
-                <div style={{ width: 34 }} />
-              </div>
-              <div className="browser-frame-body">
-                <TemplateFan />
-              </div>
-              <HomeStats stats={publicStats} />
+          <HeroCollage />
+        </section>
+
+        <section className="bento-grid">
+          {publicStats && publicStats.totalUsers > 0 ? (
+            <div className="bento-cell bento-accent span2">
+              <span className="bento-label">Kenyan job seekers</span>
+              <span className="bento-value"><CountUp value={publicStats.totalUsers} suffix="+" /></span>
             </div>
+          ) : (
+            <div className="bento-cell bento-accent span2">
+              <span className="bento-label">Getting started</span>
+              <span className="bento-value">{FREE_SIGNUP_CREDITS} free applications</span>
+            </div>
+          )}
+          <div className="bento-cell bento-dark">
+            <span className="bento-label">CV styles</span>
+            <span className="bento-value">{TEMPLATES.length}</span>
           </div>
+          <div className="bento-cell bento-plain">
+            <span className="bento-label">Avg. time to done</span>
+            <span className="bento-value">5 min</span>
+          </div>
+          {publicStats && publicStats.totalGenerations > 0 && (
+            <div className="bento-cell bento-plain span2">
+              <span className="bento-label">Applications tailored</span>
+              <span className="bento-value"><CountUp value={publicStats.totalGenerations} suffix="+" /></span>
+            </div>
+          )}
+          <div className="bento-cell bento-accent">
+            <span className="bento-label">Invented</span>
+            <span className="bento-value">Nothing</span>
+          </div>
+        </section>
+
+        <section className="section-head">
+          <span className="eyebrow">How it works</span>
+          <h2>Three steps, zero guesswork</h2>
+          <p>Paste a job, add your CV, and get a tailored application in about a minute.</p>
         </section>
 
         <motion.section
