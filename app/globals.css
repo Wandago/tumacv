@@ -892,7 +892,9 @@ select:focus {
 .dash-card:not(.accent) .stat-corner-badge { background: var(--surface-2); color: var(--soil); }
 
 /* ---------- persistent left sidebar shell (Dashboard, Admin) ---------- */
-.app-shell { display: flex; align-items: flex-start; min-height: 100vh; margin: 0 -18px; }
+/* Rendered as a direct child of <body> (not nested in .shell), so — unlike
+   the marketing hero-band — this needs no negative margin to go full-bleed. */
+.app-shell { display: flex; align-items: flex-start; min-height: 100vh; }
 .app-sidebar {
   width: 232px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
   background: var(--sheet); border-right: 1px solid var(--stone); padding: 20px 14px 16px; display: flex; flex-direction: column;
@@ -923,7 +925,7 @@ select:focus {
   .app-sidebar { display: none; }
   .app-sidebar-mobile {
     display: flex; gap: 6px; overflow-x: auto; padding: 12px 16px; border-bottom: 1px solid var(--stone);
-    background: var(--sheet); position: sticky; top: 0; z-index: 5;
+    background: var(--sheet); position: sticky; top: 0; z-index: 5; width: 100%; min-width: 0;
   }
   .app-sidebar-mobile .app-sidebar-link { flex-shrink: 0; width: auto; white-space: nowrap; }
   .app-main { padding: 18px 16px 50px; }
