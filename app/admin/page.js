@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Nav from "../../components/Nav";
+import AppSidebar from "../../components/AppSidebar";
+import DonutChart from "../../components/DonutChart";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 
 export default function Admin() {
@@ -302,7 +303,6 @@ export default function Admin() {
   if (authorized === false) {
     return (
       <main className="shell">
-        <Nav />
         <div className="auth-card">
           <h1>Not authorized</h1>
           <p className="step-hint">This area is restricted to TumaCV admins.</p>
@@ -315,26 +315,27 @@ export default function Admin() {
   const filteredJobs = jobs ? jobs.filter((j) => !q || `${j.title} ${j.company}`.toLowerCase().includes(q.toLowerCase())) : null;
   const filteredPayments = payments ? payments.filter((p) => payFilter === "all" || p.status === payFilter) : null;
 
-  return (
-    <main className="shell wide">
-      <Nav />
-      <section className="hero hero-band hero-band-compact">
-        <div className="results-head">
-          <h2>Admin</h2>
-        </div>
-      </section>
+  const sidebarItems = [
+    { key: "overview", label: "Overview", icon: "grid", onClick: () => { setTab("overview"); setQ(""); } },
+    { key: "users", label: "Users", icon: "users", onClick: () => { setTab("users"); setQ(""); } },
+    { key: "jobs", label: "Jobs board", icon: "briefcase", onClick: () => { setTab("jobs"); setQ(""); } },
+    { key: "payments", label: "Payments", icon: "card", onClick: () => setTab("payments") },
+    { key: "articles", label: "News articles", icon: "doc", onClick: () => setTab("articles") },
+    { key: "hub", label: "Talent Hub", icon: "users", onClick: () => setTab("hub") },
+    { key: "promo", label: "Promo codes", icon: "gift", onClick: () => setTab("promo") },
+    { key: "support", label: "Support", icon: "help", onClick: () => setTab("support") },
+    { key: "marketing", label: "Marketing", icon: "megaphone", onClick: () => setTab("marketing") },
+    { key: "traffic", label: "Traffic", icon: "trend", onClick: () => setTab("traffic") },
+  ];
+  const sidebarBottom = [
+    { key: "back", label: "Back to app", icon: "back", href: "/dashboard" },
+  ];
 
-      <div className="doc-tabs" style={{ flexWrap: "wrap" }}>
-        <button className={tab === "overview" ? "on" : "btn-ghost"} onClick={() => { setTab("overview"); setQ(""); }}>Overview</button>
-        <button className={tab === "users" ? "on" : "btn-ghost"} onClick={() => { setTab("users"); setQ(""); }}>Users</button>
-        <button className={tab === "jobs" ? "on" : "btn-ghost"} onClick={() => { setTab("jobs"); setQ(""); }}>Jobs board</button>
-        <button className={tab === "payments" ? "on" : "btn-ghost"} onClick={() => setTab("payments")}>Payments</button>
-        <button className={tab === "articles" ? "on" : "btn-ghost"} onClick={() => setTab("articles")}>News articles</button>
-        <button className={tab === "hub" ? "on" : "btn-ghost"} onClick={() => setTab("hub")}>Talent Hub</button>
-        <button className={tab === "promo" ? "on" : "btn-ghost"} onClick={() => setTab("promo")}>Promo codes</button>
-        <button className={tab === "support" ? "on" : "btn-ghost"} onClick={() => setTab("support")}>Support</button>
-        <button className={tab === "marketing" ? "on" : "btn-ghost"} onClick={() => setTab("marketing")}>Marketing</button>
-        <button className={tab === "traffic" ? "on" : "btn-ghost"} onClick={() => setTab("traffic")}>Traffic</button>
+  return (
+    <AppSidebar sectionLabel="ADMIN" items={sidebarItems} bottomItems={sidebarBottom} activeKey={tab}>
+      <div className="page-heading">
+        <h1>Admin</h1>
+        <p>TumaCV usage, revenue, and moderation — everything in one place.</p>
       </div>
 
       {err && <p className="error">{err}</p>}
@@ -377,10 +378,15 @@ export default function Admin() {
             )}
 
             <div className="dash-grid">
-              <div className="dash-card"><h3>TOTAL USERS</h3><div className="big-number">{stats.totalUsers}</div></div>
+              <div className="dash-card accent">
+                <div className="stat-corner-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9" /></svg>
+                </div>
+                <h3>TOTAL USERS</h3><div className="big-number">{stats.totalUsers}</div>
+              </div>
               <div className="dash-card"><h3>SIGNUPS · 7 DAYS</h3><div className="big-number">{stats.signupsWeek}</div></div>
               <div className="dash-card"><h3>TOTAL APPLICATIONS</h3><div className="big-number">{stats.totalGenerations}</div></div>
-              <div className="dash-card"><h3>REVENUE (COMPLETE)</h3><div className="big-number">KES {stats.totalRevenue}</div></div>
+              <div className="dash-card stat"><h3>REVENUE (COMPLETE)</h3><div className="big-number">KES {stats.totalRevenue}</div></div>
               <div className="dash-card"><h3>USERS HIRED</h3><div className="big-number">{stats.hiredCount}</div></div>
               <div className="dash-card"><h3>ACTIVE STREAKS (3+ DAYS)</h3><div className="big-number streak-number">🔥 {stats.activeStreaks}</div></div>
             </div>
@@ -392,12 +398,20 @@ export default function Admin() {
             </div>
 
             <div className="breakdown-grid">
+              <div className="dash-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                <h3 style={{ alignSelf: "flex-start" }}>SIGNUP → PAID</h3>
+                <DonutChart
+                  pct={stats.funnel?.signups ? (stats.funnel.paid / stats.funnel.signups) * 100 : 0}
+                  value={stats.funnel?.signups ? `${Math.round((stats.funnel.paid / stats.funnel.signups) * 100)}%` : "—"}
+                  label="converted"
+                />
+              </div>
               <FunnelCard funnel={stats.funnel} />
               <BarCard title="REVENUE BY PLAN" data={stats.planBreakdown} />
-              <BarCard title="WHERE USERS HEARD ABOUT US" data={referralStats} />
             </div>
 
             <div className="breakdown-grid">
+              <BarCard title="WHERE USERS HEARD ABOUT US" data={referralStats} />
               <BarCard title="USERS BY INDUSTRY" data={industryStats} />
               <BarCard
                 title={`MOST VISITED PAGES ${pageStats ? `(${pageStats.totalViews} views, 30 days)` : ""}`}
@@ -414,11 +428,13 @@ export default function Admin() {
           {filteredUsers === null ? (
             <div className="loading"><span className="spinner" /> Loading users…</div>
           ) : (
+            <div className="data-table">
             <div className="history-list">
               {filteredUsers.map((u) => (
                 <div key={u.id} className="history-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                    <span className="hi-title">
+                    <span className="hi-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span className="data-row-avatar">{(u.email || "?").slice(0, 1).toUpperCase()}</span>
                       {u.email} {u.is_admin && <span className="credits-pill" style={{ marginLeft: 6 }}>admin</span>}
                       {u.hired && <span className="credits-pill" style={{ marginLeft: 6 }}>hired</span>}
                       {u.banned && <span className="credits-pill danger-pill" style={{ marginLeft: 6 }}>suspended</span>}
@@ -487,6 +503,7 @@ export default function Admin() {
               ))}
               {filteredUsers.length === 0 && <p className="step-hint">No users match "{q}".</p>}
             </div>
+            </div>
           )}
         </>
       )}
@@ -497,12 +514,16 @@ export default function Admin() {
           {filteredJobs === null ? (
             <div className="loading"><span className="spinner" /> Loading jobs…</div>
           ) : (
+            <div className="data-table">
             <div className="history-list">
               {filteredJobs.map((j) => (
                 <div key={j.id} className="history-item">
-                  <div>
-                    <span className="hi-title">{j.title} — {j.company}</span>
-                    <div className="field-note" style={{ marginTop: 2 }}>{j.location} · {j.job_type}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="data-row-avatar">{(j.company || "?").slice(0, 1).toUpperCase()}</span>
+                    <div>
+                      <span className="hi-title">{j.title} — {j.company}</span>
+                      <div className="field-note" style={{ marginTop: 2 }}>{j.location} · {j.job_type}</div>
+                    </div>
                   </div>
                   <button className="btn-ghost" disabled={busyId === j.id} onClick={() => deleteJob(j.id)}>
                     {busyId === j.id ? "…" : "Delete"}
@@ -510,6 +531,7 @@ export default function Admin() {
                 </div>
               ))}
               {filteredJobs.length === 0 && <p className="step-hint">No jobs match.</p>}
+            </div>
             </div>
           )}
         </>
@@ -525,6 +547,7 @@ export default function Admin() {
           {filteredPayments === null ? (
             <div className="loading"><span className="spinner" /> Loading payments…</div>
           ) : (
+            <div className="data-table">
             <div className="history-list">
               {filteredPayments.map((p) => (
                 <div key={p.id} className="history-item">
@@ -551,6 +574,7 @@ export default function Admin() {
               ))}
               {filteredPayments.length === 0 && <p className="step-hint">No payments match.</p>}
             </div>
+            </div>
           )}
         </>
       )}
@@ -559,12 +583,16 @@ export default function Admin() {
         articles === null ? (
           <div className="loading"><span className="spinner" /> Loading articles…</div>
         ) : (
+          <div className="data-table">
           <div className="history-list">
             {articles.map((a) => (
               <div key={a.id} className="history-item">
-                <div>
-                  <span className="hi-title">{a.title}</span>
-                  <div className="field-note" style={{ marginTop: 2 }}>{a.industry} · {new Date(a.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span className="data-row-avatar">{(a.title || "?").slice(0, 1).toUpperCase()}</span>
+                  <div>
+                    <span className="hi-title">{a.title}</span>
+                    <div className="field-note" style={{ marginTop: 2 }}>{a.industry} · {new Date(a.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</div>
+                  </div>
                 </div>
                 <button className="btn-ghost" disabled={busyId === a.id} onClick={() => deleteArticle(a.id)}>
                   {busyId === a.id ? "…" : "Delete"}
@@ -572,6 +600,7 @@ export default function Admin() {
               </div>
             ))}
             {articles.length === 0 && <p className="step-hint">No articles generated yet.</p>}
+          </div>
           </div>
         )
       )}
@@ -581,11 +610,15 @@ export default function Admin() {
           {hubProfiles === null ? (
             <div className="loading"><span className="spinner" /> Loading Talent Hub profiles…</div>
           ) : (
+            <div className="data-table">
             <div className="history-list">
               {hubProfiles.map((p) => (
                 <div key={p.id} className="history-item">
                   <div>
-                    <span className="hi-title">{p.display_name} — {p.title}</span>
+                    <span className="hi-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span className="data-row-avatar">{(p.display_name || "?").slice(0, 1).toUpperCase()}</span>
+                      {p.display_name} — {p.title}
+                    </span>
                     <div className="field-note" style={{ marginTop: 2 }}>
                       {[p.industry, p.experience_level].filter(Boolean).join(" · ")}
                       {(p.skills || []).length > 0 ? ` · ${p.skills.join(", ")}` : ""}
@@ -609,17 +642,20 @@ export default function Admin() {
               ))}
               {hubProfiles.length === 0 && <p className="step-hint">No one has joined the Talent Hub yet.</p>}
             </div>
+            </div>
           )}
 
           <h3 style={{ margin: "24px 0 10px" }}>Service listings</h3>
           {hubServices === null ? (
             <div className="loading"><span className="spinner" /> Loading service listings…</div>
           ) : (
+            <div className="data-table">
             <div className="history-list">
               {hubServices.map((s) => (
                 <div key={s.id} className="history-item">
                   <div>
-                    <span className="hi-title">
+                    <span className="hi-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span className="data-row-avatar">{(s.title || "?").slice(0, 1).toUpperCase()}</span>
                       <span className="credits-pill" style={{ marginRight: 8 }}>{s.category}</span>
                       {s.title} — KES {s.price_kes.toLocaleString()}
                     </span>
@@ -634,6 +670,7 @@ export default function Admin() {
                 </div>
               ))}
               {hubServices.length === 0 && <p className="step-hint">No services listed yet.</p>}
+            </div>
             </div>
           )}
         </>
@@ -672,11 +709,13 @@ export default function Admin() {
           {promoCodes === null ? (
             <div className="loading"><span className="spinner" /> Loading codes…</div>
           ) : (
+            <div className="data-table">
             <div className="history-list">
               {promoCodes.map((c) => (
                 <div key={c.id} className="history-item">
                   <div>
                     <span className="hi-title">
+                      <span className="data-row-avatar" style={{ marginRight: 10 }}>{(c.code || "?").slice(0, 1).toUpperCase()}</span>
                       {c.code} <span className="credits-pill" style={{ marginLeft: 6 }}>+{c.credits} credits</span>
                       {!c.active && <span className="credits-pill" style={{ marginLeft: 6 }}>inactive</span>}
                     </span>
@@ -692,6 +731,7 @@ export default function Admin() {
                 </div>
               ))}
               {promoCodes.length === 0 && <p className="step-hint">No promo codes yet — create one above.</p>}
+            </div>
             </div>
           )}
         </>
@@ -850,14 +890,15 @@ export default function Admin() {
           {dailyTraffic === null ? (
             <div className="loading"><span className="spinner" /> Loading…</div>
           ) : (
-            <div className="history-list" style={{ overflowX: "auto" }}>
-              <div className="history-item" style={{ fontFamily: "var(--mono)", fontSize: 10.5, letterSpacing: "0.04em", color: "var(--soil)", fontWeight: 600 }}>
-                <span style={{ flex: 1, minWidth: 100 }}>DATE</span>
-                <span style={{ width: 80, textAlign: "right" }}>VIEWS</span>
-                <span style={{ width: 80, textAlign: "right" }}>SIGNUPS</span>
-                <span style={{ width: 100, textAlign: "right" }}>GENERATIONS</span>
-                <span style={{ width: 110, textAlign: "right" }}>REVENUE KES</span>
+            <div className="data-table" style={{ overflowX: "auto" }}>
+              <div className="data-table-head">
+                <span style={{ flex: 1, minWidth: 100 }}>Date</span>
+                <span style={{ width: 80, textAlign: "right" }}>Views</span>
+                <span style={{ width: 80, textAlign: "right" }}>Signups</span>
+                <span style={{ width: 100, textAlign: "right" }}>Generations</span>
+                <span style={{ width: 110, textAlign: "right" }}>Revenue KES</span>
               </div>
+            <div className="history-list">
               {[...dailyTraffic].reverse().map((d) => {
                 const isOpen = expandedDay === d.date;
                 const detail = dayDetail[d.date];
@@ -898,10 +939,11 @@ export default function Admin() {
                 );
               })}
             </div>
+            </div>
           )}
         </>
       )}
-    </main>
+    </AppSidebar>
   );
 }
 

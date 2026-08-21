@@ -879,6 +879,94 @@ select:focus {
 .streak-number { color: #ff9f0a; }
 .dash-card p { font-size: 12.5px; color: var(--soil); margin-top: 2px; }
 
+/* accent variant — the hero metric card, kijani-gradient like the homepage bento cells */
+.dash-card.accent { background: linear-gradient(150deg, var(--kijani), var(--kijani-dark)); color: #fff; border-color: transparent; position: relative; }
+.dash-card.accent h3 { color: rgba(255,255,255,0.75); }
+.dash-card.accent .big-number { color: #fff; }
+.dash-card.accent p { color: rgba(255,255,255,0.8); }
+.stat-corner-badge {
+  position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.stat-corner-badge svg { width: 14px; height: 14px; }
+.dash-card:not(.accent) .stat-corner-badge { background: var(--surface-2); color: var(--soil); }
+
+/* ---------- persistent left sidebar shell (Dashboard, Admin) ---------- */
+.app-shell { display: flex; align-items: flex-start; min-height: 100vh; margin: 0 -18px; }
+.app-sidebar {
+  width: 232px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  background: var(--sheet); border-right: 1px solid var(--stone); padding: 20px 14px 16px; display: flex; flex-direction: column;
+}
+.app-sidebar-logo { font-family: var(--display); font-weight: 800; font-size: 18px; letter-spacing: -0.02em; padding: 2px 8px 20px; }
+.app-sidebar-logo span { color: var(--kijani-dark); }
+.app-sidebar-section-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; color: var(--soil); text-transform: uppercase; padding: 12px 10px 6px; }
+.app-sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+.app-sidebar-link {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px;
+  font-size: 13.5px; font-weight: 600; color: var(--ink); text-decoration: none; text-align: left;
+  background: none; border: none; width: 100%; transition: background-color 0.15s ease;
+}
+@media (hover: hover) { .app-sidebar-link:hover { background: var(--surface-2); } }
+.app-sidebar-link.on { background: linear-gradient(135deg, var(--kijani), var(--kijani-dark)); color: #fff; }
+.app-sidebar-icon { width: 18px; height: 18px; flex-shrink: 0; display: flex; }
+.app-sidebar-icon svg { width: 100%; height: 100%; }
+.app-sidebar-badge {
+  margin-left: auto; font-family: var(--mono); font-size: 10px; background: var(--surface-2); color: var(--soil);
+  padding: 2px 7px; border-radius: 999px;
+}
+.app-sidebar-link.on .app-sidebar-badge { background: rgba(255,255,255,0.22); color: #fff; }
+.app-sidebar-spacer { flex: 1; }
+.app-sidebar-mobile { display: none; }
+.app-main { flex: 1; min-width: 0; padding: 24px 24px 60px; }
+@media (max-width: 880px) {
+  .app-shell { flex-direction: column; }
+  .app-sidebar { display: none; }
+  .app-sidebar-mobile {
+    display: flex; gap: 6px; overflow-x: auto; padding: 12px 16px; border-bottom: 1px solid var(--stone);
+    background: var(--sheet); position: sticky; top: 0; z-index: 5;
+  }
+  .app-sidebar-mobile .app-sidebar-link { flex-shrink: 0; width: auto; white-space: nowrap; }
+  .app-main { padding: 18px 16px 50px; }
+}
+
+/* ---------- table-style rows for admin/dashboard lists ---------- */
+.data-table { border: 1px solid var(--stone); border-radius: 18px; overflow: hidden; background: var(--sheet); box-shadow: var(--shadow-1); }
+.data-table-head {
+  display: flex; gap: 12px; padding: 10px 16px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--soil); font-weight: 600; border-bottom: 1px solid var(--stone); background: var(--surface-2);
+}
+.data-row-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-weight: 700; font-size: 12px; color: #fff;
+  background: linear-gradient(135deg, var(--kijani), var(--kijani-dark));
+}
+/* .history-list rows lose their individual card look inside a .data-table
+   wrapper and become flat divided rows instead, like a real table. */
+.data-table .history-list { gap: 0; padding-bottom: 0; }
+.data-table .history-item { border: none; border-bottom: 1px solid var(--stone); border-radius: 0; box-shadow: none; background: none; padding: 13px 16px; }
+.data-table .history-item:last-child { border-bottom: none; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .data-table .history-item:hover { border-color: var(--stone); box-shadow: none; transform: none; background: var(--surface-2); }
+}
+
+/* ---------- circular progress ring ---------- */
+.donut-wrap { position: relative; margin: 0 auto; }
+.donut-track { stroke: var(--surface-2); }
+.donut-fill { stroke: var(--kijani-dark); transition: stroke-dashoffset 0.6s var(--ease); }
+.donut-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.donut-value { font-family: var(--display); font-weight: 800; font-size: 24px; letter-spacing: -0.02em; color: var(--ink); line-height: 1; }
+.donut-label { font-size: 11px; color: var(--soil); margin-top: 3px; text-align: center; }
+
+/* ---------- plain page heading used inside the sidebar shell (no band/card) ---------- */
+.page-heading { margin-bottom: 20px; }
+.page-heading h1 { font-family: var(--display); font-weight: 800; font-size: 28px; letter-spacing: -0.02em; }
+.page-heading p { color: var(--soil); font-size: 13.5px; margin-top: 4px; }
+.page-heading-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.page-heading-row .page-heading { margin-bottom: 0; }
+.page-heading-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 .plan-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
 @media (max-width: 720px) { .plan-row { grid-template-columns: repeat(2, 1fr); } }
 .plan-card {
