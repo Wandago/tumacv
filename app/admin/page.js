@@ -318,9 +318,11 @@ export default function Admin() {
   return (
     <main className="shell wide">
       <Nav />
-      <div className="results-head">
-        <h2>Admin</h2>
-      </div>
+      <section className="hero hero-band hero-band-compact">
+        <div className="results-head">
+          <h2>Admin</h2>
+        </div>
+      </section>
 
       <div className="doc-tabs" style={{ flexWrap: "wrap" }}>
         <button className={tab === "overview" ? "on" : "btn-ghost"} onClick={() => { setTab("overview"); setQ(""); }}>Overview</button>

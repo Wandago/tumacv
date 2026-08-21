@@ -221,18 +221,20 @@ export default function Dashboard() {
     return (
       <main className="shell wide">
         <Nav />
-        <div className="results-head">
-          <h2>{viewing.job_title || "Application"}</h2>
-          <button className="btn-ghost" onClick={() => setViewing(null)}>← Back to dashboard</button>
-          {tab === "cv" && (
-            <button className="btn-ghost" onClick={downloadDocx} disabled={docxBusy}>
-              {docxBusy ? "Preparing…" : "Download .docx"}
+        <section className="hero hero-band hero-band-compact">
+          <div className="results-head">
+            <h2>{viewing.job_title || "Application"}</h2>
+            <button className="btn-ghost" onClick={() => setViewing(null)}>← Back to dashboard</button>
+            {tab === "cv" && (
+              <button className="btn-ghost" onClick={downloadDocx} disabled={docxBusy}>
+                {docxBusy ? "Preparing…" : "Download .docx"}
+              </button>
+            )}
+            <button className="btn-primary" onClick={() => window.print()}>
+              {tab === "cv" ? "Save CV as PDF" : "Save letter as PDF"}
             </button>
-          )}
-          <button className="btn-primary" onClick={() => window.print()}>
-            {tab === "cv" ? "Save CV as PDF" : "Save letter as PDF"}
-          </button>
-        </div>
+          </div>
+        </section>
         <div className="doc-tabs">
           <button className={tab === "cv" ? "on" : "btn-ghost"} onClick={() => setTab("cv")}>CV</button>
           <button className={tab === "letter" ? "on" : "btn-ghost"} onClick={() => setTab("letter")}>Cover letter</button>
@@ -251,11 +253,13 @@ export default function Dashboard() {
   return (
     <main className="shell wide">
       <Nav />
-      <div className="results-head">
-        <h2>Your dashboard</h2>
-        <a href="/onboarding" className="btn-ghost" style={{ textDecoration: "none" }}>Edit profile</a>
-        <button className="btn-ghost" onClick={signOut}>Sign out</button>
-      </div>
+      <section className="hero hero-band hero-band-compact">
+        <div className="results-head">
+          <h2>Your dashboard</h2>
+          <a href="/onboarding" className="btn-ghost" style={{ textDecoration: "none" }}>Edit profile</a>
+          <button className="btn-ghost" onClick={signOut}>Sign out</button>
+        </div>
+      </section>
 
       <InAppMarketingBanner />
 

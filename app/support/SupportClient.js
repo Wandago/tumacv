@@ -134,7 +134,7 @@ export default function SupportClient() {
     return (
       <main className="shell">
         <Nav />
-        <section className="hero" style={{ paddingBottom: 6 }}>
+        <section className="hero hero-band">
           <span className="eyebrow">We're here to help</span>
           <h1>Help & feedback</h1>
           <p>Hit a bug, have an idea, or just want to tell us something? We read every message.</p>
@@ -167,10 +167,12 @@ export default function SupportClient() {
     return (
       <main className="shell">
         <Nav />
-        <div className="results-head">
-          <h2>{selected.subject}</h2>
-          <button className="btn-ghost" onClick={() => setSelected(null)}>← All tickets</button>
-        </div>
+        <section className="hero hero-band hero-band-compact">
+          <div className="results-head">
+            <h2>{selected.subject}</h2>
+            <button className="btn-ghost" onClick={() => setSelected(null)}>← All tickets</button>
+          </div>
+        </section>
         <div className="ticket-meta-row">
           <span className="credits-pill">{selected.type}</span>
           <span className={`credits-pill ${selected.status === "open" ? "" : "danger-pill"}`}>{selected.status}</span>
@@ -204,12 +206,14 @@ export default function SupportClient() {
   return (
     <main className="shell">
       <Nav />
-      <div className="results-head">
-        <h2>Help & feedback</h2>
-        <button className="btn-primary" onClick={() => setShowNewForm(!showNewForm)}>
-          {showNewForm ? "Close" : "+ New ticket"}
-        </button>
-      </div>
+      <section className="hero hero-band hero-band-compact">
+        <div className="results-head">
+          <h2>Help & feedback</h2>
+          <button className="btn-primary" onClick={() => setShowNewForm(!showNewForm)}>
+            {showNewForm ? "Close" : "+ New ticket"}
+          </button>
+        </div>
+      </section>
 
       {showNewForm && (
         <div className="step">

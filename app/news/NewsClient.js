@@ -26,12 +26,14 @@ export default function NewsClient() {
   return (
     <main className="shell wide">
       <Nav />
-      <div className="results-head">
-        <h2>News & insights</h2>
-      </div>
-      <p className="step-hint">
-        Fresh, specific career guidance for the Kenyan job market — written daily, one article at a time.
-      </p>
+      <section className="hero hero-band hero-band-compact">
+        <div className="results-head">
+          <h2>News & insights</h2>
+        </div>
+        <p className="step-hint">
+          Fresh, specific career guidance for the Kenyan job market — written daily, one article at a time.
+        </p>
+      </section>
 
       {articles && articles.length > 0 && (
         <div className="news-filter-row">

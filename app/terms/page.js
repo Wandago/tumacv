@@ -5,7 +5,7 @@ export default function Terms() {
   return (
     <main className="shell">
       <Nav />
-      <section className="hero" style={{ paddingBottom: 6 }}>
+      <section className="hero hero-band">
         <h1>Terms of Use</h1>
         <p>Last updated: August 2026. By creating an account, you agree to these terms.</p>
       </section>

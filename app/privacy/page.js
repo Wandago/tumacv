@@ -5,7 +5,7 @@ export default function Privacy() {
   return (
     <main className="shell">
       <Nav />
-      <section className="hero" style={{ paddingBottom: 6 }}>
+      <section className="hero hero-band">
         <h1>Privacy Policy</h1>
         <p>Last updated: August 2026. Plain-language version — no legal jargon where we can avoid it.</p>
       </section>
