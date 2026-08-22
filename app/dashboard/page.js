@@ -15,6 +15,9 @@ import ReferralCard from "../../components/ReferralCard";
 import InAppMarketingBanner from "../../components/InAppMarketingBanner";
 import CountUp from "../../components/CountUp";
 import DonutChart from "../../components/DonutChart";
+import TrendChart from "../../components/TrendChart";
+import OverviewCard from "../../components/OverviewCard";
+import ActivityRail from "../../components/ActivityRail";
 import { motion } from "motion/react";
 
 const staggerContainer = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
@@ -45,6 +48,7 @@ export default function Dashboard() {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
   const [hiredBusy, setHiredBusy] = useState(false);
+  const [q, setQ] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.search.includes("paid=1")) {
@@ -218,6 +222,48 @@ export default function Dashboard() {
   const unlimited =
     profile?.plan === "unlimited" && profile?.plan_expires && new Date(profile.plan_expires) > new Date();
 
+  const filteredHistory = history.filter(
+    (h) => !q || (h.job_title || "Application").toLowerCase().includes(q.toLowerCase())
+  );
+  const weekCount = history.filter((h) => Date.now() - new Date(h.created_at).getTime() < 7 * 86400000).length;
+
+  // Which CV templates this user actually leans on — the donut breakdown.
+  const templateSegments = Object.entries(
+    history.reduce((acc, h) => {
+      const t = h.template || "modern";
+      acc[t] = (acc[t] || 0) + 1;
+      return acc;
+    }, {})
+  )
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
+  // Applications per day over the last 30 days, for the sparkline.
+  const activitySeries = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (29 - i));
+    const key = d.toISOString().slice(0, 10);
+    return {
+      date: key,
+      value: history.filter((h) => h.created_at?.slice(0, 10) === key).length,
+    };
+  });
+
+  const railNotices = [];
+  if (!FREE_MODE && !unlimited && profile?.credits === 0) {
+    railNotices.push({ label: "Out of credits — top up", count: 0, tone: "warn", onClick: () => router.push("/pricing") });
+  }
+  if (profile && !profile.industry) {
+    railNotices.push({ label: "Add your industry for daily tips", count: "!", onClick: () => router.push("/onboarding") });
+  }
+  if (nextBadge(history.length)) {
+    railNotices.push({
+      label: `${nextBadge(history.length).threshold - history.length} more to "${nextBadge(history.length).label}"`,
+      count: nextBadge(history.length).emoji,
+      onClick: () => router.push("/"),
+    });
+  }
+
   const sidebarItems = [
     { key: "dashboard", label: "Dashboard", icon: "grid", href: "/dashboard" },
     { key: "jobs", label: "Jobs board", icon: "briefcase", href: "/jobs" },
@@ -263,7 +309,31 @@ export default function Dashboard() {
   }
 
   return (
-    <AppSidebar items={sidebarItems} bottomItems={sidebarBottom} activeKey="dashboard">
+    <AppSidebar
+      items={sidebarItems}
+      bottomItems={sidebarBottom}
+      activeKey="dashboard"
+      search={{ value: q, onChange: setQ, placeholder: "Search your applications…" }}
+      alertCount={railNotices.length}
+      rightRail={
+        <ActivityRail
+          notices={railNotices}
+          activityTitle="Recent applications"
+          activity={history.slice(0, 6).map((h) => ({
+            id: h.id,
+            title: h.job_title || "Application",
+            meta: h.template,
+            at: h.created_at,
+          }))}
+          emptyActivity="Your applications will show up here."
+          links={[
+            { href: "/", label: "Generate a new CV" },
+            { href: "/jobs", label: "Browse the jobs board" },
+            { href: "/hub", label: "Talent Hub" },
+          ]}
+        />
+      }
+    >
       <div className="page-heading">
         <h1>Your dashboard</h1>
         <p>Track your credits, streak, and past applications.</p>
@@ -326,11 +396,25 @@ export default function Dashboard() {
 
         <div className="dash-card">
           <h3>THIS WEEK</h3>
-          <div className="big-number">
-            <CountUp value={history.filter((h) => Date.now() - new Date(h.created_at).getTime() < 7 * 86400000).length} />
-          </div>
+          <div className="big-number"><CountUp value={weekCount} /></div>
           <p>applications generated</p>
         </div>
+      </div>
+
+      <div className="dash-grid" style={{ marginTop: 10 }}>
+        <OverviewCard
+          title="APPLICATION OVERVIEW"
+          segments={templateSegments}
+          centerValue={history.length}
+          centerLabel="total"
+          empty="Generate your first CV and this fills in."
+          stats={[
+            { label: "this week", value: weekCount },
+            { label: "templates used", value: templateSegments.length },
+            { label: "day streak", value: profile?.streak_count || 0 },
+          ]}
+        />
+        <TrendChart title="ACTIVITY (30 DAYS)" series={activitySeries} className="span2" />
       </div>
 
       {!FREE_MODE && (
@@ -482,11 +566,7 @@ export default function Dashboard() {
         <div className="step-head">
           <span className="step-no">HISTORY</span>
           <h2>Past applications</h2>
-          {history.length > 0 && (
-            <span className="week-stat">
-              {history.filter((h) => Date.now() - new Date(h.created_at).getTime() < 7 * 86400000).length} this week
-            </span>
-          )}
+          {history.length > 0 && <span className="week-stat">{weekCount} this week</span>}
         </div>
         {history.length === 0 ? (
           <div style={{ textAlign: "center", padding: "20px 0" }}>
@@ -503,7 +583,7 @@ export default function Dashboard() {
               <span style={{ width: 110, textAlign: "right" }}>Date</span>
             </div>
             <motion.div className="history-list" variants={staggerContainer} initial="hidden" animate="show">
-              {history.map((h) => (
+              {filteredHistory.map((h) => (
                 <motion.button key={h.id} variants={staggerItem} className="history-item" onClick={() => { setViewing(h); setTab("cv"); }}>
                   <span className="hi-title" style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
                     <span className="data-row-avatar">{(h.job_title || "A").slice(0, 1).toUpperCase()}</span>
@@ -516,6 +596,9 @@ export default function Dashboard() {
                 </motion.button>
               ))}
             </motion.div>
+            {filteredHistory.length === 0 && (
+              <p className="step-hint" style={{ padding: "16px" }}>No applications match "{q}".</p>
+            )}
           </div>
         )}
       </section>

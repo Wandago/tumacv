@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "../../components/AppSidebar";
-import DonutChart from "../../components/DonutChart";
+import TrendChart from "../../components/TrendChart";
+import OverviewCard from "../../components/OverviewCard";
+import ActivityRail from "../../components/ActivityRail";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 
 export default function Admin() {
@@ -99,6 +101,8 @@ export default function Admin() {
     if (tab === "overview" && referralStats === null) load("referral_stats");
     if (tab === "overview" && industryStats === null) load("industry_stats");
     if (tab === "overview" && pageStats === null) load("page_stats");
+    // Recent signups also feed the overview's right-hand activity rail.
+    if (tab === "overview" && users === null) load("users");
     if (tab === "users" && users === null) load("users");
     if (tab === "jobs" && jobs === null) load("jobs");
     if (tab === "payments" && payments === null) load("payments");
@@ -331,8 +335,53 @@ export default function Admin() {
     { key: "back", label: "Back to app", icon: "back", href: "/dashboard" },
   ];
 
+  const attention = stats?.needsAttention;
+  const railNotices = [];
+  if (attention?.openTickets > 0) {
+    railNotices.push({ label: "open support tickets", count: attention.openTickets, onClick: () => setTab("support") });
+  }
+  if (attention?.pendingPayments > 0) {
+    railNotices.push({ label: "pending payments", count: attention.pendingPayments, tone: "warn", onClick: () => setTab("payments") });
+  }
+  if (attention?.underpaidPayments > 0) {
+    railNotices.push({ label: "underpaid payments", count: attention.underpaidPayments, tone: "warn", onClick: () => setTab("payments") });
+  }
+
+  // Search is always live: typing from a non-searchable tab jumps to Users,
+  // so the box in the top bar is never a dead control.
+  const searchPlaceholder = tab === "jobs" ? "Search jobs by title or company…" : "Search users by email…";
+  function onSearch(value) {
+    setQ(value);
+    if (value && tab !== "users" && tab !== "jobs") setTab("users");
+  }
+
   return (
-    <AppSidebar sectionLabel="ADMIN" items={sidebarItems} bottomItems={sidebarBottom} activeKey={tab}>
+    <AppSidebar
+      sectionLabel="ADMIN"
+      items={sidebarItems}
+      bottomItems={sidebarBottom}
+      activeKey={tab}
+      search={{ value: q, onChange: onSearch, placeholder: searchPlaceholder }}
+      alertCount={railNotices.reduce((a, n) => a + n.count, 0)}
+      rightRail={
+        <ActivityRail
+          notices={railNotices}
+          activityTitle="Newest signups"
+          activity={(users || []).slice(0, 6).map((u) => ({
+            id: u.id,
+            title: u.email || "Unknown",
+            meta: u.industry || "no industry",
+            at: u.created_at,
+          }))}
+          emptyActivity="Signups will show up here."
+          links={[
+            { href: "/dashboard", label: "Back to the app" },
+            { href: "/jobs", label: "Public jobs board" },
+            { href: "/hub", label: "Public Talent Hub" },
+          ]}
+        />
+      }
+    >
       <div className="page-heading">
         <h1>Admin</h1>
         <p>TumaCV usage, revenue, and moderation — everything in one place.</p>
@@ -358,7 +407,7 @@ export default function Admin() {
         ) : (
           <>
             {(stats.needsAttention?.openTickets > 0 || stats.needsAttention?.pendingPayments > 0 || stats.needsAttention?.underpaidPayments > 0) && (
-              <div className="attention-row">
+              <div className="attention-row rail-backed">
                 {stats.needsAttention.openTickets > 0 && (
                   <button className="attention-chip" onClick={() => setTab("support")}>
                     <b>{stats.needsAttention.openTickets}</b> open support ticket{stats.needsAttention.openTickets === 1 ? "" : "s"} →
@@ -377,7 +426,7 @@ export default function Admin() {
               </div>
             )}
 
-            <div className="dash-grid">
+            <div className="dash-grid cols3">
               <div className="dash-card accent">
                 <div className="stat-corner-badge">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9" /></svg>
@@ -386,7 +435,10 @@ export default function Admin() {
               </div>
               <div className="dash-card"><h3>SIGNUPS · 7 DAYS</h3><div className="big-number">{stats.signupsWeek}</div></div>
               <div className="dash-card"><h3>TOTAL APPLICATIONS</h3><div className="big-number">{stats.totalGenerations}</div></div>
-              <div className="dash-card stat"><h3>REVENUE (COMPLETE)</h3><div className="big-number">KES {stats.totalRevenue}</div></div>
+              <div className="dash-card stat">
+                <h3>REVENUE (COMPLETE)</h3>
+                <div className="big-number compact">KES {stats.totalRevenue.toLocaleString()}</div>
+              </div>
               <div className="dash-card"><h3>USERS HIRED</h3><div className="big-number">{stats.hiredCount}</div></div>
               <div className="dash-card"><h3>ACTIVE STREAKS (3+ DAYS)</h3><div className="big-number streak-number">🔥 {stats.activeStreaks}</div></div>
             </div>
@@ -397,22 +449,30 @@ export default function Admin() {
               <TrendChart title="REVENUE (30 DAYS)" series={stats.trends?.revenue} format={(n) => `KES ${n}`} />
             </div>
 
-            <div className="breakdown-grid">
-              <div className="dash-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                <h3 style={{ alignSelf: "flex-start" }}>SIGNUP → PAID</h3>
-                <DonutChart
-                  pct={stats.funnel?.signups ? (stats.funnel.paid / stats.funnel.signups) * 100 : 0}
-                  value={stats.funnel?.signups ? `${Math.round((stats.funnel.paid / stats.funnel.signups) * 100)}%` : "—"}
-                  label="converted"
-                />
-              </div>
-              <FunnelCard funnel={stats.funnel} />
-              <BarCard title="REVENUE BY PLAN" data={stats.planBreakdown} />
+            <div className="dash-grid" style={{ marginTop: 10 }}>
+              <OverviewCard
+                title="USERS BY INDUSTRY"
+                segments={(industryStats || []).slice(0, 5).map((d) => ({ label: d.label, value: d.count }))}
+                centerValue={stats.totalUsers}
+                centerLabel="users"
+                empty="No industries recorded yet."
+                stats={[
+                  { label: "signups · 7d", value: stats.signupsWeek },
+                  { label: "hired", value: stats.hiredCount },
+                  {
+                    label: "signup → paid",
+                    value: stats.funnel?.signups
+                      ? `${Math.round((stats.funnel.paid / stats.funnel.signups) * 100)}%`
+                      : "—",
+                  },
+                ]}
+              />
+              <FunnelCard funnel={stats.funnel} className="span2" />
             </div>
 
             <div className="breakdown-grid">
+              <BarCard title="REVENUE BY PLAN" data={stats.planBreakdown} />
               <BarCard title="WHERE USERS HEARD ABOUT US" data={referralStats} />
-              <BarCard title="USERS BY INDUSTRY" data={industryStats} />
               <BarCard
                 title={`MOST VISITED PAGES ${pageStats ? `(${pageStats.totalViews} views, 30 days)` : ""}`}
                 data={pageStats?.stats}
@@ -424,7 +484,6 @@ export default function Admin() {
 
       {tab === "users" && (
         <>
-          <input type="text" placeholder="Search by email…" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 12 }} />
           {filteredUsers === null ? (
             <div className="loading"><span className="spinner" /> Loading users…</div>
           ) : (
@@ -510,7 +569,6 @@ export default function Admin() {
 
       {tab === "jobs" && (
         <>
-          <input type="text" placeholder="Search by title or company…" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 12 }} />
           {filteredJobs === null ? (
             <div className="loading"><span className="spinner" /> Loading jobs…</div>
           ) : (
@@ -980,46 +1038,10 @@ function BarCard({ title, data }) {
   );
 }
 
-function TrendChart({ title, series, format = (n) => n }) {
-  if (!series) {
-    return (
-      <div className="dash-card trend-card">
-        <h3>{title}</h3>
-        <div className="loading" style={{ padding: "16px 0" }}><span className="spinner" /></div>
-      </div>
-    );
-  }
-  const values = series.map((d) => d.value);
-  const max = Math.max(1, ...values);
-  const w = 100, h = 34;
-  const points = series
-    .map((d, i) => `${(i / Math.max(1, series.length - 1)) * w},${h - (d.value / max) * h}`)
-    .join(" ");
-  const areaPoints = `0,${h} ${points} ${w},${h}`;
-  const total = values.reduce((a, b) => a + b, 0);
-  const fmtDate = (d) => new Date(d).toLocaleDateString("en-KE", { day: "numeric", month: "short" });
-  return (
-    <div className="dash-card trend-card">
-      <div className="trend-head">
-        <h3>{title}</h3>
-        <span className="trend-total">{format(total)}</span>
-      </div>
-      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="trend-svg">
-        <polygon points={areaPoints} className="trend-area" />
-        <polyline points={points} className="trend-line" />
-      </svg>
-      <div className="trend-foot">
-        <span>{series[0] ? fmtDate(series[0].date) : ""}</span>
-        <span>{series[series.length - 1] ? fmtDate(series[series.length - 1].date) : ""}</span>
-      </div>
-    </div>
-  );
-}
-
-function FunnelCard({ funnel }) {
+function FunnelCard({ funnel, className = "" }) {
   if (!funnel) {
     return (
-      <div className="dash-card funnel-card">
+      <div className={`dash-card funnel-card ${className}`}>
         <h3>USER JOURNEY</h3>
         <div className="loading" style={{ padding: "16px 0" }}><span className="spinner" /></div>
       </div>
@@ -1033,7 +1055,7 @@ function FunnelCard({ funnel }) {
   ];
   const max = stages[0].value || 1;
   return (
-    <div className="dash-card funnel-card">
+    <div className={`dash-card funnel-card ${className}`}>
       <h3>USER JOURNEY</h3>
       <div className="funnel-list">
         {stages.map((s) => {
