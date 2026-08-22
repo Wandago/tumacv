@@ -12,7 +12,7 @@ import { getSavedProfile, setSavedProfile, clearLegacySharedDraft, setPendingJob
 import ShareButtons from "../components/ShareButtons";
 import LinkedInGuide from "../components/LinkedInGuide";
 import { isLinkedInUrl, looksLikeBareLinkedInUrl } from "../lib/linkedin";
-import HeroCollage from "../components/HeroCollage";
+import GrowthLine from "../components/GrowthLine";
 import CountUp from "../components/CountUp";
 import { SAMPLE_CV } from "../lib/sampleCv";
 import { motion } from "motion/react";
@@ -320,7 +320,23 @@ export default function Home() {
             <a href="/jobs" className="hero-cta-secondary">Browse the jobs board</a>
           </div>
 
-          <HeroCollage />
+          <GrowthLine />
+
+          <div className="hero-mockup-wrap">
+            <div className="browser-frame">
+              <div className="browser-frame-titlebar">
+                <div className="browser-frame-dots"><span /><span /><span /></div>
+                <div className="browser-frame-url">tumacv.co.ke</div>
+                <div style={{ width: 34 }} />
+              </div>
+              <div className="browser-frame-body">
+                <div className="sheet">
+                  <CvView data={SAMPLE_CV} template="modern" />
+                </div>
+                <div className="browser-frame-fade" />
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="bento-grid">
