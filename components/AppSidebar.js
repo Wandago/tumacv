@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import ThemeToggle from "./ThemeToggle";
 
 // Small stroke-icon set, reused across the Dashboard and Admin sidebars —
 // deliberately generic/minimal rather than a full icon library dependency.
@@ -79,6 +80,16 @@ const Icon = {
       <path d="M19 12H5" /><path d="m12 19-7-7 7-7" />
     </svg>
   ),
+  search: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+    </svg>
+  ),
+  bell: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" />
+    </svg>
+  ),
 };
 
 function ItemRow({ item, active, onSelect }) {
@@ -109,7 +120,16 @@ function ItemRow({ item, active, onSelect }) {
 // page content rendered alongside it. `items` and `bottomItems` accept
 // either { href } (real navigation) or { onClick } (in-page tab switch,
 // used by Admin) entries; `activeKey` marks which one is highlighted.
-export default function AppSidebar({ sectionLabel = "MENU", items, bottomItems, activeKey, children }) {
+export default function AppSidebar({
+  sectionLabel = "MENU",
+  items,
+  bottomItems,
+  activeKey,
+  search,
+  alertCount = 0,
+  rightRail,
+  children,
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const close = () => setMenuOpen(false);
 
@@ -175,7 +195,33 @@ export default function AppSidebar({ sectionLabel = "MENU", items, bottomItems, 
         </nav>
       )}
 
-      <main className="app-main">{children}</main>
+      <div className="app-col">
+        <header className="app-topbar">
+          <div className="app-search">
+            <span className="app-search-icon">{Icon.search}</span>
+            <input
+              type="text"
+              placeholder={search?.placeholder || "Search…"}
+              value={search?.value ?? ""}
+              onChange={(e) => search?.onChange?.(e.target.value)}
+              disabled={!search}
+              aria-label={search?.placeholder || "Search"}
+            />
+          </div>
+          <div className="app-topbar-actions">
+            <span className="app-topbar-bell" title={alertCount ? `${alertCount} need attention` : "Nothing needs attention"}>
+              {Icon.bell}
+              {alertCount > 0 && <span className="app-topbar-dot">{alertCount > 9 ? "9+" : alertCount}</span>}
+            </span>
+            <ThemeToggle />
+          </div>
+        </header>
+
+        <div className="app-body">
+          <main className="app-main">{children}</main>
+          {rightRail && <aside className="app-rail">{rightRail}</aside>}
+        </div>
+      </div>
     </div>
   );
 }
