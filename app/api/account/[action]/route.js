@@ -64,11 +64,19 @@ async function handleApplyReferral(req, user, admin) {
     return Response.json({ error: "You can't refer yourself." }, { status: 400 });
   }
 
-  const { data: profile } = await admin
+  const { data: profile, error: profileErr } = await admin
     .from("profiles")
     .select("referred_by, referral_credited, credits")
     .eq("id", user.id)
     .single();
+  // Separated from "profile missing" on purpose: if the referral columns
+  // don't exist this errors, and reporting that as 404 sent the caller down
+  // the "terminal outcome, stop retrying" path and silently dropped the
+  // referral. A 500 keeps the stored code so it retries once the DB is fixed.
+  if (profileErr) {
+    console.error("apply-referral: could not read profile:", profileErr);
+    return Response.json({ error: "Could not apply the referral right now." }, { status: 500 });
+  }
   if (!profile) return Response.json({ error: "Profile not found." }, { status: 404 });
   if (profile.referred_by || profile.referral_credited) {
     return Response.json({ error: "Referral already applied to this account." }, { status: 409 });
@@ -96,11 +104,19 @@ async function handleApplyReferral(req, user, admin) {
 }
 
 async function handleReferralStats(user, admin) {
-  const { count } = await admin
+  const { count, error } = await admin
     .from("profiles")
     .select("id", { count: "exact", head: true })
     .eq("referred_by", user.id)
     .eq("referral_credited", true);
+  // This query errors outright if the referral columns are missing (i.e.
+  // migration v15 was never run). Swallowing that returned a count of 0,
+  // so a broken referral programme was indistinguishable from an unused
+  // one — the card just said "no referrals yet" forever.
+  if (error) {
+    console.error("referral-stats failed:", error);
+    return Response.json({ error: "Could not read referral stats." }, { status: 500 });
+  }
   return Response.json({ count: count || 0 });
 }
 

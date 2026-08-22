@@ -7,17 +7,21 @@ import ShareButtons from "./ShareButtons";
 
 export default function ReferralCard({ user }) {
   const [count, setCount] = useState(null);
+  const [statsErr, setStatsErr] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data: sess } = await supabaseBrowser().auth.getSession();
-      const res = await fetch("/api/account/referral-stats", {
-        headers: { authorization: `Bearer ${sess?.session?.access_token}` },
-      });
-      if (res.ok) {
+      try {
+        const { data: sess } = await supabaseBrowser().auth.getSession();
+        const res = await fetch("/api/account/referral-stats", {
+          headers: { authorization: `Bearer ${sess?.session?.access_token}` },
+        });
+        if (!res.ok) { setStatsErr(true); return; }
         const data = await res.json();
         setCount(data.count);
+      } catch {
+        setStatsErr(true);
       }
     })();
   }, [user]);
@@ -36,13 +40,17 @@ export default function ReferralCard({ user }) {
         </p>
         <p className="field-note" style={{ wordBreak: "break-all", marginBottom: 10 }}>{link}</p>
         <ShareButtons url={link} message={message} />
-        {count !== null && (
+        {statsErr ? (
+          <p className="field-note" style={{ marginTop: 10 }}>
+            Couldn't load your referral count just now — your link still works.
+          </p>
+        ) : count !== null ? (
           <p className="field-note" style={{ marginTop: 10 }}>
             {count === 0
               ? "No referrals yet — share your link to start earning."
               : `${count} friend${count === 1 ? "" : "s"} joined through your link so far.`}
           </p>
-        )}
+        ) : null}
       </div>
     </section>
   );
