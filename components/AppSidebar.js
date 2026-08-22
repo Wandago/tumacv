@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 
 // Small stroke-icon set, reused across the Dashboard and Admin sidebars —
@@ -80,7 +81,7 @@ const Icon = {
   ),
 };
 
-function ItemRow({ item, active }) {
+function ItemRow({ item, active, onSelect }) {
   const inner = (
     <>
       <span className="app-sidebar-icon">{Icon[item.icon]}</span>
@@ -90,9 +91,17 @@ function ItemRow({ item, active }) {
   );
   const className = `app-sidebar-link ${active ? "on" : ""}`;
   if (item.href) {
-    return <Link href={item.href} className={className}>{inner}</Link>;
+    return <Link href={item.href} className={className} onClick={onSelect}>{inner}</Link>;
   }
-  return <button type="button" className={className} onClick={item.onClick}>{inner}</button>;
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={() => { item.onClick?.(); onSelect?.(); }}
+    >
+      {inner}
+    </button>
+  );
 }
 
 // Shared shell for the Dashboard and Admin — a persistent left sidebar
@@ -101,6 +110,9 @@ function ItemRow({ item, active }) {
 // either { href } (real navigation) or { onClick } (in-page tab switch,
 // used by Admin) entries; `activeKey` marks which one is highlighted.
 export default function AppSidebar({ sectionLabel = "MENU", items, bottomItems, activeKey, children }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const close = () => setMenuOpen(false);
+
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
@@ -129,15 +141,39 @@ export default function AppSidebar({ sectionLabel = "MENU", items, bottomItems, 
         )}
       </aside>
 
-      {/* Mobile: sidebar collapses to a horizontal scrolling pill row above the content. */}
-      <nav className="app-sidebar-mobile">
-        {items.map((item) => (
-          <ItemRow key={item.key} item={item} active={activeKey === item.key} />
-        ))}
-        {bottomItems?.map((item) => (
-          <ItemRow key={item.key} item={item} active={activeKey === item.key} />
-        ))}
-      </nav>
+      {/* Mobile: sidebar collapses to a topbar with a hamburger that opens
+          a full nav panel, matching the site's main Nav component instead
+          of leaving mobile without any obvious way to see all the links. */}
+      <div className="app-topbar-mobile">
+        <Link href="/" className="app-sidebar-logo" style={{ textDecoration: "none", color: "inherit" }} onClick={close}>
+          Tuma<span>CV</span>
+        </Link>
+        <button
+          type="button"
+          className="app-hamburger"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? "✕" : "☰"}
+        </button>
+      </div>
+      {menuOpen && (
+        <nav className="app-sidebar-mobile-panel">
+          <div className="app-sidebar-section-label">{sectionLabel}</div>
+          {items.map((item) => (
+            <ItemRow key={item.key} item={item} active={activeKey === item.key} onSelect={close} />
+          ))}
+          {bottomItems && (
+            <>
+              <div className="app-sidebar-section-label">GENERAL</div>
+              {bottomItems.map((item) => (
+                <ItemRow key={item.key} item={item} active={activeKey === item.key} onSelect={close} />
+              ))}
+            </>
+          )}
+        </nav>
+      )}
 
       <main className="app-main">{children}</main>
     </div>

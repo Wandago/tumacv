@@ -325,33 +325,31 @@ export default function Home() {
 
         <section className="bento-grid">
           {publicStats && publicStats.totalUsers > 0 ? (
-            <div className="bento-cell bento-accent span2">
+            <div className="bento-cell bento-accent">
               <span className="bento-label">Kenyan job seekers</span>
               <span className="bento-value"><CountUp value={publicStats.totalUsers} suffix="+" /></span>
             </div>
           ) : (
-            <div className="bento-cell bento-accent span2">
+            <div className="bento-cell bento-accent">
               <span className="bento-label">Getting started</span>
-              <span className="bento-value">{FREE_SIGNUP_CREDITS} free applications</span>
+              <span className="bento-value">{FREE_SIGNUP_CREDITS} free</span>
             </div>
           )}
           <div className="bento-cell bento-dark">
+            <span className="bento-label">Applications tailored</span>
+            <span className="bento-value">
+              {publicStats && publicStats.totalGenerations > 0
+                ? <CountUp value={publicStats.totalGenerations} suffix="+" />
+                : "Just launched"}
+            </span>
+          </div>
+          <div className="bento-cell bento-plain">
             <span className="bento-label">CV styles</span>
             <span className="bento-value">{TEMPLATES.length}</span>
           </div>
           <div className="bento-cell bento-plain">
             <span className="bento-label">Paste job → ready CV</span>
             <span className="bento-value">~5 min</span>
-          </div>
-          {publicStats && publicStats.totalGenerations > 0 && (
-            <div className="bento-cell bento-plain span2">
-              <span className="bento-label">Applications tailored</span>
-              <span className="bento-value"><CountUp value={publicStats.totalGenerations} suffix="+" /></span>
-            </div>
-          )}
-          <div className="bento-cell bento-accent">
-            <span className="bento-label">Fabricated details</span>
-            <span className="bento-value">Zero</span>
           </div>
         </section>
 
