@@ -18,6 +18,8 @@ function friendly(message) {
     return "Too many attempts for now. Wait a few minutes and try again.";
   if (m.includes("password should be"))
     return "Password needs to be at least 6 characters.";
+  if (m.includes("provider is not enabled") || m.includes("unsupported provider"))
+    return "Google sign-in isn't switched on for this site yet. Use your email and password below, or the sign-in link.";
   if (m.includes("captcha"))
     return "The security check didn't load — this can happen with browser privacy tools like Brave Shields or an ad blocker. Try disabling them for this site, or use a different browser, then try again.";
   return message || "Something went wrong. Try again.";
@@ -60,6 +62,12 @@ function PasswordInput({ id, value, onChange, placeholder, autoComplete, onEnter
     </div>
   );
 }
+
+// Google only appears once it's actually configured in Supabase. Same
+// pattern as NEXT_PUBLIC_TURNSTILE_SITE_KEY: shipping the button before the
+// provider is enabled would give everyone a control that bounces them to an
+// error page, so it stays hidden until this is set to "1".
+const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH === "1";
 
 const GoogleMark = () => (
   <svg viewBox="0 0 18 18" width="17" height="17" aria-hidden="true">
@@ -275,15 +283,17 @@ export default function LoginClient() {
       <div className="auth-card">
         {mode !== "forgot" && (
           <>
-            <button
-              type="button"
-              className="btn-oauth"
-              onClick={signInWithGoogle}
-              disabled={busy || oauthBusy}
-            >
-              <GoogleMark />
-              {oauthBusy ? "Opening Google…" : "Continue with Google"}
-            </button>
+            {GOOGLE_ENABLED && (
+              <button
+                type="button"
+                className="btn-oauth"
+                onClick={signInWithGoogle}
+                disabled={busy || oauthBusy}
+              >
+                <GoogleMark />
+                {oauthBusy ? "Opening Google…" : "Continue with Google"}
+              </button>
+            )}
             {mode !== "magic" && (
               <button
                 type="button"
