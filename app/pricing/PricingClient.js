@@ -92,8 +92,9 @@ export default function PricingClient() {
         <span className="eyebrow">No subscriptions, ever</span>
         <h1>Pay only for the <em>applications</em> you send</h1>
         <p>
-          No subscription, no lock-in. Every plan works out to roughly KES 2 or less per
-          tailored CV and cover letter — start with {FREE_SIGNUP_CREDITS} free the moment you sign up.
+          Top up once and the credits are yours — nothing renews, nothing expires. Every plan
+          works out to roughly KES 2 or less per tailored CV and cover letter, and you start
+          with {FREE_SIGNUP_CREDITS} free the moment you sign up.
         </p>
         {!FREE_MODE && paymentsLive && (
           <p className="price">{FREE_SIGNUP_CREDITS} free to try · then pay as you go</p>

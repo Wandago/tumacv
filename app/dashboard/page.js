@@ -266,7 +266,6 @@ export default function Dashboard() {
 
   const sidebarItems = [
     { key: "dashboard", label: "Dashboard", icon: "grid", href: "/dashboard" },
-    { key: "jobs", label: "Jobs board", icon: "briefcase", href: "/jobs" },
     { key: "hub", label: "Talent Hub", icon: "users", href: "/hub" },
     { key: "news", label: "News", icon: "doc", href: "/news" },
     { key: "pricing", label: "Pricing", icon: "tag", href: "/pricing" },
@@ -328,7 +327,6 @@ export default function Dashboard() {
           emptyActivity="Your applications will show up here."
           links={[
             { href: "/", label: "Generate a new CV" },
-            { href: "/jobs", label: "Browse the jobs board" },
             { href: "/hub", label: "Talent Hub" },
           ]}
         />

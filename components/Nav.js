@@ -7,9 +7,10 @@ import { FREE_MODE } from "../lib/plans";
 import { trackPageView } from "../lib/track";
 import ThemeToggle from "./ThemeToggle";
 
+// The jobs board is hidden for now — the /jobs routes still exist and admins
+// can still moderate postings, but nothing links to it from the public site.
 const EXPLORE_LINKS = [
   { href: "/pricing", label: "Pricing" },
-  { href: "/jobs", label: "Jobs board" },
   { href: "/hub", label: "Talent Hub" },
   { href: "/news", label: "News" },
   { href: "/support", label: "Support" },

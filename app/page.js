@@ -42,6 +42,50 @@ const TEMPLATES = [
   { id: "executive", name: "Executive", desc: "Formal and bold. Senior, leadership roles." },
 ];
 
+// Columns: one generic CV · hiring a CV writer · TumaCV. Kept deliberately
+// even-handed — a good CV writer genuinely beats us on human judgement.
+const COMPARISON = [
+  { label: "Rewritten for the specific job", cells: [false, true, true] },
+  { label: "Ready in", cells: ["—", "2–5 days", "About a minute"] },
+  { label: "Matching cover letter", cells: [false, "Usually extra", true] },
+  { label: "Shows what the job wants that you're missing", cells: [false, false, true] },
+  // Basic works out at KES 2.00/application, Pro at KES 0.71 — so "2 or less".
+  { label: "Typical cost per application", cells: ["Free", "~KES 2,000+", "KES 2 or less"] },
+  { label: "Uses only your real experience", cells: [true, true, true] },
+  { label: "Human judgement on your career story", cells: [false, true, false] },
+];
+
+const FAQS = [
+  {
+    q: "Does it make up experience I don't have?",
+    a: "No. TumaCV only reorders, rewords and re-emphasises what you already gave it. If the job asks for something you haven't done, it tells you it's missing rather than inventing it — that's what the match score is for.",
+  },
+  {
+    q: "Will employers be able to tell I used AI?",
+    a: "There's nothing to tell. The words describe your real jobs and your real results — the same facts you'd have written yourself, arranged to answer this particular posting. You can edit everything before you send it.",
+  },
+  {
+    q: "Why can't it read LinkedIn job links?",
+    a: "LinkedIn blocks automated reading for every outside tool, not just us. Open the posting, copy the description text, and paste it in — it works exactly the same from there.",
+  },
+  {
+    q: "What do I get for free?",
+    a: `${FREE_SIGNUP_CREDITS} full applications when you sign up — CV and cover letter both — with no card required. You only pay if you want more.`,
+  },
+  {
+    q: "How do I pay?",
+    a: "M-Pesa, Airtel Money, or card. Top-ups are one-off — there's no subscription and nothing renews on you.",
+  },
+  {
+    q: "Who can see my CV?",
+    a: "Only you. Your applications are private to your account. Nothing is shared publicly unless you deliberately opt in to the Talent Hub.",
+  },
+  {
+    q: "What can I download?",
+    a: "PDF for anything you're emailing or uploading, and .docx if you want to keep editing in Word. Both keep the template's formatting.",
+  },
+];
+
 export default function Home() {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -317,7 +361,7 @@ export default function Home() {
 
           <div className="hero-cta-row">
             <a href="/login?mode=signup" className="hero-cta-primary">Try it free</a>
-            <a href="/jobs" className="hero-cta-secondary">Browse the jobs board</a>
+            <a href="#example" className="hero-cta-secondary">See a real CV</a>
           </div>
 
           <GrowthLine />
@@ -394,8 +438,8 @@ export default function Home() {
             <span className="feature-no">01</span>
             <h3>Paste a job</h3>
             <p>
-              A link from BrighterMonday, Fuzu, MyJobMag, a company careers page, or just the
-              description text — or pick one from our <a href="/jobs">jobs board</a>.
+              A link from BrighterMonday, Fuzu, MyJobMag, a company careers page — or just
+              paste the description text straight in. Any posting, any board.
             </p>
           </div>
 
@@ -432,6 +476,7 @@ export default function Home() {
         </motion.section>
 
         <motion.section
+          id="example"
           className="example-showcase"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -452,22 +497,91 @@ export default function Home() {
           </div>
         </motion.section>
 
-        <div style={{ textAlign: "center", padding: "22px 0 40px" }}>
-          <motion.a
-            href="/login?mode=signup"
-            className="btn-pill"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ duration: 0.15 }}
-          >
-            Generate CV — create your free account
-            <span className="btn-pill-icon"><IconArrow /></span>
-          </motion.a>
-          <p className="field-note" style={{ marginTop: 12 }}>
-            5 free applications, no card required. Already have an account?{" "}
-            <a href="/login" style={{ color: "var(--kijani-dark)" }}>Sign in</a>.
-          </p>
-        </div>
+        <section className="section-head">
+          <span className="eyebrow">The honest comparison</span>
+          <h2>Three ways to send a CV</h2>
+          <p>What you actually get for your time and money.</p>
+        </section>
+
+        <motion.section
+          className="compare-wrap"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5 }}
+        >
+          <table className="compare-table">
+            <thead>
+              <tr>
+                <th scope="col"><span className="sr-only">What you get</span></th>
+                <th scope="col">One CV for everything</th>
+                <th scope="col">Hiring a CV writer</th>
+                <th scope="col" className="compare-mine">TumaCV</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON.map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  {row.cells.map((cell, i) => (
+                    <td key={i} className={i === 2 ? "compare-mine" : ""}>
+                      {cell === true && <span className="compare-yes" aria-label="Yes">✓</span>}
+                      {cell === false && <span className="compare-no" aria-label="No">—</span>}
+                      {typeof cell === "string" && cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </motion.section>
+
+        <section className="section-head">
+          <span className="eyebrow">Before you start</span>
+          <h2>Questions people actually ask</h2>
+        </section>
+
+        <motion.section
+          className="faq-list"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5 }}
+        >
+          {FAQS.map((f) => (
+            <details className="faq-item" key={f.q}>
+              <summary>
+                <span>{f.q}</span>
+                <span className="faq-marker" aria-hidden="true" />
+              </summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </motion.section>
+
+        <section className="closing-band">
+          <span className="closing-wordmark" aria-hidden="true">TumaCV</span>
+          <div className="closing-inner">
+            <h2>Your next application deserves better than a copy-paste.</h2>
+            <p>
+              Tailor it to the job in about a minute — {FREE_SIGNUP_CREDITS} free applications
+              when you sign up, no card required.
+            </p>
+            <motion.a
+              href="/login?mode=signup"
+              className="btn-pill"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.15 }}
+            >
+              Start free
+              <span className="btn-pill-icon"><IconArrow /></span>
+            </motion.a>
+            <p className="closing-note">
+              Already have an account? <a href="/login">Sign in</a>.
+            </p>
+          </div>
+        </section>
       </main>
     );
   }
@@ -562,8 +676,7 @@ export default function Home() {
         <p className="step-hint">
           Paste a link from BrighterMonday, Fuzu, MyJobMag or a company careers page — or paste the
           description itself. LinkedIn job links can't be read automatically (LinkedIn blocks this
-          for all outside tools) — copy the description text from the listing instead. You can also
-          pick a job straight from our <a href="/jobs">jobs board</a>.
+          for every outside tool), so copy the description text from the listing instead.
         </p>
         <div className="url-row">
           <input
