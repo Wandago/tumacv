@@ -56,7 +56,7 @@ components/InAppMarketingBanner.js  Dashboard "what's new" banner
 components/MyServices.js         Dashboard: manage your own Talent Hub service listings
 lib/serviceCategories.js         Categories for Talent Hub services
 supabase-schema.sql              Fresh-install schema (final state)
-supabase-migration-v4..v18.sql   Incremental migrations, run in order on an existing DB
+supabase-migration-v4..v19.sql   Incremental migrations, run in order on an existing DB
 ```
 
 ## A note on Vercel's Hobby plan limits

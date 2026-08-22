@@ -1,4 +1,4 @@
-import { requireUser, supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { requireUser, supabaseAdmin, addCredits } from "../../../../lib/supabaseAdmin";
 import { PLANS } from "../../../../lib/plans";
 import { runMarketingCron } from "../../../../lib/marketingEngine";
 import { CHANNEL_STATUS, CHANNEL_LABELS, UNSUPPORTED_REASON } from "../../../../lib/marketingChannels";
@@ -382,12 +382,11 @@ async function handleAction(req, admin) {
 
   if (body.action === "adjust_credits") {
     const { userId, delta } = body;
-    const { data: profile, error: pErr } = await admin.from("profiles").select("credits").eq("id", userId).single();
-    if (pErr || !profile) return Response.json({ error: "User not found." }, { status: 404 });
-    const newCredits = Math.max(0, profile.credits + Number(delta));
-    const { error } = await admin.from("profiles").update({ credits: newCredits }).eq("id", userId);
+    // The RPC floors the balance at 0, so a -5 against a balance of 2 lands
+    // on 0 rather than going negative, same as the old Math.max did.
+    const { credits, error } = await addCredits(admin, userId, Number(delta));
     if (error) return Response.json({ error: error.message }, { status: 500 });
-    return Response.json({ ok: true, credits: newCredits });
+    return Response.json({ ok: true, credits });
   }
 
   if (body.action === "reset_link") {
@@ -447,7 +446,7 @@ async function handleAction(req, admin) {
     const plan = PLANS[payment.plan_id];
     if (!plan) return Response.json({ error: "Unknown plan on this payment." }, { status: 400 });
 
-    const { data: profile } = await admin.from("profiles").select("credits, plan, plan_expires").eq("id", payment.user_id).single();
+    const { data: profile } = await admin.from("profiles").select("plan, plan_expires").eq("id", payment.user_id).single();
     if (!profile) return Response.json({ error: "User not found." }, { status: 404 });
 
     if (plan.unlimitedDays) {
@@ -456,7 +455,11 @@ async function handleAction(req, admin) {
       const expires = new Date(from.getTime() + plan.unlimitedDays * 24 * 60 * 60 * 1000);
       await admin.from("profiles").update({ plan: "unlimited", plan_expires: expires.toISOString() }).eq("id", payment.user_id);
     } else {
-      await admin.from("profiles").update({ credits: profile.credits + plan.credits }).eq("id", payment.user_id);
+      const { error: creditErr } = await addCredits(admin, payment.user_id, plan.credits);
+      if (creditErr) {
+        console.error("resolve_payment: could not add credits:", creditErr);
+        return Response.json({ error: "Could not add the credits — payment left unresolved." }, { status: 500 });
+      }
     }
     await admin.from("payments").update({ status: "complete", provider_ref: "admin-resolved" }).eq("id", paymentId);
     return Response.json({ ok: true });
