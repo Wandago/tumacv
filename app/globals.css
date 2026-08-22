@@ -909,6 +909,27 @@ button:focus-visible, .btn-primary:focus-visible, .btn-ghost:focus-visible { out
   background: linear-gradient(90deg, var(--kijani), var(--moto));
 }
 .auth-card h1 { font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: -0.025em; }
+
+/* Passwordless options, above the email/password form. */
+.btn-oauth {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 11px 16px; margin-bottom: 8px;
+  border: 1px solid var(--stone); border-radius: 12px; background: var(--sheet);
+  color: var(--ink); font-size: 14.5px; font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+@media (hover: hover) { .btn-oauth:hover:not(:disabled) { background: var(--surface-2); border-color: var(--soil); } }
+.btn-oauth:disabled { opacity: 0.55; }
+.btn-oauth svg { flex-shrink: 0; }
+.oauth-terms { font-size: 11.5px; color: var(--soil); text-align: center; margin: 10px 0 0; line-height: 1.5; }
+.oauth-terms a { color: var(--kijani-dark); }
+.auth-divider {
+  display: flex; align-items: center; gap: 12px; margin: 18px 0 4px;
+  font-size: 11.5px; color: var(--soil);
+}
+.auth-divider::before, .auth-divider::after {
+  content: ""; flex: 1; height: 1px; background: var(--stone);
+}
 .step-indicator {
   font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--kijani-dark); margin-bottom: 6px;
