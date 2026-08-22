@@ -5,7 +5,9 @@ import AppSidebar from "../../components/AppSidebar";
 import CvView from "../../components/CvView";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { PLANS, FREE_MODE, MPESA_ENABLED, PADDLE_ENABLED, DARAJA_ENABLED, FREE_SIGNUP_CREDITS, toUsd } from "../../lib/plans";
-import { earnedBadges, nextBadge, BADGES } from "../../lib/gamification";
+import {
+  earnedBadges, nextBadge, badgeRemaining, isEarned, gamificationStats, streakState, BADGES,
+} from "../../lib/gamification";
 import { clearLegacySharedDraft } from "../../lib/storage";
 import { generateCvDocx, downloadBlob } from "../../lib/generateDocx";
 import { openPaddleCheckout, paddlePriceIdFor } from "../../lib/paddle";
@@ -249,17 +251,31 @@ export default function Dashboard() {
     };
   });
 
+  const gStats = gamificationStats(history, profile);
+  const streak = streakState(profile);
+  const upcoming = nextBadge(gStats);
+
   const railNotices = [];
   if (!FREE_MODE && !unlimited && profile?.credits === 0) {
     railNotices.push({ label: "Out of credits — top up", count: 0, tone: "warn", onClick: () => router.push("/pricing") });
   }
+  // Streaks only break silently otherwise — the stored count isn't cleared
+  // until the next generation, so warn on the last day it can still be saved.
+  if (streak.status === "at-risk") {
+    railNotices.push({
+      label: `${streak.streak}-day streak ends tonight — generate today to keep it`,
+      count: "🔥",
+      tone: "warn",
+      onClick: () => router.push("/"),
+    });
+  }
   if (profile && !profile.industry) {
     railNotices.push({ label: "Add your industry for daily tips", count: "!", onClick: () => router.push("/onboarding") });
   }
-  if (nextBadge(history.length)) {
+  if (upcoming) {
     railNotices.push({
-      label: `${nextBadge(history.length).threshold - history.length} more to "${nextBadge(history.length).label}"`,
-      count: nextBadge(history.length).emoji,
+      label: `${badgeRemaining(upcoming, gStats)} to "${upcoming.label}"`,
+      count: upcoming.emoji,
       onClick: () => router.push("/"),
     });
   }
@@ -381,9 +397,18 @@ export default function Dashboard() {
         <div className="dash-card stat">
           <h3>STREAK</h3>
           <div className="big-number streak-number">
-            {profile?.streak_count > 0 ? <>🔥 <CountUp value={profile.streak_count} /></> : "—"}
+            {streak.streak > 0 ? <>🔥 <CountUp value={streak.streak} /></> : "—"}
           </div>
-          <p>{profile?.streak_count > 0 ? `day${profile.streak_count === 1 ? "" : "s"} in a row` : "Start a streak today"}</p>
+          <p>
+            {streak.status === "at-risk"
+              ? `day${streak.streak === 1 ? "" : "s"} in a row — ends tonight`
+              : streak.status === "safe"
+              ? `day${streak.streak === 1 ? "" : "s"} in a row`
+              : streak.status === "lapsed"
+              ? `${streak.lost}-day streak ended — start a new one`
+              : "Start a streak today"}
+            {gStats.longestStreak > 0 && <> · best {gStats.longestStreak}</>}
+          </p>
         </div>
 
         <div className="dash-card">
@@ -408,8 +433,15 @@ export default function Dashboard() {
           empty="Generate your first CV and this fills in."
           stats={[
             { label: "this week", value: weekCount },
-            { label: "templates used", value: templateSegments.length },
-            { label: "day streak", value: profile?.streak_count || 0 },
+            // Match score is what the quality badges are judged on, so it has
+            // to be visible somewhere the user actually looks.
+            ...(gStats.averageScore !== null
+              ? [
+                  { label: "avg match", value: `${gStats.averageScore}%` },
+                  { label: "best match", value: `${gStats.bestScore}%` },
+                ]
+              : [{ label: "templates used", value: templateSegments.length }]),
+            { label: "day streak", value: streak.streak },
           ]}
         />
         <TrendChart title="ACTIVITY (30 DAYS)" series={activitySeries} className="span2" />
@@ -531,27 +563,24 @@ export default function Dashboard() {
         <div style={{ display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
           <div className="dash-card" style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <DonutChart
-              pct={(earnedBadges(history.length).length / BADGES.length) * 100}
-              value={`${earnedBadges(history.length).length}/${BADGES.length}`}
+              pct={(earnedBadges(gStats).length / BADGES.length) * 100}
+              value={`${earnedBadges(gStats).length}/${BADGES.length}`}
               label="earned"
             />
           </div>
           <motion.div className="badge-grid" style={{ flex: 1, minWidth: 260 }} variants={staggerContainer} initial="hidden" animate="show">
-            {BADGES.map((b) => {
-              const on = history.length >= b.threshold;
-              return (
-                <motion.div key={b.id} variants={staggerItem} className={`badge-item ${on ? "on" : ""}`}>
-                  <span className="badge-emoji">{b.emoji}</span>
-                  <span className="badge-label">{b.label}</span>
-                  <span className="badge-threshold">{b.threshold} application{b.threshold === 1 ? "" : "s"}</span>
-                </motion.div>
-              );
-            })}
+            {BADGES.map((b) => (
+              <motion.div key={b.id} variants={staggerItem} className={`badge-item ${isEarned(b, gStats) ? "on" : ""}`}>
+                <span className="badge-emoji">{b.emoji}</span>
+                <span className="badge-label">{b.label}</span>
+                <span className="badge-threshold">{b.hint}</span>
+              </motion.div>
+            ))}
           </motion.div>
         </div>
-        {nextBadge(history.length) && (
+        {upcoming && (
           <p className="field-note">
-            {nextBadge(history.length).threshold - history.length} more to unlock "{nextBadge(history.length).label}" {nextBadge(history.length).emoji}
+            {badgeRemaining(upcoming, gStats)} to unlock "{upcoming.label}" {upcoming.emoji}
           </p>
         )}
       </section>
