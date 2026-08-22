@@ -4,6 +4,7 @@ import Nav from "../components/Nav";
 import CvView from "../components/CvView";
 import { supabaseBrowser } from "../lib/supabaseClient";
 import { FREE_MODE, FREE_SIGNUP_CREDITS } from "../lib/plans";
+import { matchScore } from "../lib/gamification";
 import { extractPdfText } from "../lib/pdfText";
 import { generateCvDocx, downloadBlob } from "../lib/generateDocx";
 import CreditsModal from "../components/CreditsModal";
@@ -294,15 +295,6 @@ export default function Home() {
     }
   }
 
-  function matchScore(fit) {
-    if (!fit) return null;
-    const matched = (fit.matched || []).length;
-    const missing = (fit.missing || []).length;
-    const total = matched + missing;
-    if (total === 0) return null;
-    return Math.round((matched / total) * 100);
-  }
-
   // Starts a fresh application: clears the job details but keeps the saved
   // profile and template choice, since that's the part people don't want to
   // re-enter every time they apply to a new posting.
@@ -356,7 +348,7 @@ export default function Home() {
           <span className="hero-glass-hint">
             {FREE_MODE
               ? "Free during beta — create an account and generate as many as you like"
-              : "5 free applications when you sign up — no card required"}
+              : `${FREE_SIGNUP_CREDITS} free applications when you sign up — no card required`}
           </span>
 
           <div className="hero-cta-row">
@@ -627,7 +619,11 @@ export default function Home() {
               {(result.fit.missing || []).map((k) => <span className="chip miss" key={k}>{k}</span>)}
             </div>
             {(result.fit.missing || []).length > 0 && (
-              <p>Red items are asked for in the job but missing from your profile — address them in the interview, or add them to your profile if you have them.</p>
+              <p>
+                Red items are asked for in the job but aren't in your profile. If you do have
+                them, add them and generate again. If you don't, prepare an answer for the
+                interview — nothing here was invented to cover the gap.
+              </p>
             )}
           </div>
         )}
