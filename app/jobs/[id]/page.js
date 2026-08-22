@@ -13,7 +13,8 @@ async function getJob(id) {
 }
 
 export async function generateMetadata({ params }) {
-  const job = await getJob(params.id);
+  const { id } = await params;
+  const job = await getJob(id);
   if (!job) return { title: "Job not found — TumaCV" };
   const description = `${job.title} at ${job.company}${job.location ? `, ${job.location}` : ""}. ${job.description?.slice(0, 120)}…`;
   return {
@@ -24,7 +25,8 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function JobPage({ params }) {
-  const job = await getJob(params.id);
+  const { id } = await params;
+  const job = await getJob(id);
 
   if (!job) {
     return (
