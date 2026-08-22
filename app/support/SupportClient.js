@@ -135,9 +135,9 @@ export default function SupportClient() {
       <main className="shell">
         <Nav />
         <section className="hero hero-band">
-          <span className="eyebrow">We're here to help</span>
+          <span className="eyebrow">A real person replies</span>
           <h1>Help & feedback</h1>
-          <p>Hit a bug, have an idea, or just want to tell us something? We read every message.</p>
+          <p>Hit a bug, stuck on a payment, or have an idea? We read every message and reply to all of them.</p>
         </section>
         <div className="step">
           {selected?.justSentAnon ? (

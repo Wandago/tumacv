@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Nav from "../../components/Nav";
 import Turnstile from "../../components/Turnstile";
 import { supabaseBrowser } from "../../lib/supabaseClient";
+import { FREE_SIGNUP_CREDITS } from "../../lib/plans";
 
 function friendly(message) {
   const m = (message || "").toLowerCase();
@@ -182,9 +183,10 @@ export default function LoginClient() {
           {mode === "forgot" && "Reset your password"}
         </h1>
         <p className="step-hint">
-          {mode === "signin" && "Sign in to your applications, credits and history."}
-          {mode === "signup" && "New accounts start with 5 free applications."}
-          {mode === "forgot" && "We'll email you a link to set a new password."}
+          {mode === "signin" && "Your applications, credits and history are where you left them."}
+          {mode === "signup" &&
+            `${FREE_SIGNUP_CREDITS} free applications to start — no card, no subscription.`}
+          {mode === "forgot" && "Enter your email and we'll send you a link to set a new password."}
         </p>
       </section>
 
@@ -277,7 +279,7 @@ export default function LoginClient() {
             : mode === "signin"
             ? "Sign in"
             : mode === "signup"
-            ? "Create account — 5 free applications"
+            ? `Create account — ${FREE_SIGNUP_CREDITS} free applications`
             : "Send reset link"}
         </button>
 

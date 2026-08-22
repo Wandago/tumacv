@@ -199,7 +199,7 @@ export default function Onboarding() {
         <p className="step-hint">
           {isEditing
             ? "Update this any time — new job, new skills, new CV. Every generated application uses what's saved here."
-            : "Optional, but it helps every generated CV sound right for your field from the start. Takes about a minute."}
+            : "Optional, and about a minute. It's what lets the first CV you generate already sound like your field instead of generic."}
         </p>
       </section>
 
