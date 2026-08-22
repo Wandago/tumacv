@@ -60,9 +60,8 @@ export default function HubClient() {
         <span className="eyebrow">Open to work</span>
         <h1>Talent Hub</h1>
         <p>
-          Kenyan job seekers who've opted in to be discovered — browse people by industry, or
-          browse specific services they offer. Come back here after posting a job on the{" "}
-          <a href="/jobs">jobs board</a>.
+          Kenyan professionals who've chosen to be found — browse by industry, or by the
+          specific services they offer. Every profile is written by the person behind it.
         </p>
       </section>
 

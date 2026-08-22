@@ -350,6 +350,99 @@ header.top {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 
+/* ---------- comparison table ---------- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+/* Narrow screens scroll the table sideways rather than crushing the columns. */
+.compare-wrap { overflow-x: auto; margin: 0 0 8px; -webkit-overflow-scrolling: touch; }
+.compare-table {
+  width: 100%; min-width: 620px; border-collapse: separate; border-spacing: 0;
+  background: var(--sheet); border: 1px solid var(--stone); border-radius: 18px;
+  overflow: hidden; box-shadow: var(--shadow-1); font-size: 13.5px;
+}
+.compare-table th, .compare-table td {
+  padding: 13px 16px; text-align: center; border-bottom: 1px solid var(--stone);
+}
+.compare-table tbody tr:last-child th, .compare-table tbody tr:last-child td { border-bottom: none; }
+.compare-table thead th {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--soil); font-weight: 600; background: var(--surface-2); vertical-align: bottom;
+}
+.compare-table tbody th {
+  text-align: left; font-weight: 600; color: var(--ink); min-width: 210px;
+}
+.compare-table td { color: var(--soil); }
+/* The TumaCV column is tinted end-to-end so the eye tracks it down the table. */
+.compare-table .compare-mine {
+  background: color-mix(in srgb, var(--kijani) 8%, var(--sheet));
+  color: var(--ink); font-weight: 600;
+}
+.compare-table thead .compare-mine {
+  background: color-mix(in srgb, var(--kijani) 16%, var(--surface-2));
+  color: var(--kijani-dark);
+}
+.compare-yes { color: var(--kijani-dark); font-weight: 700; font-size: 15px; }
+.compare-no { color: var(--soil); opacity: 0.55; }
+
+/* ---------- FAQ ---------- */
+.faq-list { display: flex; flex-direction: column; gap: 8px; margin: 0 0 8px; }
+.faq-item {
+  background: var(--sheet); border: 1px solid var(--stone); border-radius: 14px;
+  box-shadow: var(--shadow-1); overflow: hidden;
+}
+.faq-item summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 15px 18px; cursor: pointer; font-weight: 600; font-size: 14.5px; color: var(--ink);
+  list-style: none;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+@media (hover: hover) { .faq-item summary:hover { background: var(--surface-2); } }
+/* Plus sign drawn from two bars so it can rotate into a minus when open. */
+.faq-marker { position: relative; width: 14px; height: 14px; flex-shrink: 0; }
+.faq-marker::before, .faq-marker::after {
+  content: ""; position: absolute; background: var(--kijani-dark); border-radius: 2px;
+  transition: transform 0.2s var(--ease);
+}
+.faq-marker::before { top: 6px; left: 0; width: 14px; height: 2px; }
+.faq-marker::after { left: 6px; top: 0; width: 2px; height: 14px; }
+.faq-item[open] .faq-marker::after { transform: scaleY(0); }
+.faq-item[open] summary { border-bottom: 1px solid var(--stone); }
+.faq-item p { padding: 14px 18px 17px; color: var(--soil); font-size: 14px; line-height: 1.6; }
+
+/* ---------- closing band ---------- */
+.closing-band {
+  position: relative; overflow: hidden; text-align: center;
+  margin: 60px 0 0; padding: 62px 24px 70px; border-radius: 26px;
+  background: linear-gradient(150deg, var(--kijani), var(--kijani-dark));
+}
+/* Oversized wordmark bleeding off the bottom edge, as a watermark. */
+.closing-wordmark {
+  position: absolute; left: 50%; bottom: -0.34em; transform: translateX(-50%);
+  font-family: var(--display); font-weight: 800; letter-spacing: -0.04em;
+  font-size: clamp(46px, 10.5vw, 142px); line-height: 1;
+  color: rgba(255,255,255,0.1); pointer-events: none; user-select: none; white-space: nowrap;
+}
+.closing-inner { position: relative; }
+.closing-band h2 {
+  font-family: var(--display); font-weight: 800; letter-spacing: -0.025em;
+  font-size: clamp(25px, 4.1vw, 40px); line-height: 1.12; color: #fff;
+  max-width: 20ch; margin: 0 auto;
+}
+.closing-band > .closing-inner > p {
+  color: rgba(255,255,255,0.88); font-size: 15px; line-height: 1.6;
+  max-width: 48ch; margin: 14px auto 24px;
+}
+/* Fixed-style band: the pill sits on green in both themes, so it can't use
+   the theme-relative gradient it has elsewhere. */
+.closing-band .btn-pill {
+  background: #fff; color: var(--kijani-dark); box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+}
+.closing-band .btn-pill-icon { background: color-mix(in srgb, var(--kijani) 18%, transparent); }
+.closing-note { color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 14px; }
+.closing-note a { color: #fff; text-decoration: underline; }
+
 /* ---------- feature triptych: three product cards below the hero ---------- */
 .feature-triptych {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;

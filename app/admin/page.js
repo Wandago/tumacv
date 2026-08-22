@@ -376,7 +376,6 @@ export default function Admin() {
           emptyActivity="Signups will show up here."
           links={[
             { href: "/dashboard", label: "Back to the app" },
-            { href: "/jobs", label: "Public jobs board" },
             { href: "/hub", label: "Public Talent Hub" },
           ]}
         />
