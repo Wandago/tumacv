@@ -243,6 +243,77 @@ export default function Home() {
     setGenErr("");
     setNeedCredits(false);
     if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+    setLoading(true);
+    setResult(null);
+    try {
+      const { data: sess } = await supabaseBrowser().auth.getSession();
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${sess?.session?.access_token}`,
+        },
+        body: JSON.stringify({ jobText, profileText, template }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.code === "credits") setNeedCredits(true);
+        else if (data.code === "auth") window.location.href = "/login";
+        else setGenErr(data.error || "Generation failed. Try again.");
+      } else {
+        setResult(data);
+        setTab("cv");
+        window.scrollTo({ top: 0 });
+      }
+    } catch {
+      setGenErr("Network error. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function copyLetter() {
+    await navigator.clipboard.writeText(result.coverLetter);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  async function downloadDocx() {
+    if (!result?.cv) return;
+    setDocxBusy(true);
+    try {
+      const blob = await generateCvDocx(result.cv);
+      const safeName = (result.cv.name || "CV").replace(/[^a-z0-9]+/gi, "_");
+      downloadBlob(blob, `${safeName}_CV.docx`);
+    } catch (e) {
+      console.error(e);
+      setGenErr("Could not create the Word file. Try again, or use Save as PDF instead.");
+    } finally {
+      setDocxBusy(false);
+    }
+  }
+
+  // Starts a fresh application: clears the job details but keeps the saved
+  // profile and template choice, since that's the part people don't want to
+  // re-enter every time they apply to a new posting.
+  function newApplication() {
+    setResult(null);
+    setJobText("");
+    setJobUrl("");
+    setFetchErr("");
+    setGenErr("");
+    setNeedCredits(false);
+    window.scrollTo({ top: 0 });
+  }
+
+  const ready = jobText.trim().length >= 80 && profileText.trim().length >= 80;
+
+  if (!authChecked) return null;
+
+  if (!user) {
     return (
       <main className="shell landing-shell">
         <Nav />
