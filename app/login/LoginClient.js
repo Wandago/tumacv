@@ -117,25 +117,6 @@ export default function LoginClient() {
     }
   }, []);
 
-  // Auto-fill remembered email when in signin mode
-  useEffect(() => {
-    if (mode === "signin") {
-      const rememberedEmail = localStorage.getItem("tumacv_user_email");
-      if (rememberedEmail) {
-        setEmail(rememberedEmail);
-      }
-    }
-  }, [mode]);
-
-  // Save remember me preference and email
-  useEffect(() => {
-    localStorage.setItem("tumacv_remember_me", rememberMe);
-    if (rememberMe && email) {
-      localStorage.setItem("tumacv_user_email", email);
-    } else if (!rememberMe) {
-      localStorage.removeItem("tumacv_user_email");
-    }
-  }, [rememberMe, email]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -149,6 +130,26 @@ export default function LoginClient() {
   const [captchaToken, setCaptchaToken] = useState("");
   const [oauthBusy, setOauthBusy] = useState(false);
   const turnstileRef = useRef(null);
+
+  // These two must stay below the state above: a dependency array is evaluated
+  // during render, so listing `email` before its useState ran put it in the
+  // temporal dead zone and threw "Cannot access 'email' before initialization"
+  // on every render — the login form rendered nothing at all.
+  useEffect(() => {
+    if (mode === "signin") {
+      const rememberedEmail = localStorage.getItem("tumacv_user_email");
+      if (rememberedEmail) setEmail(rememberedEmail);
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    localStorage.setItem("tumacv_remember_me", rememberMe);
+    if (rememberMe && email) {
+      localStorage.setItem("tumacv_user_email", email);
+    } else if (!rememberMe) {
+      localStorage.removeItem("tumacv_user_email");
+    }
+  }, [rememberMe, email]);
   const routedRef = useRef(false);
 
   // A profile row is created by a database trigger, so it can lag a brand-new
