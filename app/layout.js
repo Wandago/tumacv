@@ -20,7 +20,12 @@ const themeInit = `
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    // themeInit deliberately sets data-theme on <html> before React hydrates,
+    // so server markup and client tree never match on that attribute. React 19
+    // treats that as an error rather than a warning, so opt this one element
+    // out — the mismatch is intended, and is what stops the page flashing the
+    // wrong theme on load.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="light dark" />
         <meta name="theme-color" content="#0b7a3b" />
