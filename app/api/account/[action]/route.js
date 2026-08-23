@@ -1,4 +1,4 @@
-import { requireUser } from "../../../../lib/supabaseAdmin";
+import { requireUser, addCredits } from "../../../../lib/supabaseAdmin";
 import { REFERRAL_CREDITS } from "../../../../lib/plans";
 
 export const maxDuration = 20;
@@ -48,7 +48,11 @@ async function handleRedeemCode(req, user, admin) {
     return Response.json({ error: "You've already used this code." }, { status: 409 });
   }
 
-  await admin.from("profiles").update({ credits: (profile?.credits || 0) + promo.credits }).eq("id", user.id);
+  const { error: creditErr } = await addCredits(admin, user.id, promo.credits);
+  if (creditErr) {
+    console.error("redeem-code: redemption recorded but crediting failed:", creditErr);
+    return Response.json({ error: "Code accepted, but credits could not be added." }, { status: 500 });
+  }
   await admin.from("promo_codes").update({ redemptions_count: promo.redemptions_count + 1 }).eq("id", promo.id);
 
   return Response.json({ ok: true, credits: promo.credits });
@@ -82,14 +86,17 @@ async function handleApplyReferral(req, user, admin) {
     return Response.json({ error: "Referral already applied to this account." }, { status: 409 });
   }
 
-  const { data: referrer } = await admin.from("profiles").select("id, credits").eq("id", referrerId).single();
+  const { data: referrer } = await admin.from("profiles").select("id").eq("id", referrerId).single();
   if (!referrer) return Response.json({ error: "That referral link isn't valid." }, { status: 404 });
 
-  // Claim atomically: only succeeds if referred_by is still unset, so a race
-  // between duplicate requests can't double-credit this account.
+  // Claim first, and claim only. The referred_by guard means exactly one
+  // request can win, so the credit grants below happen at most once — but
+  // the claim deliberately no longer writes a credits value of its own,
+  // because an absolute write computed from an earlier read would clobber
+  // any other grant (a payment, a promo code) that landed in between.
   const { data: claimed, error: claimErr } = await admin
     .from("profiles")
-    .update({ referred_by: referrerId, referral_credited: true, credits: profile.credits + REFERRAL_CREDITS })
+    .update({ referred_by: referrerId, referral_credited: true })
     .eq("id", user.id)
     .is("referred_by", null)
     .select("id")
@@ -98,7 +105,14 @@ async function handleApplyReferral(req, user, admin) {
     return Response.json({ error: "Referral already applied to this account." }, { status: 409 });
   }
 
-  await admin.from("profiles").update({ credits: referrer.credits + REFERRAL_CREDITS }).eq("id", referrerId);
+  const { error: inviteeErr } = await addCredits(admin, user.id, REFERRAL_CREDITS);
+  const { error: referrerErr } = await addCredits(admin, referrerId, REFERRAL_CREDITS);
+  if (inviteeErr || referrerErr) {
+    // The claim already succeeded, so this can't be retried into a double
+    // credit — surface it loudly instead of reporting a silent success.
+    console.error("apply-referral: claim succeeded but crediting failed:", inviteeErr || referrerErr);
+    return Response.json({ error: "Referral recorded, but credits could not be added." }, { status: 500 });
+  }
 
   return Response.json({ ok: true, credits: REFERRAL_CREDITS });
 }

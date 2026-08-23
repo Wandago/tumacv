@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { supabaseAdmin, addCredits } from "../../../../lib/supabaseAdmin";
 import { PLANS } from "../../../../lib/plans";
 
 export const maxDuration = 20;
@@ -10,7 +10,7 @@ export const maxDuration = 20;
 // live at their original URLs (each provider's callback config needs no
 // changes), just dispatched from one function based on [provider].
 
-async function creditPlan(admin, { userId, planId, currentPlan, currentPlanExpires, currentCredits }) {
+async function creditPlan(admin, { userId, planId, currentPlan, currentPlanExpires }) {
   const plan = PLANS[planId];
   if (!plan) return null;
   if (plan.unlimitedDays) {
@@ -21,7 +21,13 @@ async function creditPlan(admin, { userId, planId, currentPlan, currentPlanExpir
     const expires = new Date(from.getTime() + plan.unlimitedDays * 24 * 60 * 60 * 1000);
     await admin.from("profiles").update({ plan: "unlimited", plan_expires: expires.toISOString() }).eq("id", userId);
   } else {
-    await admin.from("profiles").update({ credits: currentCredits + plan.credits }).eq("id", userId);
+    // Atomic: providers retry webhooks, so two deliveries for different
+    // payments can overlap and an absolute write would drop one top-up.
+    const { error } = await addCredits(admin, userId, plan.credits);
+    if (error) {
+      console.error("creditPlan: could not add credits:", error);
+      throw error;
+    }
   }
   return plan;
 }
@@ -49,7 +55,7 @@ async function handleDarajaCallback(req) {
       return Response.json({ ok: true });
     }
 
-    const { data: profile } = await admin.from("profiles").select("credits, plan, plan_expires").eq("id", payment.user_id).single();
+    const { data: profile } = await admin.from("profiles").select("plan, plan_expires").eq("id", payment.user_id).single();
     if (!profile) return Response.json({ ok: true });
 
     const plan = await creditPlan(admin, {
@@ -57,7 +63,6 @@ async function handleDarajaCallback(req) {
       planId: payment.plan_id,
       currentPlan: profile.plan,
       currentPlanExpires: profile.plan_expires,
-      currentCredits: profile.credits,
     });
     if (!plan) return Response.json({ ok: true });
 
@@ -119,7 +124,7 @@ async function handlePaddleWebhook(req) {
     const { data: existing } = await admin.from("payments").select("id").eq("provider_ref", transactionId).single();
     if (existing) return Response.json({ ok: true });
 
-    const { data: profile } = await admin.from("profiles").select("credits, plan, plan_expires").eq("id", userId).single();
+    const { data: profile } = await admin.from("profiles").select("plan, plan_expires").eq("id", userId).single();
     if (!profile) return Response.json({ ok: true });
 
     await creditPlan(admin, {
@@ -127,7 +132,6 @@ async function handlePaddleWebhook(req) {
       planId,
       currentPlan: profile.plan,
       currentPlanExpires: profile.plan_expires,
-      currentCredits: profile.credits,
     });
 
     await admin.from("payments").insert({
@@ -188,7 +192,7 @@ async function handleIntasendWebhook(req) {
 
     const { data: profile } = await admin
       .from("profiles")
-      .select("credits, plan, plan_expires")
+      .select("plan, plan_expires")
       .eq("id", payment.user_id)
       .single();
     if (!profile) return Response.json({ ok: true });
@@ -198,7 +202,6 @@ async function handleIntasendWebhook(req) {
       planId: payment.plan_id,
       currentPlan: profile.plan,
       currentPlanExpires: profile.plan_expires,
-      currentCredits: profile.credits,
     });
 
     await admin.from("payments").update({ status: "complete", provider_ref: providerRef }).eq("id", payment.id);

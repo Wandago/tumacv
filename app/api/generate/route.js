@@ -1,4 +1,4 @@
-import { requireUser } from "../../../lib/supabaseAdmin";
+import { requireUser, addCredits } from "../../../lib/supabaseAdmin";
 import { isUnlimited, FREE_MODE } from "../../../lib/plans";
 import { callGemini } from "../../../lib/gemini";
 
@@ -133,8 +133,18 @@ export async function POST(req) {
     const newLongest = Math.max(newStreak, profile.longest_streak || 0);
 
     const updates = { streak_count: newStreak, longest_streak: newLongest, last_generation_date: today };
-    if (!unlimited) updates.credits = profile.credits - 1;
     await admin.from("profiles").update(updates).eq("id", user.id);
+
+    // Spend the credit as its own atomic decrement rather than folding
+    // `profile.credits - 1` into the update above: two generations running
+    // at once both read the same balance, and the second write would undo
+    // the first one's spend — handing out a free generation.
+    let creditsLeft = null;
+    if (!unlimited) {
+      const { credits, error: spendErr } = await addCredits(admin, user.id, -1);
+      if (spendErr) console.error("generate: could not decrement credits:", spendErr);
+      creditsLeft = credits ?? Math.max(0, profile.credits - 1);
+    }
 
     await admin.from("generations").insert({
       user_id: user.id,
@@ -143,7 +153,7 @@ export async function POST(req) {
       result: parsed,
     });
 
-    return Response.json({ ...parsed, creditsLeft: unlimited ? null : profile.credits - 1 });
+    return Response.json({ ...parsed, creditsLeft });
   } catch (err) {
     console.error(err);
     return Response.json({ error: "Something went wrong. Try again." }, { status: 500 });
