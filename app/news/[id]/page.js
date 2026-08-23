@@ -16,7 +16,8 @@ async function getArticle(id) {
 }
 
 export async function generateMetadata({ params }) {
-  const article = await getArticle(params.id);
+  const { id } = await params;
+  const article = await getArticle(id);
   if (!article) return { title: "Article not found — TumaCV" };
   const description = article.content?.slice(0, 155).replace(/\s+/g, " ").trim() + "…";
   return {
@@ -28,7 +29,8 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function ArticlePage({ params }) {
-  const article = await getArticle(params.id);
+  const { id } = await params;
+  const article = await getArticle(id);
 
   if (!article) {
     return (
