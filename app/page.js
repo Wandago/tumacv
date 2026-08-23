@@ -89,7 +89,6 @@ const FAQS = [
 
 export default function Home() {
   const [user, setUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
   const [publicStats, setPublicStats] = useState(null);
   const [jobText, setJobText] = useState("");
   const [jobUrl, setJobUrl] = useState("");
@@ -119,7 +118,6 @@ export default function Home() {
     supabaseBrowser().auth.getUser().then(({ data }) => {
       const u = data?.user || null;
       setUser(u);
-      setAuthChecked(true);
       if (u) {
         const draft = getSavedProfile(u.id);
         if (draft) setProfileText(draft);
@@ -310,8 +308,12 @@ export default function Home() {
 
   const ready = jobText.trim().length >= 80 && profileText.trim().length >= 80;
 
-  if (!authChecked) return null;
-
+  // Deliberately not gated on authChecked. Returning null until the client
+  // finished its Supabase round-trip meant the server sent an empty document:
+  // a crawler fetching this page got the footer and nothing else, so the whole
+  // marketing page — hero, comparison, FAQ — was invisible without JavaScript.
+  // Logged-out is the right default, so render it immediately and let the
+  // workspace below take over once a user actually resolves.
   if (!user) {
     return (
       <main className="shell">
