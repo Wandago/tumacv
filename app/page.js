@@ -239,7 +239,10 @@ export default function Home() {
     }
   }
 
-  async function generate  if (!user) {
+  async function generate() {
+    setGenErr("");
+    setNeedCredits(false);
+    if (!user) {
     return (
       <main className="shell landing-shell">
         <Nav />
