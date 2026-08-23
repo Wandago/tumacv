@@ -6,8 +6,9 @@ import Turnstile from "../../components/Turnstile";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { FREE_SIGNUP_CREDITS } from "../../lib/plans";
 
-// Environment checks for feature flags
-const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH === "1";
+// Environment checks for feature flags.
+// GOOGLE_ENABLED is declared further down, next to the Google button it gates
+// — declaring it here as well is what broke the build.
 const TURNSTILE_ENABLED = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 function friendly(message) {
@@ -118,25 +119,6 @@ export default function LoginClient() {
     }
   }, []);
 
-  // Auto-fill remembered email when in signin mode
-  useEffect(() => {
-    if (mode === "signin") {
-      const rememberedEmail = localStorage.getItem("tumacv_user_email");
-      if (rememberedEmail) {
-        setEmail(rememberedEmail);
-      }
-    }
-  }, [mode]);
-
-  // Save remember me preference and email
-  useEffect(() => {
-    localStorage.setItem("tumacv_remember_me", rememberMe);
-    if (rememberMe && email) {
-      localStorage.setItem("tumacv_user_email", email);
-    } else if (!rememberMe) {
-      localStorage.removeItem("tumacv_user_email");
-    }
-  }, [rememberMe, email]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -151,6 +133,26 @@ export default function LoginClient() {
   const [oauthBusy, setOauthBusy] = useState(false);
   const turnstileRef = useRef(null);
   const routedRef = useRef(false);
+
+  // Both of these must stay below the state they read: a dependency array is
+  // evaluated during render, so listing `email` above its useState left it in
+  // the temporal dead zone and threw "Cannot access 'email' before
+  // initialization" on every render — the login form mounted with no inputs.
+  useEffect(() => {
+    if (mode === "signin") {
+      const rememberedEmail = localStorage.getItem("tumacv_user_email");
+      if (rememberedEmail) setEmail(rememberedEmail);
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    localStorage.setItem("tumacv_remember_me", rememberMe);
+    if (rememberMe && email) {
+      localStorage.setItem("tumacv_user_email", email);
+    } else if (!rememberMe) {
+      localStorage.removeItem("tumacv_user_email");
+    }
+  }, [rememberMe, email]);
 
   // A profile row is created by a database trigger, so it can lag a brand-new
   // OAuth signup by a moment. Treat "no row yet" as not onboarded: that sends
