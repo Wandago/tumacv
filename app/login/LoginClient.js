@@ -6,6 +6,10 @@ import Turnstile from "../../components/Turnstile";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { FREE_SIGNUP_CREDITS } from "../../lib/plans";
 
+// Environment checks for feature flags
+const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH === "1";
+const TURNSTILE_ENABLED = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
 function friendly(message) {
   const m = (message || "").toLowerCase();
   if (m.includes("email not confirmed"))
@@ -81,11 +85,58 @@ const GoogleMark = () => (
 export default function LoginClient() {
   const router = useRouter();
   const [mode, setMode] = useState("signin");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(true);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [appleEnabled, setAppleEnabled] = useState(false);
+  const [githubEnabled, setGithubEnabled] = useState(false);
+
+  // Load environment variables and check social provider availability
+  useEffect(() => {
+    const checkProviders = async () => {
+      // Simulate checking provider configuration from environment
+      setGoogleEnabled(!!process.env.NEXT_PUBLIC_GOOGLE_AUTH && process.env.NEXT_PUBLIC_GOOGLE_AUTH === "1");
+      // For now, we'll keep these as placeholders - they'd be set based on actual configuration
+      setAppleEnabled(false);
+      setGithubEnabled(false);
+      setSocialLoading(false);
+    };
+
+    checkProviders();
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("mode") === "signup") setMode("signup");
   }, []);
+
+  // Load remember me preference from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("tumacv_remember_me");
+    if (saved !== null) {
+      setRememberMe(saved === "true");
+    }
+  }, []);
+
+  // Auto-fill remembered email when in signin mode
+  useEffect(() => {
+    if (mode === "signin") {
+      const rememberedEmail = localStorage.getItem("tumacv_user_email");
+      if (rememberedEmail) {
+        setEmail(rememberedEmail);
+      }
+    }
+  }, [mode]);
+
+  // Save remember me preference and email
+  useEffect(() => {
+    localStorage.setItem("tumacv_remember_me", rememberMe);
+    if (rememberMe && email) {
+      localStorage.setItem("tumacv_user_email", email);
+    } else if (!rememberMe) {
+      localStorage.removeItem("tumacv_user_email");
+    }
+  }, [rememberMe, email]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -283,17 +334,47 @@ export default function LoginClient() {
       <div className="auth-card">
         {mode !== "forgot" && (
           <>
-            {GOOGLE_ENABLED && (
-              <button
-                type="button"
-                className="btn-oauth"
-                onClick={signInWithGoogle}
-                disabled={busy || oauthBusy}
-              >
-                <GoogleMark />
-                {oauthBusy ? "Opening Google…" : "Continue with Google"}
-              </button>
-            )}
+            <div className="social-login">
+              <h3>Sign in with</h3>
+              <div className="social-buttons">
+                {!socialLoading && (
+                  <>
+                    {googleEnabled && (
+                      <button
+                        type="button"
+                        className="btn-oauth"
+                        onClick={signInWithGoogle}
+                        disabled={busy || oauthBusy}
+                      >
+                        <GoogleMark />
+                        {oauthBusy ? "Opening Google…" : "Continue with Google"}
+                      </button>
+                    )}
+                    {!googleEnabled && !appleEnabled && !githubEnabled && (
+                      <button
+                        type="button"
+                        className="btn-oauth"
+                        disabled
+                        style={{ opacity: 0.5 }}
+                      >
+                        Social login (not configured)
+                      </button>
+                    )}
+                  </>
+                )}
+                {socialLoading && (
+                  <button
+                    type="button"
+                    className="btn-oauth"
+                    disabled
+                    style={{ opacity: 0.7 }}
+                  >
+                    Loading social options…
+                  </button>
+                )}
+              </div>
+            </div>
+
             {mode !== "magic" && (
               <button
                 type="button"
@@ -331,6 +412,20 @@ export default function LoginClient() {
               onEnter={mode === "signin" ? submit : undefined}
             />
           </>
+        )}
+
+        {mode === "signin" && (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, fontSize: 12.5, color: "var(--soil)", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              style={{ width: "auto", marginTop: 2, accentColor: "var(--kijani)" }}
+            />
+            <span>
+              Remember me on this device
+            </span>
+          </label>
         )}
 
         {mode === "signup" && password.length > 0 && (
