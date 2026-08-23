@@ -7,7 +7,6 @@ import { supabaseBrowser } from "../../lib/supabaseClient";
 import { FREE_SIGNUP_CREDITS } from "../../lib/plans";
 
 // Environment checks for feature flags
-const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH === "1";
 const TURNSTILE_ENABLED = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 function friendly(message) {
