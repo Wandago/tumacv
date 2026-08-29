@@ -6,11 +6,6 @@ import Turnstile from "../../components/Turnstile";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { FREE_SIGNUP_CREDITS } from "../../lib/plans";
 
-// Environment checks for feature flags.
-// GOOGLE_ENABLED is declared further down, next to the Google button it gates
-// — declaring it here as well is what broke the build.
-const TURNSTILE_ENABLED = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-
 function friendly(message) {
   const m = (message || "").toLowerCase();
   if (m.includes("email not confirmed"))
@@ -45,7 +40,7 @@ function strength(pw) {
 function PasswordInput({ id, value, onChange, placeholder, autoComplete, onEnter }) {
   const [show, setShow] = useState(false);
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <input
         id={id}
         type={show ? "text" : "password"}
@@ -53,14 +48,13 @@ function PasswordInput({ id, value, onChange, placeholder, autoComplete, onEnter
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        style={{ paddingRight: 64 }}
+        className={fieldClass + " !pr-16"}
         onKeyDown={(e) => e.key === "Enter" && onEnter && onEnter()}
       />
       <button
         type="button"
-        className="linkish"
-        style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 12 }}
         onClick={() => setShow(!show)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 !border-0 !bg-transparent !p-0 !text-xs !font-semibold !text-[var(--kijani-dark)] underline underline-offset-2"
       >
         {show ? "Hide" : "Show"}
       </button>
@@ -82,6 +76,23 @@ const GoogleMark = () => (
     <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
   </svg>
 );
+
+// Tailwind utilities for <input>/<textarea> and <button> need `!important`
+// (the `!` prefix) here: globals.css styles those elements with unscoped
+// selectors like `input[type="text"], textarea` and `input:focus`, whose
+// specificity beats a plain utility class regardless of source order.
+const fieldClass =
+  "!w-full !rounded-xl !border !border-[var(--stone)] !bg-[var(--surface-2)] !px-3.5 !py-3 !text-[15px] !text-[var(--ink)] outline-none transition-colors placeholder:!text-[var(--soil)] focus:!border-[var(--kijani)] focus:!shadow-[0_0_0_4px_color-mix(in_srgb,var(--kijani)_22%,transparent)]";
+
+const primaryBtnClass =
+  "flex w-full items-center justify-center gap-2 !rounded-xl !border-0 !bg-[linear-gradient(135deg,var(--kijani),var(--kijani-dark))] !px-4 !py-3.5 !text-[15px] !font-semibold !text-white shadow-[0_10px_25px_-8px_color-mix(in_srgb,var(--kijani)_55%,transparent)] transition hover:brightness-110 disabled:!bg-[var(--surface-2)] disabled:!text-[var(--soil)] disabled:shadow-none";
+
+const secondaryBtnClass =
+  "flex w-full items-center justify-center gap-2.5 !rounded-xl !border !border-[var(--stone)] !bg-[var(--sheet)] !px-4 !py-3 !text-sm !font-semibold !text-[var(--ink)] shadow-sm transition hover:!bg-[var(--surface-2)] disabled:!opacity-55";
+
+const labelClass = "mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[var(--soil)]";
+
+const linkClass = "font-semibold text-[var(--kijani-dark)] underline underline-offset-2";
 
 export default function LoginClient() {
   const router = useRouter();
@@ -314,17 +325,23 @@ export default function LoginClient() {
   const usesPassword = mode === "signin" || mode === "signup";
 
   return (
-    <main className="shell">
+    <main className="mx-auto w-full max-w-md pb-24 sm:max-w-lg">
       <Nav />
-      <section className="hero hero-band">
-        {mode === "signup" && <p className="step-indicator">Step 1 of 2</p>}
-        <h1>
+
+      <section className="relative mx-4 mt-6 overflow-hidden rounded-3xl bg-[linear-gradient(135deg,var(--kijani),var(--kijani-dark))] px-6 py-10 text-center shadow-[0_20px_50px_-15px_color-mix(in_srgb,var(--kijani)_45%,transparent)] sm:mx-0 sm:px-10">
+        <div aria-hidden className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-14 -left-10 h-40 w-40 rounded-full bg-black/10 blur-2xl" />
+
+        {mode === "signup" && (
+          <p className="relative mb-2 text-xs font-semibold uppercase tracking-wide text-white/80">Step 1 of 2</p>
+        )}
+        <h1 className="relative text-[26px] font-extrabold tracking-tight text-white sm:text-[30px]">
           {mode === "signin" && "Welcome back"}
           {mode === "signup" && "Create your account"}
           {mode === "forgot" && "Reset your password"}
           {mode === "magic" && "Sign in without a password"}
         </h1>
-        <p className="step-hint">
+        <p className="relative mx-auto mt-3 max-w-[42ch] text-[14.5px] leading-relaxed text-white/85">
           {mode === "signin" && "Your applications, credits and history are where you left them."}
           {mode === "signup" &&
             `${FREE_SIGNUP_CREDITS} free applications to start — no card, no subscription.`}
@@ -333,18 +350,18 @@ export default function LoginClient() {
         </p>
       </section>
 
-      <div className="auth-card">
+      <div className="relative z-10 mx-4 -mt-6 rounded-3xl border border-[var(--stone)] bg-[var(--sheet)] p-6 shadow-[var(--shadow-3)] sm:mx-0 sm:p-8">
         {mode !== "forgot" && (
           <>
-            <div className="social-login">
-              <h3>Sign in with</h3>
-              <div className="social-buttons">
+            <div className="mb-5">
+              <h3 className="mb-3 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--soil)]">Sign in with</h3>
+              <div className="flex flex-col gap-2.5">
                 {!socialLoading && (
                   <>
                     {googleEnabled && (
                       <button
                         type="button"
-                        className="btn-oauth"
+                        className={secondaryBtnClass}
                         onClick={signInWithGoogle}
                         disabled={busy || oauthBusy}
                       >
@@ -353,24 +370,14 @@ export default function LoginClient() {
                       </button>
                     )}
                     {!googleEnabled && !appleEnabled && !githubEnabled && (
-                      <button
-                        type="button"
-                        className="btn-oauth"
-                        disabled
-                        style={{ opacity: 0.5 }}
-                      >
+                      <button type="button" className={secondaryBtnClass + " !opacity-50"} disabled>
                         Social login (not configured)
                       </button>
                     )}
                   </>
                 )}
                 {socialLoading && (
-                  <button
-                    type="button"
-                    className="btn-oauth"
-                    disabled
-                    style={{ opacity: 0.7 }}
-                  >
+                  <button type="button" className={secondaryBtnClass + " !opacity-70"} disabled>
                     Loading social options…
                   </button>
                 )}
@@ -380,143 +387,178 @@ export default function LoginClient() {
             {mode !== "magic" && (
               <button
                 type="button"
-                className="btn-oauth"
+                className={secondaryBtnClass + " mb-4"}
                 onClick={() => switchMode("magic")}
                 disabled={busy || oauthBusy}
               >
                 Email me a sign-in link
               </button>
             )}
-            <p className="oauth-terms">
+            <p className="mb-5 text-center text-[11.5px] leading-relaxed text-[var(--soil)]">
               By continuing you agree to our{" "}
-              <a href="/privacy" target="_blank">Privacy Policy</a> and{" "}
-              <a href="/terms" target="_blank">Terms of Use</a>.
+              <a href="/privacy" target="_blank" className={linkClass}>Privacy Policy</a> and{" "}
+              <a href="/terms" target="_blank" className={linkClass}>Terms of Use</a>.
             </p>
             {usesPassword && (
-              <div className="auth-divider"><span>or use a password</span></div>
+              <div className="relative mb-5 flex items-center justify-center">
+                <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[var(--stone)]" />
+                <span className="relative bg-[var(--sheet)] px-3 text-[11px] font-medium uppercase tracking-wide text-[var(--soil)]">
+                  or use a password
+                </span>
+              </div>
             )}
           </>
         )}
 
-        <label className="field-label" htmlFor="email">Email</label>
-        <input id="email" type="text" inputMode="email" autoComplete="email" value={email}
-          onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-
-        {usesPassword && (
-          <>
-            <label className="field-label" htmlFor="password">Password</label>
-            <PasswordInput
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 6 characters"
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              onEnter={mode === "signin" ? submit : undefined}
-            />
-          </>
-        )}
-
-        {mode === "signin" && (
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, fontSize: 12.5, color: "var(--soil)", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              style={{ width: "auto", marginTop: 2, accentColor: "var(--kijani)" }}
-            />
-            <span>
-              Remember me on this device
-            </span>
-          </label>
-        )}
-
-        {mode === "signup" && password.length > 0 && (
-          <div className="strength-row">
-            <div className="strength-bars">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <span key={i} className={`strength-bar ${i < strength(password).score ? "on s" + strength(password).score : ""}`} />
-              ))}
-            </div>
-            <span className="strength-label">{strength(password).label}</span>
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className={labelClass} htmlFor="email">Email</label>
+            <input id="email" type="text" inputMode="email" autoComplete="email" value={email}
+              onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className={fieldClass} />
           </div>
-        )}
 
-        {mode === "signup" && (
-          <>
-            <label className="field-label" htmlFor="confirm">Confirm password</label>
-            <PasswordInput
-              id="confirm"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Type it again"
-              autoComplete="new-password"
-              onEnter={submit}
-            />
-            {confirm.length > 0 && password !== confirm && (
-              <p className="error" style={{ marginTop: 6 }}>Passwords don't match yet.</p>
-            )}
-          </>
-        )}
+          {usesPassword && (
+            <div>
+              <label className={labelClass} htmlFor="password">Password</label>
+              <PasswordInput
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 6 characters"
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                onEnter={mode === "signin" ? submit : undefined}
+              />
+            </div>
+          )}
 
-        {mode === "signin" && (
-          <p style={{ textAlign: "right", marginTop: 8 }}>
-            <button className="linkish" onClick={() => switchMode("forgot")}>Forgot password?</button>
-          </p>
-        )}
-
-        {mode === "signup" && (
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, fontSize: 12.5, color: "var(--soil)", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              style={{ width: "auto", marginTop: 2, accentColor: "var(--kijani)" }}
-            />
-            <span>
-              I agree to the <a href="/privacy" target="_blank" className="linkish" style={{ fontSize: 12.5 }}>Privacy Policy</a> and{" "}
-              <a href="/terms" target="_blank" className="linkish" style={{ fontSize: 12.5 }}>Terms of Use</a>.
-            </span>
-          </label>
-        )}
-
-        {err && <p className="error">{err}</p>}
-        {msg && <p className="success">{msg}</p>}
-        {pendingConfirm && (
-          <p className="field-note" style={{ marginTop: 4 }}>
-            Didn't get it?{" "}
-            <button className="linkish" onClick={resendConfirmation} disabled={resendBusy}>
-              {resendBusy ? "Sending…" : "Resend confirmation email"}
-            </button>
-            {resendMsg && <span> — {resendMsg}</span>}
-          </p>
-        )}
-
-        <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
-
-        <button className="btn-primary" style={{ width: "100%", marginTop: 14 }} onClick={submit}
-          disabled={busy || !canSubmit}>
-          {busy
-            ? "One moment…"
-            : mode === "signin"
-            ? "Sign in"
-            : mode === "signup"
-            ? `Create account — ${FREE_SIGNUP_CREDITS} free applications`
-            : mode === "magic"
-            ? "Send me the link"
-            : "Send reset link"}
-        </button>
-
-        <p className="switch-mode">
           {mode === "signin" && (
-            <>New here? <button className="linkish" onClick={() => switchMode("signup")}>Create an account</button></>
+            <label className="-mt-1 flex cursor-pointer items-center gap-2 text-[12.5px] text-[var(--soil)]">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 accent-[var(--kijani)]"
+              />
+              <span>Remember me on this device</span>
+            </label>
           )}
+
+          {mode === "signup" && password.length > 0 && (
+            <div className="-mt-2 flex items-center gap-2.5">
+              <div className="flex flex-1 gap-1">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <span
+                    key={i}
+                    className={
+                      "h-1 flex-1 rounded-full " +
+                      (i < strength(password).score
+                        ? strength(password).score <= 1
+                          ? "bg-[var(--moto)]"
+                          : strength(password).score === 2
+                          ? "bg-[#ff9f0a]"
+                          : "bg-[var(--kijani)]"
+                        : "bg-[var(--stone)]")
+                    }
+                  />
+                ))}
+              </div>
+              <span className="whitespace-nowrap text-[11px] text-[var(--soil)]">{strength(password).label}</span>
+            </div>
+          )}
+
           {mode === "signup" && (
-            <>Already have an account? <button className="linkish" onClick={() => switchMode("signin")}>Sign in</button></>
+            <div>
+              <label className={labelClass} htmlFor="confirm">Confirm password</label>
+              <PasswordInput
+                id="confirm"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Type it again"
+                autoComplete="new-password"
+                onEnter={submit}
+              />
+              {confirm.length > 0 && password !== confirm && (
+                <p className="mt-1.5 text-[13px] text-[var(--moto)]">Passwords don't match yet.</p>
+              )}
+            </div>
           )}
-          {(mode === "forgot" || mode === "magic") && (
-            <><button className="linkish" onClick={() => switchMode("signin")}>← Back to sign in</button></>
+
+          {mode === "signin" && (
+            <p className="-mt-2 text-right">
+              <button type="button" className={"!border-0 !bg-transparent !p-0 " + linkClass + " !text-[13px]"} onClick={() => switchMode("forgot")}>
+                Forgot password?
+              </button>
+            </p>
           )}
-        </p>
+
+          {mode === "signup" && (
+            <label className="flex cursor-pointer items-start gap-2 text-[12.5px] text-[var(--soil)]">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--kijani)]"
+              />
+              <span>
+                I agree to the <a href="/privacy" target="_blank" className={linkClass + " !text-[12.5px]"}>Privacy Policy</a> and{" "}
+                <a href="/terms" target="_blank" className={linkClass + " !text-[12.5px]"}>Terms of Use</a>.
+              </span>
+            </label>
+          )}
+
+          {err && <p className="-mt-1 text-[13px] text-[var(--moto)]">{err}</p>}
+          {msg && <p className="-mt-1 text-[13px] text-[var(--kijani-dark)]">{msg}</p>}
+          {pendingConfirm && (
+            <p className="-mt-1 text-[11px] text-[var(--soil)]">
+              Didn't get it?{" "}
+              <button
+                type="button"
+                className={"!border-0 !bg-transparent !p-0 !text-[11px] " + linkClass}
+                onClick={resendConfirmation}
+                disabled={resendBusy}
+              >
+                {resendBusy ? "Sending…" : "Resend confirmation email"}
+              </button>
+              {resendMsg && <span> — {resendMsg}</span>}
+            </p>
+          )}
+
+          <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
+
+          <button className={primaryBtnClass} onClick={submit} disabled={busy || !canSubmit}>
+            {busy
+              ? "One moment…"
+              : mode === "signin"
+              ? "Sign in"
+              : mode === "signup"
+              ? `Create account — ${FREE_SIGNUP_CREDITS} free applications`
+              : mode === "magic"
+              ? "Send me the link"
+              : "Send reset link"}
+          </button>
+
+          <p className="text-center text-[13px] text-[var(--soil)]">
+            {mode === "signin" && (
+              <>New here?{" "}
+                <button type="button" className={"!border-0 !bg-transparent !p-0 " + linkClass + " !text-[13px]"} onClick={() => switchMode("signup")}>
+                  Create an account
+                </button>
+              </>
+            )}
+            {mode === "signup" && (
+              <>Already have an account?{" "}
+                <button type="button" className={"!border-0 !bg-transparent !p-0 " + linkClass + " !text-[13px]"} onClick={() => switchMode("signin")}>
+                  Sign in
+                </button>
+              </>
+            )}
+            {(mode === "forgot" || mode === "magic") && (
+              <button type="button" className={"!border-0 !bg-transparent !p-0 " + linkClass + " !text-[13px]"} onClick={() => switchMode("signin")}>
+                ← Back to sign in
+              </button>
+            )}
+          </p>
+        </div>
       </div>
     </main>
   );
