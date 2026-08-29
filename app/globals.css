@@ -1,3 +1,12 @@
+/* Tailwind is scoped to utilities only (no Preflight) so it can be used for
+   the login page overhaul without resetting element defaults the rest of
+   the site relies on (buttons, inputs, headings styled by plain CSS below).
+   Imported unlayered (not `layer(utilities)`) so cascade-layer rules don't
+   make the `* { margin/padding: 0 }` reset below always beat every
+   Tailwind spacing utility regardless of specificity. */
+@import "tailwindcss/theme.css";
+@import "tailwindcss/utilities.css";
+
 :root {
   --kijani: #0b8a3f;
   --kijani-dark: #056a2f;
