@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@astryxdesign/core/Text";
 import { normalizeCv } from "../lib/cvResult";
 
 function initials(name) {
@@ -55,7 +56,7 @@ function ContactList({ contact, className }) {
 export default function CvView({ data: raw, template }) {
   // Normalizing here too covers CVs saved before the API started doing it.
   const data = normalizeCv(raw);
-  if (!data) return <p className="field-note">This CV couldn't be displayed. Generate it again from the home page.</p>;
+  if (!data) return <Text color="secondary">This CV couldn't be displayed. Generate it again from the home page.</Text>;
   const c = data.contact || {};
   const contactBits = [c.email, c.phone, c.location, c.linkedin].filter(Boolean);
 

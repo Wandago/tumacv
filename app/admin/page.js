@@ -1,11 +1,128 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AppSidebar from "../../components/AppSidebar";
+import { Layout, LayoutContent, LayoutPanel } from "@astryxdesign/core/Layout";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Card } from "@astryxdesign/core/Card";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Button } from "@astryxdesign/core/Button";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { NumberInput } from "@astryxdesign/core/NumberInput";
+import { Selector } from "@astryxdesign/core/Selector";
+import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Badge } from "@astryxdesign/core/Badge";
+import { Token } from "@astryxdesign/core/Token";
+import { List, ListItem } from "@astryxdesign/core/List";
+import { Table } from "@astryxdesign/core/Table";
+import { MoreMenu } from "@astryxdesign/core/MoreMenu";
+import { ProgressBar } from "@astryxdesign/core/ProgressBar";
+import { Collapsible, CollapsibleGroup } from "@astryxdesign/core/Collapsible";
+import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Center } from "@astryxdesign/core/Center";
+import { Spinner } from "@astryxdesign/core/Spinner";
+import { Avatar } from "@astryxdesign/core/Avatar";
+import { Icon } from "@astryxdesign/core/Icon";
+import { SideNav, SideNavItem, SideNavSection } from "@astryxdesign/core/SideNav";
 import TrendChart from "../../components/TrendChart";
 import OverviewCard from "../../components/OverviewCard";
-import ActivityRail from "../../components/ActivityRail";
 import { supabaseBrowser } from "../../lib/supabaseClient";
+import {
+  BriefcaseIcon, ChartIcon, DashboardIcon, FileTextIcon, GiftIcon, LifeBuoyIcon, MegaphoneIcon, NewspaperIcon, UsersIcon, WalletIcon,
+} from "../../lib/icons";
+
+const SECTIONS = [
+  { key: "overview", label: "Overview", icon: DashboardIcon },
+  { key: "users", label: "Users", icon: UsersIcon },
+  { key: "payments", label: "Payments", icon: WalletIcon },
+  { key: "support", label: "Support", icon: LifeBuoyIcon },
+  { key: "promo", label: "Promo codes", icon: GiftIcon },
+  { key: "hub", label: "Talent Hub", icon: BriefcaseIcon },
+  { key: "articles", label: "News articles", icon: NewspaperIcon },
+  { key: "jobs", label: "Jobs board", icon: FileTextIcon },
+  { key: "marketing", label: "Marketing", icon: MegaphoneIcon },
+  { key: "traffic", label: "Traffic", icon: ChartIcon },
+];
+
+const fmtDate = (d, opts = { day: "numeric", month: "short", year: "numeric" }) => new Date(d).toLocaleDateString("en-KE", opts);
+const fmtDateTime = (d) => new Date(d).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const STATUS_BADGE = { complete: "success", pending: "warning", failed: "error", underpaid: "error", open: "success", resolved: "neutral" };
+
+function Loading() {
+  return <Center minHeight={160}><Spinner /></Center>;
+}
+
+function StatCard({ label, value, variant }) {
+  return (
+    <Card padding={5} variant={variant}>
+      <VStack gap={1}>
+        <Text type="supporting" color="secondary" weight="medium">{label}</Text>
+        <Heading level={3} type="display-3">{value}</Heading>
+      </VStack>
+    </Card>
+  );
+}
+
+// Horizontal bars for a ranked breakdown, [{ label, count }].
+function BarCard({ title, data }) {
+  const top = (data || []).slice(0, 8);
+  const max = top.length ? Math.max(...top.map((d) => d.count)) : 1;
+  return (
+    <Card padding={5}>
+      <VStack gap={4}>
+        <Heading level={3}>{title}</Heading>
+        {!data ? (
+          <Loading />
+        ) : top.length === 0 ? (
+          <Text color="secondary">No data yet.</Text>
+        ) : (
+          <VStack gap={3}>
+            {top.map((d) => (
+              <ProgressBar key={d.label} label={d.label} value={d.count} max={max} hasValueLabel formatValueLabel={(v) => String(v)} />
+            ))}
+          </VStack>
+        )}
+      </VStack>
+    </Card>
+  );
+}
+
+function FunnelCard({ funnel }) {
+  const stages = funnel
+    ? [
+        { label: "Signed up", value: funnel.signups },
+        { label: "Generated a CV", value: funnel.generated },
+        { label: "Paid", value: funnel.paid },
+        { label: "Hired", value: funnel.hired },
+      ]
+    : [];
+  const max = stages[0]?.value || 1;
+  return (
+    <Card padding={5}>
+      <VStack gap={4}>
+        <Heading level={3}>User journey</Heading>
+        {!funnel ? (
+          <Loading />
+        ) : (
+          <VStack gap={3}>
+            {stages.map((s) => (
+              <ProgressBar
+                key={s.label}
+                label={s.label}
+                value={s.value}
+                max={max}
+                hasValueLabel
+                formatValueLabel={(v) => `${v} · ${Math.round((v / max) * 100)}%`}
+              />
+            ))}
+          </VStack>
+        )}
+      </VStack>
+    </Card>
+  );
+}
 
 export default function Admin() {
   const router = useRouter();
@@ -46,6 +163,25 @@ export default function Admin() {
   const [busyId, setBusyId] = useState("");
   const [linkResult, setLinkResult] = useState(null);
   const [err, setErr] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [confirmReq, setConfirmReq] = useState(null);
+  const [isNarrow, setIsNarrow] = useState(false);
+
+  // Asks "are you sure?" through the AlertDialog at the bottom of the page
+  // and resolves to the answer, so destructive actions can simply await it.
+  const confirmAction = (message) => new Promise((resolve) => setConfirmReq({ message, resolve }));
+  function answerConfirm(ok) {
+    confirmReq?.resolve(ok);
+    setConfirmReq(null);
+  }
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const update = () => setIsNarrow(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   async function authHeader() {
     const { data } = await supabaseBrowser().auth.getSession();
@@ -146,7 +282,7 @@ export default function Admin() {
   }
 
   async function toggleAdmin(userId, value) {
-    if (!confirm(value ? "Make this user an admin? They'll get full access to this panel." : "Remove admin access from this user?")) return;
+    if (!(await confirmAction(value ? "Make this user an admin? They'll get full access to this panel." : "Remove admin access from this user?"))) return;
     setBusyId(userId);
     const data = await act("toggle_admin", { userId, value });
     if (data) setUsers((u) => u.map((x) => (x.id === userId ? { ...x, is_admin: value } : x)));
@@ -154,7 +290,7 @@ export default function Admin() {
   }
 
   async function toggleBan(userId, value) {
-    if (!confirm(value ? "Suspend this account? They won't be able to generate, pay, or redeem codes until unbanned." : "Unban this account?")) return;
+    if (!(await confirmAction(value ? "Suspend this account? They won't be able to generate, pay, or redeem codes until unbanned." : "Unban this account?"))) return;
     setBusyId(userId);
     const data = await act("toggle_ban", { userId, value });
     if (data) setUsers((u) => u.map((x) => (x.id === userId ? { ...x, banned: value } : x)));
@@ -162,7 +298,7 @@ export default function Admin() {
   }
 
   async function resetAccount(userId, email) {
-    if (!confirm(`Reset ${email}'s account? This deletes their application history and reverts credits, streak, and hired status to a fresh signup. Their login (email/password) is not affected. This can't be undone.`)) return;
+    if (!(await confirmAction(`Reset ${email}'s account? This deletes their application history and reverts credits, streak, and hired status to a fresh signup. Their login (email/password) is not affected. This can't be undone.`))) return;
     setBusyId(userId);
     const data = await act("reset_account", { userId });
     if (data) {
@@ -191,7 +327,7 @@ export default function Admin() {
     setBusyId(userId);
     setLinkResult(null);
     const data = await act("reset_link", { email });
-    if (data) setLinkResult({ email, link: data.link });
+    if (data) { setLinkResult({ email, link: data.link }); setLinkCopied(false); }
     setBusyId("");
   }
 
@@ -206,7 +342,7 @@ export default function Admin() {
   }
 
   async function deleteJob(jobId) {
-    if (!confirm("Delete this job posting? This can't be undone.")) return;
+    if (!(await confirmAction("Delete this job posting? This can't be undone."))) return;
     setBusyId(jobId);
     const data = await act("delete_job", { jobId });
     if (data) setJobs((j) => j.filter((x) => x.id !== jobId));
@@ -214,7 +350,7 @@ export default function Admin() {
   }
 
   async function deleteArticle(articleId) {
-    if (!confirm("Delete this article?")) return;
+    if (!(await confirmAction("Delete this article?"))) return;
     setBusyId(articleId);
     const data = await act("delete_article", { articleId });
     if (data) setArticles((a) => a.filter((x) => x.id !== articleId));
@@ -222,7 +358,7 @@ export default function Admin() {
   }
 
   async function deleteHubProfile(hubProfileId) {
-    if (!confirm("Remove this profile from the public Talent Hub? The user can rejoin themselves anytime.")) return;
+    if (!(await confirmAction("Remove this profile from the public Talent Hub? The user can rejoin themselves anytime."))) return;
     setBusyId(hubProfileId);
     const data = await act("delete_hub_profile", { hubProfileId });
     if (data) setHubProfiles((h) => h.filter((x) => x.id !== hubProfileId));
@@ -230,7 +366,7 @@ export default function Admin() {
   }
 
   async function deleteHubService(hubServiceId) {
-    if (!confirm("Remove this service listing?")) return;
+    if (!(await confirmAction("Remove this service listing?"))) return;
     setBusyId(hubServiceId);
     const data = await act("delete_hub_service", { hubServiceId });
     if (data) setHubServices((s) => s.filter((x) => x.id !== hubServiceId));
@@ -291,7 +427,7 @@ export default function Admin() {
 
   async function resolvePayment(paymentId, newStatus) {
     const label = newStatus === "complete" ? "mark this payment COMPLETE and credit the user's account" : "mark this payment FAILED";
-    if (!confirm(`Are you sure you want to ${label}? This is meant for fixing a payment where the automatic webhook missed it.`)) return;
+    if (!(await confirmAction(`Are you sure you want to ${label}? This is meant for fixing a payment where the automatic webhook missed it.`))) return;
     setBusyId(paymentId);
     const data = await act("resolve_payment", { paymentId, newStatus });
     if (data) setPayments((p) => p.map((x) => (x.id === paymentId ? { ...x, status: newStatus } : x)));
@@ -300,774 +436,554 @@ export default function Admin() {
 
   async function copyLink(link) {
     await navigator.clipboard.writeText(link);
-    alert("Link copied — share it with the user directly (WhatsApp, SMS, call).");
+    setLinkCopied(true);
   }
 
-  if (authorized === null) return null;
+  if (authorized === null) {
+    return <Center minHeight="60vh"><Spinner size="lg" /></Center>;
+  }
   if (authorized === false) {
     return (
-      <main className="shell">
-        <div className="auth-card">
-          <h1>Not authorized</h1>
-          <p className="step-hint">This area is restricted to TumaCV admins.</p>
-        </div>
-      </main>
+      <Center minHeight="60vh" padding={6}>
+        <EmptyState title="Not authorized" description="This area is restricted to TumaCV admins." />
+      </Center>
     );
   }
 
   const filteredUsers = users ? users.filter((u) => !q || u.email?.toLowerCase().includes(q.toLowerCase())) : null;
   const filteredJobs = jobs ? jobs.filter((j) => !q || `${j.title} ${j.company}`.toLowerCase().includes(q.toLowerCase())) : null;
   const filteredPayments = payments ? payments.filter((p) => payFilter === "all" || p.status === payFilter) : null;
-
-  const sidebarItems = [
-    { key: "overview", label: "Overview", icon: "grid", onClick: () => { setTab("overview"); setQ(""); } },
-    { key: "users", label: "Users", icon: "users", onClick: () => { setTab("users"); setQ(""); } },
-    { key: "jobs", label: "Jobs board", icon: "briefcase", onClick: () => { setTab("jobs"); setQ(""); } },
-    { key: "payments", label: "Payments", icon: "card", onClick: () => setTab("payments") },
-    { key: "articles", label: "News articles", icon: "doc", onClick: () => setTab("articles") },
-    { key: "hub", label: "Talent Hub", icon: "users", onClick: () => setTab("hub") },
-    { key: "promo", label: "Promo codes", icon: "gift", onClick: () => setTab("promo") },
-    { key: "support", label: "Support", icon: "help", onClick: () => setTab("support") },
-    { key: "marketing", label: "Marketing", icon: "megaphone", onClick: () => setTab("marketing") },
-    { key: "traffic", label: "Traffic", icon: "trend", onClick: () => setTab("traffic") },
-  ];
-  const sidebarBottom = [
-    { key: "back", label: "Back to app", icon: "back", href: "/dashboard" },
-  ];
-
+  const filteredTickets = supportMessages ? supportMessages.filter((m) => supportFilter === "all" || m.status === supportFilter) : null;
   const attention = stats?.needsAttention;
-  const railNotices = [];
-  if (attention?.openTickets > 0) {
-    railNotices.push({ label: "open support tickets", count: attention.openTickets, onClick: () => setTab("support") });
-  }
-  if (attention?.pendingPayments > 0) {
-    railNotices.push({ label: "pending payments", count: attention.pendingPayments, tone: "warn", onClick: () => setTab("payments") });
-  }
-  if (attention?.underpaidPayments > 0) {
-    railNotices.push({ label: "underpaid payments", count: attention.underpaidPayments, tone: "warn", onClick: () => setTab("payments") });
-  }
+  const paymentAlerts = (attention?.pendingPayments || 0) + (attention?.underpaidPayments || 0);
+  const goTo = (key) => { setTab(key); setQ(""); window.scrollTo({ top: 0 }); };
+  const current = SECTIONS.find((s) => s.key === tab);
 
-  // Search is always live: typing from a non-searchable tab jumps to Users,
-  // so the box in the top bar is never a dead control.
-  const searchPlaceholder = tab === "jobs" ? "Search jobs by title or company…" : "Search users by email…";
-  function onSearch(value) {
-    setQ(value);
-    if (value && tab !== "users" && tab !== "jobs") setTab("users");
-  }
+  const nav = (
+    <SideNav>
+      <SideNavSection title="Admin">
+        {SECTIONS.map((s) => (
+          <SideNavItem
+            key={s.key}
+            label={s.label}
+            icon={s.icon}
+            isSelected={tab === s.key}
+            onClick={() => goTo(s.key)}
+            endContent={
+              s.key === "support" && attention?.openTickets > 0 ? <Badge label={String(attention.openTickets)} variant="warning" />
+              : s.key === "payments" && paymentAlerts > 0 ? <Badge label={String(paymentAlerts)} variant="warning" />
+              : undefined
+            }
+          />
+        ))}
+      </SideNavSection>
+    </SideNav>
+  );
 
-  return (
-    <AppSidebar
-      sectionLabel="ADMIN"
-      items={sidebarItems}
-      bottomItems={sidebarBottom}
-      activeKey={tab}
-      search={{ value: q, onChange: onSearch, placeholder: searchPlaceholder }}
-      alertCount={railNotices.reduce((a, n) => a + n.count, 0)}
-      rightRail={
-        <ActivityRail
-          notices={railNotices}
-          activityTitle="Newest signups"
-          activity={(users || []).slice(0, 6).map((u) => ({
-            id: u.id,
-            title: u.email || "Unknown",
-            meta: u.industry || "no industry",
-            at: u.created_at,
-          }))}
-          emptyActivity="Signups will show up here."
-          links={[
-            { href: "/dashboard", label: "Back to the app" },
-            { href: "/hub", label: "Public Talent Hub" },
-          ]}
-        />
-      }
-    >
-      <div className="page-heading">
-        <h1>Admin</h1>
-        <p>TumaCV usage, revenue, and moderation — everything in one place.</p>
-      </div>
+  const content = (
+    <VStack gap={5}>
+      <HStack justify="between" align="center" gap={3} wrap="wrap">
+        <VStack gap={0}>
+          <Text color="accent" weight="semibold">Admin</Text>
+          <Heading level={1}>{current?.label}</Heading>
+        </VStack>
+        {isNarrow && (
+          <Selector label="Section" isLabelHidden width={220} value={tab} onChange={goTo} options={SECTIONS.map((s) => ({ value: s.key, label: s.label }))} />
+        )}
+      </HStack>
 
-      {err && <p className="error">{err}</p>}
+      {err && <Banner status="error" title={err} isDismissable onDismiss={() => setErr("")} />}
 
       {linkResult && (
-        <div className="banner">
-          Reset link for <b>{linkResult.email}</b>:
-          <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <code style={{ fontSize: 11, wordBreak: "break-all", flex: 1 }}>{linkResult.link}</code>
-            <button className="btn-ghost" onClick={() => copyLink(linkResult.link)}>Copy</button>
-            <button className="btn-ghost" onClick={() => setLinkResult(null)}>Dismiss</button>
-          </div>
-          <p className="field-note">One-time use, expires soon. Share it directly with the person — don't post it anywhere public.</p>
-        </div>
+        <Banner
+          status="info"
+          title={`Reset link for ${linkResult.email}`}
+          description={`${linkResult.link} — one-time use and expires soon. Share it directly with the person (WhatsApp, SMS), never anywhere public.`}
+          endContent={<Button size="sm" label={linkCopied ? "Copied" : "Copy"} icon={<Icon icon={linkCopied ? "check" : "copy"} />} onClick={() => copyLink(linkResult.link)} />}
+          isDismissable
+          onDismiss={() => setLinkResult(null)}
+        />
       )}
 
-      {tab === "overview" && (
-        stats === null ? (
-          <div className="loading"><span className="spinner" /> Loading stats…</div>
-        ) : (
-          <>
-            {(stats.needsAttention?.openTickets > 0 || stats.needsAttention?.pendingPayments > 0 || stats.needsAttention?.underpaidPayments > 0) && (
-              <div className="attention-row rail-backed">
-                {stats.needsAttention.openTickets > 0 && (
-                  <button className="attention-chip" onClick={() => setTab("support")}>
-                    <b>{stats.needsAttention.openTickets}</b> open support ticket{stats.needsAttention.openTickets === 1 ? "" : "s"} →
-                  </button>
-                )}
-                {stats.needsAttention.pendingPayments > 0 && (
-                  <button className="attention-chip warn" onClick={() => setTab("payments")}>
-                    <b>{stats.needsAttention.pendingPayments}</b> pending payment{stats.needsAttention.pendingPayments === 1 ? "" : "s"} →
-                  </button>
-                )}
-                {stats.needsAttention.underpaidPayments > 0 && (
-                  <button className="attention-chip warn" onClick={() => setTab("payments")}>
-                    <b>{stats.needsAttention.underpaidPayments}</b> underpaid payment{stats.needsAttention.underpaidPayments === 1 ? "" : "s"} →
-                  </button>
-                )}
-              </div>
-            )}
-
-            <div className="dash-grid cols3">
-              <div className="dash-card accent">
-                <div className="stat-corner-badge">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9" /></svg>
-                </div>
-                <h3>TOTAL USERS</h3><div className="big-number">{stats.totalUsers}</div>
-              </div>
-              <div className="dash-card"><h3>SIGNUPS · 7 DAYS</h3><div className="big-number">{stats.signupsWeek}</div></div>
-              <div className="dash-card"><h3>TOTAL APPLICATIONS</h3><div className="big-number">{stats.totalGenerations}</div></div>
-              <div className="dash-card stat">
-                <h3>REVENUE (COMPLETE)</h3>
-                <div className="big-number compact">KES {stats.totalRevenue.toLocaleString()}</div>
-              </div>
-              <div className="dash-card"><h3>USERS HIRED</h3><div className="big-number">{stats.hiredCount}</div></div>
-              <div className="dash-card"><h3>ACTIVE STREAKS (3+ DAYS)</h3><div className="big-number streak-number">🔥 {stats.activeStreaks}</div></div>
-            </div>
-
-            <div className="breakdown-grid">
-              <TrendChart title="SIGNUPS (30 DAYS)" series={stats.trends?.signups} />
-              <TrendChart title="APPLICATIONS GENERATED (30 DAYS)" series={stats.trends?.generations} />
-              <TrendChart title="REVENUE (30 DAYS)" series={stats.trends?.revenue} format={(n) => `KES ${n}`} />
-            </div>
-
-            <div className="dash-grid" style={{ marginTop: 10 }}>
-              <OverviewCard
-                title="USERS BY INDUSTRY"
-                segments={(industryStats || []).slice(0, 5).map((d) => ({ label: d.label, value: d.count }))}
-                centerValue={stats.totalUsers}
-                centerLabel="users"
-                empty="No industries recorded yet."
-                stats={[
-                  { label: "signups · 7d", value: stats.signupsWeek },
-                  { label: "hired", value: stats.hiredCount },
-                  {
-                    label: "signup → paid",
-                    value: stats.funnel?.signups
-                      ? `${Math.round((stats.funnel.paid / stats.funnel.signups) * 100)}%`
-                      : "—",
-                  },
-                ]}
-              />
-              <FunnelCard funnel={stats.funnel} className="span2" />
-            </div>
-
-            <div className="breakdown-grid">
-              <BarCard title="REVENUE BY PLAN" data={stats.planBreakdown} />
-              <BarCard title="WHERE USERS HEARD ABOUT US" data={referralStats} />
-              <BarCard
-                title={`MOST VISITED PAGES ${pageStats ? `(${pageStats.totalViews} views, 30 days)` : ""}`}
-                data={pageStats?.stats}
-              />
-            </div>
-          </>
-        )
-      )}
+      {tab === "overview" && (stats === null ? <Loading /> : (
+        <VStack gap={5}>
+          {(attention?.openTickets > 0 || paymentAlerts > 0) && (
+            <Banner
+              status="warning"
+              title="Needs attention"
+              description={[
+                attention.openTickets > 0 && `${attention.openTickets} open support ticket${attention.openTickets === 1 ? "" : "s"}`,
+                attention.pendingPayments > 0 && `${attention.pendingPayments} pending payment${attention.pendingPayments === 1 ? "" : "s"}`,
+                attention.underpaidPayments > 0 && `${attention.underpaidPayments} underpaid payment${attention.underpaidPayments === 1 ? "" : "s"}`,
+              ].filter(Boolean).join(" · ")}
+              endContent={
+                <HStack gap={2}>
+                  {attention.openTickets > 0 && <Button size="sm" label="Support" onClick={() => goTo("support")} />}
+                  {paymentAlerts > 0 && <Button size="sm" label="Payments" onClick={() => goTo("payments")} />}
+                </HStack>
+              }
+            />
+          )}
+          <Grid columns={{ minWidth: 260 }} gap={4}>
+            <StatCard label="Total users" value={stats.totalUsers} variant="green" />
+            <StatCard label="Signups · 7 days" value={stats.signupsWeek} />
+            <StatCard label="Applications" value={stats.totalGenerations} />
+            <StatCard label="Revenue (complete)" value={`KES ${stats.totalRevenue.toLocaleString()}`} />
+            <StatCard label="Users hired" value={stats.hiredCount} />
+            <StatCard label="Active streaks (3+ days)" value={`🔥 ${stats.activeStreaks}`} />
+          </Grid>
+          <Grid columns={{ minWidth: 280 }} gap={4}>
+            <TrendChart title="Signups, 30 days" series={stats.trends?.signups} />
+            <TrendChart title="Applications, 30 days" series={stats.trends?.generations} />
+            <TrendChart title="Revenue, 30 days" series={stats.trends?.revenue} format={(n) => `KES ${n}`} />
+          </Grid>
+          <Grid columns={{ minWidth: 380 }} gap={4}>
+            <OverviewCard
+              title="Users by industry"
+              segments={(industryStats || []).slice(0, 5).map((d) => ({ label: d.label, value: d.count }))}
+              centerValue={stats.totalUsers}
+              centerLabel="users"
+              empty="No industries recorded yet."
+              stats={[
+                { label: "signups · 7d", value: stats.signupsWeek },
+                { label: "hired", value: stats.hiredCount },
+                { label: "signup → paid", value: stats.funnel?.signups ? `${Math.round((stats.funnel.paid / stats.funnel.signups) * 100)}%` : "—" },
+              ]}
+            />
+            <FunnelCard funnel={stats.funnel} />
+          </Grid>
+          <Grid columns={{ minWidth: 280 }} gap={4}>
+            <BarCard title="Revenue by plan" data={stats.planBreakdown} />
+            <BarCard title="Where users heard about us" data={referralStats} />
+            <BarCard title={`Most visited pages${pageStats ? ` (${pageStats.totalViews} views, 30 days)` : ""}`} data={pageStats?.stats} />
+          </Grid>
+          <Card padding={0}>
+            <VStack gap={0}>
+              <VStack padding={5}><Heading level={3}>Newest signups</Heading></VStack>
+              {users === null ? <Loading /> : (
+                <List hasDividers>
+                  {users.slice(0, 6).map((u) => (
+                    <ListItem key={u.id} label={u.email || "Unknown"} description={`${u.industry || "no industry"} · ${fmtDate(u.created_at)}`} startContent={<Avatar name={u.email || "?"} size="sm" tooltip={false} />} />
+                  ))}
+                </List>
+              )}
+            </VStack>
+          </Card>
+        </VStack>
+      ))}
 
       {tab === "users" && (
-        <>
-          {filteredUsers === null ? (
-            <div className="loading"><span className="spinner" /> Loading users…</div>
-          ) : (
-            <div className="data-table">
-            <div className="history-list">
-              {filteredUsers.map((u) => (
-                <div key={u.id} className="history-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                    <span className="hi-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span className="data-row-avatar">{(u.email || "?").slice(0, 1).toUpperCase()}</span>
-                      {u.email} {u.is_admin && <span className="credits-pill" style={{ marginLeft: 6 }}>admin</span>}
-                      {u.hired && <span className="credits-pill" style={{ marginLeft: 6 }}>hired</span>}
-                      {u.banned && <span className="credits-pill danger-pill" style={{ marginLeft: 6 }}>suspended</span>}
-                    </span>
-                    <span className="hi-meta">
-                      {new Date(u.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                      {" · "}{u.industry || "no industry set"}{" · "}🔥{u.streak_count || 0}
-                      {u.referral_source ? ` · via ${u.referral_source}` : ""}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <span className="field-note" style={{ marginTop: 0 }}>
-                      {u.plan === "unlimited" ? "Unlimited" : `${u.credits} credits`} · plan: {u.plan}
-                    </span>
-                    <button className="btn-ghost" disabled={busyId === u.id} onClick={() => adjustCredits(u.id, 5)}>+5 credits</button>
-                    <button className="btn-ghost" disabled={busyId === u.id} onClick={() => adjustCredits(u.id, -5)}>-5 credits</button>
-                    <button className="btn-ghost" disabled={busyId === u.id} onClick={() => getResetLink(u.email, u.id)}>
-                      {busyId === u.id ? "…" : "Get reset link"}
-                    </button>
-                    <button className="btn-ghost" disabled={busyId === u.id} onClick={() => toggleAdmin(u.id, !u.is_admin)}>
-                      {u.is_admin ? "Remove admin" : "Make admin"}
-                    </button>
-                    <button className="btn-ghost danger-btn" disabled={busyId === u.id} onClick={() => toggleBan(u.id, !u.banned)}>
-                      {u.banned ? "Unban" : "Suspend account"}
-                    </button>
-                    <button className="btn-ghost" onClick={() => viewActivity(u.id)}>
-                      {expandedUser === u.id ? "Hide activity" : "View activity"}
-                    </button>
-                    <button className="btn-ghost" onClick={() => openEdit(u)}>
-                      {editingUser === u.id ? "Cancel edit" : "Edit details"}
-                    </button>
-                    <button className="btn-ghost danger-btn" disabled={busyId === u.id} onClick={() => resetAccount(u.id, u.email)}>
-                      {busyId === u.id ? "…" : "Reset account"}
-                    </button>
-                  </div>
-                  {editingUser === u.id && (
-                    <div className="edit-user-form">
-                      <label className="field-label">Email</label>
-                      <input type="text" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} />
-                      <label className="field-label">Industry</label>
-                      <input type="text" value={editForm.industry} onChange={(e) => setEditForm((f) => ({ ...f, industry: e.target.value }))} />
-                      <label className="field-label">Experience level</label>
-                      <input type="text" value={editForm.experience_level} onChange={(e) => setEditForm((f) => ({ ...f, experience_level: e.target.value }))} placeholder="e.g. mid, senior, graduate" />
-                      <button className="btn-primary" style={{ marginTop: 10 }} disabled={busyId === u.id} onClick={() => saveUserEdit(u.id)}>
-                        {busyId === u.id ? "Saving…" : "Save changes"}
-                      </button>
-                    </div>
-                  )}
-                  {expandedUser === u.id && (
-                    <div style={{ borderTop: "1px solid var(--stone)", paddingTop: 8, marginTop: 2 }}>
-                      {!userGens[u.id] ? (
-                        <span className="field-note">Loading…</span>
-                      ) : userGens[u.id].length === 0 ? (
-                        <span className="field-note">No applications generated yet.</span>
-                      ) : (
-                        userGens[u.id].map((g) => (
-                          <div key={g.id} className="field-note" style={{ display: "flex", justifyContent: "space-between", marginTop: 0, marginBottom: 4 }}>
-                            <span>{g.job_title || "Application"} ({g.template})</span>
-                            <span>{new Date(g.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-              {filteredUsers.length === 0 && <p className="step-hint">No users match "{q}".</p>}
-            </div>
-            </div>
+        <VStack gap={4}>
+          <TextInput label="Search users" isLabelHidden placeholder="Search by email…" value={q} onChange={setQ} startIcon="search" hasClear />
+          {filteredUsers === null ? <Loading /> : filteredUsers.length === 0 ? <Text color="secondary">No users match “{q}”.</Text> : (
+            <Card padding={0}>
+              <List hasDividers>
+                {filteredUsers.map((u) => (
+                  <ListItem
+                    key={u.id}
+                    label={u.email}
+                    startContent={<Avatar name={u.email || "?"} size="sm" tooltip={false} />}
+                    description={
+                      <VStack gap={2}>
+                        <Text type="supporting" color="secondary">
+                          {fmtDate(u.created_at)} · {u.industry || "no industry"} · 🔥{u.streak_count || 0}
+                          {u.referral_source ? ` · via ${u.referral_source}` : ""} · {u.plan === "unlimited" ? "Unlimited" : `${u.credits} credits`} · plan: {u.plan}
+                        </Text>
+                        {(u.is_admin || u.hired || u.banned) && (
+                          <HStack gap={1}>
+                            {u.is_admin && <Badge label="admin" variant="info" />}
+                            {u.hired && <Badge label="hired" variant="success" />}
+                            {u.banned && <Badge label="suspended" variant="error" />}
+                          </HStack>
+                        )}
+                        {editingUser === u.id && (
+                          <Card variant="muted" padding={4}>
+                            <VStack gap={3}>
+                              <Grid columns={{ minWidth: 200 }} gap={3}>
+                                <TextInput label="Email" value={editForm.email} onChange={(v) => setEditForm((f) => ({ ...f, email: v }))} />
+                                <TextInput label="Industry" value={editForm.industry} onChange={(v) => setEditForm((f) => ({ ...f, industry: v }))} />
+                                <TextInput label="Experience level" placeholder="e.g. mid, senior, graduate" value={editForm.experience_level} onChange={(v) => setEditForm((f) => ({ ...f, experience_level: v }))} />
+                              </Grid>
+                              <HStack gap={2}>
+                                <Button label="Save changes" variant="primary" size="sm" isLoading={busyId === u.id} onClick={() => saveUserEdit(u.id)} />
+                                <Button label="Cancel" variant="ghost" size="sm" onClick={() => setEditingUser(null)} />
+                              </HStack>
+                            </VStack>
+                          </Card>
+                        )}
+                        {expandedUser === u.id && (
+                          !userGens[u.id] ? <Spinner size="sm" /> : userGens[u.id].length === 0 ? (
+                            <Text type="supporting" color="secondary">No applications generated yet.</Text>
+                          ) : (
+                            <VStack gap={1}>
+                              {userGens[u.id].map((g) => (
+                                <Text key={g.id} type="supporting">{g.job_title || "Application"} ({g.template}) · {fmtDate(g.created_at, { day: "numeric", month: "short" })}</Text>
+                              ))}
+                            </VStack>
+                          )
+                        )}
+                      </VStack>
+                    }
+                    endContent={
+                      <HStack gap={1} align="center">
+                        {busyId === u.id && <Spinner size="sm" />}
+                        <MoreMenu
+                          label={`Actions for ${u.email}`}
+                          alignment="end"
+                          items={[
+                            { label: "+5 credits", onClick: () => adjustCredits(u.id, 5) },
+                            { label: "−5 credits", onClick: () => adjustCredits(u.id, -5) },
+                            { type: "divider" },
+                            { label: expandedUser === u.id ? "Hide activity" : "View activity", onClick: () => viewActivity(u.id) },
+                            { label: editingUser === u.id ? "Cancel edit" : "Edit details", onClick: () => openEdit(u) },
+                            { label: "Get password reset link", onClick: () => getResetLink(u.email, u.id) },
+                            { label: u.is_admin ? "Remove admin" : "Make admin", onClick: () => toggleAdmin(u.id, !u.is_admin) },
+                            { type: "divider" },
+                            { label: u.banned ? "Unban" : "Suspend account", variant: "destructive", onClick: () => toggleBan(u.id, !u.banned) },
+                            { label: "Reset account", variant: "destructive", onClick: () => resetAccount(u.id, u.email) },
+                          ]}
+                        />
+                      </HStack>
+                    }
+                  />
+                ))}
+              </List>
+            </Card>
           )}
-        </>
-      )}
-
-      {tab === "jobs" && (
-        <>
-          {filteredJobs === null ? (
-            <div className="loading"><span className="spinner" /> Loading jobs…</div>
-          ) : (
-            <div className="data-table">
-            <div className="history-list">
-              {filteredJobs.map((j) => (
-                <div key={j.id} className="history-item">
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span className="data-row-avatar">{(j.company || "?").slice(0, 1).toUpperCase()}</span>
-                    <div>
-                      <span className="hi-title">{j.title} — {j.company}</span>
-                      <div className="field-note" style={{ marginTop: 2 }}>{j.location} · {j.job_type}</div>
-                    </div>
-                  </div>
-                  <button className="btn-ghost" disabled={busyId === j.id} onClick={() => deleteJob(j.id)}>
-                    {busyId === j.id ? "…" : "Delete"}
-                  </button>
-                </div>
-              ))}
-              {filteredJobs.length === 0 && <p className="step-hint">No jobs match.</p>}
-            </div>
-            </div>
-          )}
-        </>
+        </VStack>
       )}
 
       {tab === "payments" && (
-        <>
-          <div className="news-filter-row">
+        <VStack gap={4}>
+          <SegmentedControl label="Status" value={payFilter} onChange={setPayFilter}>
             {["all", "pending", "complete", "failed", "underpaid"].map((s) => (
-              <button key={s} className={`news-filter-chip ${payFilter === s ? "on" : ""}`} onClick={() => setPayFilter(s)}>{s}</button>
+              <SegmentedControlItem key={s} value={s} label={s.charAt(0).toUpperCase() + s.slice(1)} />
             ))}
-          </div>
-          {filteredPayments === null ? (
-            <div className="loading"><span className="spinner" /> Loading payments…</div>
-          ) : (
-            <div className="data-table">
-            <div className="history-list">
-              {filteredPayments.map((p) => (
-                <div key={p.id} className="history-item">
-                  <div>
-                    <span className="hi-title">{p.plan_id} — KES {p.amount}</span>
-                    <div className="field-note" style={{ marginTop: 2 }}>
-                      {new Date(p.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })} · {p.provider_ref || "no ref"}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span className="credits-pill">{p.status}</span>
-                    {p.status !== "complete" && (
-                      <>
-                        <button className="btn-ghost" disabled={busyId === p.id} onClick={() => resolvePayment(p.id, "complete")}>
-                          {busyId === p.id ? "…" : "Mark complete"}
-                        </button>
-                        {p.status !== "failed" && (
-                          <button className="btn-ghost" disabled={busyId === p.id} onClick={() => resolvePayment(p.id, "failed")}>Mark failed</button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {filteredPayments.length === 0 && <p className="step-hint">No payments match.</p>}
-            </div>
-            </div>
+          </SegmentedControl>
+          {filteredPayments === null ? <Loading /> : filteredPayments.length === 0 ? <Text color="secondary">No payments match.</Text> : (
+            <Card padding={0}>
+              <Table
+                idKey="id"
+                data={filteredPayments}
+                columns={[
+                  { key: "plan_id", header: "Plan", renderCell: (p) => <Text weight="medium">{p.plan_id}</Text> },
+                  { key: "amount", header: "Amount", renderCell: (p) => <Text hasTabularNumbers>KES {p.amount}</Text> },
+                  { key: "created_at", header: "Date", renderCell: (p) => <Text>{fmtDate(p.created_at, { day: "numeric", month: "short" })}</Text> },
+                  { key: "provider_ref", header: "Reference", renderCell: (p) => <Text type="code">{p.provider_ref || "—"}</Text> },
+                  { key: "status", header: "Status", renderCell: (p) => <Badge label={p.status} variant={STATUS_BADGE[p.status] || "neutral"} /> },
+                  {
+                    key: "actions",
+                    header: "",
+                    renderCell: (p) =>
+                      p.status !== "complete" ? (
+                        <HStack gap={1} justify="end">
+                          <Button size="sm" label="Mark complete" isLoading={busyId === p.id} onClick={() => resolvePayment(p.id, "complete")} />
+                          {p.status !== "failed" && <Button size="sm" variant="ghost" label="Mark failed" isDisabled={busyId === p.id} onClick={() => resolvePayment(p.id, "failed")} />}
+                        </HStack>
+                      ) : null,
+                  },
+                ]}
+              />
+            </Card>
           )}
-        </>
-      )}
-
-      {tab === "articles" && (
-        articles === null ? (
-          <div className="loading"><span className="spinner" /> Loading articles…</div>
-        ) : (
-          <div className="data-table">
-          <div className="history-list">
-            {articles.map((a) => (
-              <div key={a.id} className="history-item">
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className="data-row-avatar">{(a.title || "?").slice(0, 1).toUpperCase()}</span>
-                  <div>
-                    <span className="hi-title">{a.title}</span>
-                    <div className="field-note" style={{ marginTop: 2 }}>{a.industry} · {new Date(a.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</div>
-                  </div>
-                </div>
-                <button className="btn-ghost" disabled={busyId === a.id} onClick={() => deleteArticle(a.id)}>
-                  {busyId === a.id ? "…" : "Delete"}
-                </button>
-              </div>
-            ))}
-            {articles.length === 0 && <p className="step-hint">No articles generated yet.</p>}
-          </div>
-          </div>
-        )
-      )}
-
-      {tab === "hub" && (
-        <>
-          {hubProfiles === null ? (
-            <div className="loading"><span className="spinner" /> Loading Talent Hub profiles…</div>
-          ) : (
-            <div className="data-table">
-            <div className="history-list">
-              {hubProfiles.map((p) => (
-                <div key={p.id} className="history-item">
-                  <div>
-                    <span className="hi-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span className="data-row-avatar">{(p.display_name || "?").slice(0, 1).toUpperCase()}</span>
-                      {p.display_name} — {p.title}
-                    </span>
-                    <div className="field-note" style={{ marginTop: 2 }}>
-                      {[p.industry, p.experience_level].filter(Boolean).join(" · ")}
-                      {(p.skills || []).length > 0 ? ` · ${p.skills.join(", ")}` : ""}
-                      {p.blurb ? ` · "${p.blurb}"` : ""}
-                    </div>
-                    {(p.experience || []).length > 0 && (
-                      <div className="field-note" style={{ marginTop: 2 }}>
-                        Experience: {p.experience.map((e) => `${e.role}${e.company ? ` @ ${e.company}` : ""}`).join("; ")}
-                      </div>
-                    )}
-                    {(p.education || []).length > 0 && (
-                      <div className="field-note" style={{ marginTop: 2 }}>
-                        Education: {p.education.map((e) => `${e.degree}${e.school ? ` @ ${e.school}` : ""}`).join("; ")}
-                      </div>
-                    )}
-                  </div>
-                  <button className="btn-ghost danger-btn" disabled={busyId === p.id} onClick={() => deleteHubProfile(p.id)}>
-                    {busyId === p.id ? "…" : "Remove"}
-                  </button>
-                </div>
-              ))}
-              {hubProfiles.length === 0 && <p className="step-hint">No one has joined the Talent Hub yet.</p>}
-            </div>
-            </div>
-          )}
-
-          <h3 style={{ margin: "24px 0 10px" }}>Service listings</h3>
-          {hubServices === null ? (
-            <div className="loading"><span className="spinner" /> Loading service listings…</div>
-          ) : (
-            <div className="data-table">
-            <div className="history-list">
-              {hubServices.map((s) => (
-                <div key={s.id} className="history-item">
-                  <div>
-                    <span className="hi-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span className="data-row-avatar">{(s.title || "?").slice(0, 1).toUpperCase()}</span>
-                      <span className="credits-pill" style={{ marginRight: 8 }}>{s.category}</span>
-                      {s.title} — KES {s.price_kes.toLocaleString()}
-                    </span>
-                    <div className="field-note" style={{ marginTop: 2 }}>
-                      {s.hub_profiles?.display_name || "Unknown"}{s.delivery_days ? ` · ${s.delivery_days}-day delivery` : ""}
-                      {" · "}{s.description.slice(0, 140)}
-                    </div>
-                  </div>
-                  <button className="btn-ghost danger-btn" disabled={busyId === s.id} onClick={() => deleteHubService(s.id)}>
-                    {busyId === s.id ? "…" : "Remove"}
-                  </button>
-                </div>
-              ))}
-              {hubServices.length === 0 && <p className="step-hint">No services listed yet.</p>}
-            </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {tab === "promo" && (
-        <>
-          <div className="post-card">
-            <h3 style={{ marginBottom: 10 }}>Create a new code</h3>
-            <div className="two-col">
-              <div>
-                <label className="field-label">Code</label>
-                <input type="text" value={newCode.code} onChange={(e) => setNewCode((f) => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="e.g. TIKTOK5" />
-              </div>
-              <div>
-                <label className="field-label">Credits to give</label>
-                <input type="number" value={newCode.credits} onChange={(e) => setNewCode((f) => ({ ...f, credits: e.target.value }))} placeholder="5" />
-              </div>
-              <div>
-                <label className="field-label">Max redemptions (blank = unlimited)</label>
-                <input type="number" value={newCode.maxRedemptions} onChange={(e) => setNewCode((f) => ({ ...f, maxRedemptions: e.target.value }))} placeholder="e.g. 200" />
-              </div>
-              <div>
-                <label className="field-label">Expires (optional)</label>
-                <input type="date" value={newCode.expiresAt} onChange={(e) => setNewCode((f) => ({ ...f, expiresAt: e.target.value }))} />
-              </div>
-            </div>
-            <label className="field-label">Note (for you — not shown to users)</label>
-            <input type="text" value={newCode.note} onChange={(e) => setNewCode((f) => ({ ...f, note: e.target.value }))} placeholder="e.g. TikTok launch video, Aug 2026" />
-            {err && <p className="error">{err}</p>}
-            <button className="btn-primary" style={{ marginTop: 12 }} disabled={creatingCode} onClick={createPromoCode}>
-              {creatingCode ? "Creating…" : "Create code"}
-            </button>
-          </div>
-
-          {promoCodes === null ? (
-            <div className="loading"><span className="spinner" /> Loading codes…</div>
-          ) : (
-            <div className="data-table">
-            <div className="history-list">
-              {promoCodes.map((c) => (
-                <div key={c.id} className="history-item">
-                  <div>
-                    <span className="hi-title">
-                      <span className="data-row-avatar" style={{ marginRight: 10 }}>{(c.code || "?").slice(0, 1).toUpperCase()}</span>
-                      {c.code} <span className="credits-pill" style={{ marginLeft: 6 }}>+{c.credits} credits</span>
-                      {!c.active && <span className="credits-pill" style={{ marginLeft: 6 }}>inactive</span>}
-                    </span>
-                    <div className="field-note" style={{ marginTop: 2 }}>
-                      {c.redemptions_count} used{c.max_redemptions ? ` / ${c.max_redemptions} max` : " / unlimited"}
-                      {c.expires_at ? ` · expires ${new Date(c.expires_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}` : ""}
-                      {c.note ? ` · ${c.note}` : ""}
-                    </div>
-                  </div>
-                  <button className="btn-ghost" disabled={busyId === c.id} onClick={() => togglePromoCode(c.id, !c.active)}>
-                    {busyId === c.id ? "…" : c.active ? "Deactivate" : "Activate"}
-                  </button>
-                </div>
-              ))}
-              {promoCodes.length === 0 && <p className="step-hint">No promo codes yet — create one above.</p>}
-            </div>
-            </div>
-          )}
-        </>
+        </VStack>
       )}
 
       {tab === "support" && (
-        <>
-          <div className="news-filter-row">
-            {["open", "resolved", "all"].map((s) => (
-              <button key={s} className={`news-filter-chip ${supportFilter === s ? "on" : ""}`} onClick={() => setSupportFilter(s)}>{s}</button>
-            ))}
-          </div>
-          {supportMessages === null ? (
-            <div className="loading"><span className="spinner" /> Loading tickets…</div>
+        <VStack gap={4}>
+          <SegmentedControl label="Status" value={supportFilter} onChange={setSupportFilter}>
+            <SegmentedControlItem value="open" label="Open" />
+            <SegmentedControlItem value="resolved" label="Resolved" />
+            <SegmentedControlItem value="all" label="All" />
+          </SegmentedControl>
+          {filteredTickets === null ? <Loading /> : filteredTickets.length === 0 ? (
+            <Text color="secondary">No {supportFilter !== "all" ? supportFilter : ""} tickets.</Text>
           ) : (
-            <div className="history-list">
-              {supportMessages
-                .filter((m) => supportFilter === "all" || m.status === supportFilter)
-                .map((t) => {
+            <Card padding={2}>
+              <CollapsibleGroup hasDividers value={expandedTicket || ""} onChange={(v) => setExpandedTicket(v || null)}>
+                {filteredTickets.map((t) => {
                   const last = t.support_ticket_messages[t.support_ticket_messages.length - 1];
-                  const isOpen = expandedTicket === t.id;
                   return (
-                    <div key={t.id} className="history-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
-                      <button
-                        style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, background: "none", padding: 0, textAlign: "left" }}
-                        onClick={() => setExpandedTicket(isOpen ? null : t.id)}
-                      >
-                        <span className="hi-title">
-                          <span className="credits-pill" style={{ marginRight: 8 }}>{t.type}</span>
-                          {t.subject} <span className="field-note" style={{ marginTop: 0 }}>— {t.email}</span>
-                        </span>
-                        <span className="hi-meta">
-                          {new Date(t.updated_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                          {t.status === "resolved" ? " · resolved" : ""}
-                        </span>
-                      </button>
-                      {!isOpen && last && (
-                        <p className="field-note" style={{ marginTop: 0 }}>
-                          {last.sender === "admin" ? "You: " : ""}{last.message.slice(0, 90)}{last.message.length > 90 ? "…" : ""}
-                        </p>
-                      )}
-                      {isOpen && (
-                        <>
-                          <div className="ticket-thread" style={{ marginBottom: 10 }}>
-                            {t.support_ticket_messages.map((m) => (
-                              <div key={m.id} className={`ticket-bubble ${m.sender}`}>
-                                <div className="ticket-bubble-meta">
-                                  {m.sender === "admin" ? "You" : "User"} · {new Date(m.created_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                                </div>
-                                <div className="ticket-bubble-text">{m.message}</div>
-                              </div>
-                            ))}
-                          </div>
-                          <div style={{ display: "flex", gap: 8 }}>
-                            <input
-                              type="text"
-                              placeholder="Reply…"
-                              value={adminReplyText}
-                              onChange={(e) => setAdminReplyText(e.target.value)}
-                              onKeyDown={(e) => e.key === "Enter" && sendAdminReply(t.id)}
-                            />
-                            <button className="btn-primary" disabled={adminReplyBusy} onClick={() => sendAdminReply(t.id)}>
-                              {adminReplyBusy ? "…" : "Send"}
-                            </button>
-                          </div>
-                        </>
-                      )}
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <a className="btn-ghost" style={{ textDecoration: "none" }} href={`mailto:${t.email}`}>Reply by email instead</a>
-                        {t.status === "open" ? (
-                          <button className="btn-ghost" disabled={busyId === t.id} onClick={() => resolveSupportMessage(t.id, "resolved")}>
-                            {busyId === t.id ? "…" : "Mark resolved"}
-                          </button>
-                        ) : (
-                          <button className="btn-ghost" disabled={busyId === t.id} onClick={() => resolveSupportMessage(t.id, "open")}>
-                            {busyId === t.id ? "…" : "Reopen"}
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    <Collapsible
+                      key={t.id}
+                      value={t.id}
+                      trigger={
+                        <VStack gap={0.5}>
+                          <HStack gap={2} align="center" wrap="wrap">
+                            <Badge label={t.type} />
+                            <Text weight="semibold">{t.subject}</Text>
+                            <Badge label={t.status} variant={STATUS_BADGE[t.status] || "neutral"} />
+                          </HStack>
+                          <Text type="supporting" color="secondary">
+                            {t.email} · {fmtDate(t.updated_at)}
+                            {last ? ` · ${last.sender === "admin" ? "You: " : ""}${last.message.slice(0, 80)}${last.message.length > 80 ? "…" : ""}` : ""}
+                          </Text>
+                        </VStack>
+                      }
+                    >
+                      <VStack gap={3}>
+                        {t.support_ticket_messages.map((m) => (
+                          <HStack key={m.id} justify={m.sender === "admin" ? "end" : "start"}>
+                            <Card padding={3} variant={m.sender === "admin" ? "green" : "muted"} maxWidth="85%">
+                              <VStack gap={1}>
+                                <Text type="supporting" color="secondary">{m.sender === "admin" ? "You" : "User"} · {fmtDateTime(m.created_at)}</Text>
+                                <Text>{m.message}</Text>
+                              </VStack>
+                            </Card>
+                          </HStack>
+                        ))}
+                        <HStack gap={2} align="end">
+                          <StackItem size="fill">
+                            <TextInput label="Reply" isLabelHidden placeholder="Reply…" value={adminReplyText} onChange={setAdminReplyText} />
+                          </StackItem>
+                          <Button label="Send" variant="primary" isLoading={adminReplyBusy} onClick={() => sendAdminReply(t.id)} />
+                        </HStack>
+                        <HStack gap={2} wrap="wrap">
+                          <Button size="sm" variant="ghost" label="Reply by email instead" onClick={() => { window.location.href = `mailto:${t.email}`; }} />
+                          {t.status === "open" ? (
+                            <Button size="sm" label="Mark resolved" isLoading={busyId === t.id} onClick={() => resolveSupportMessage(t.id, "resolved")} />
+                          ) : (
+                            <Button size="sm" label="Reopen" isLoading={busyId === t.id} onClick={() => resolveSupportMessage(t.id, "open")} />
+                          )}
+                        </HStack>
+                      </VStack>
+                    </Collapsible>
                   );
                 })}
-              {supportMessages.filter((m) => supportFilter === "all" || m.status === supportFilter).length === 0 && (
-                <p className="step-hint">No {supportFilter !== "all" ? supportFilter : ""} messages.</p>
-              )}
-            </div>
+              </CollapsibleGroup>
+            </Card>
           )}
-        </>
+        </VStack>
+      )}
+
+      {tab === "promo" && (
+        <VStack gap={4}>
+          <Card padding={5}>
+            <VStack gap={4}>
+              <Heading level={3}>Create a code</Heading>
+              <Grid columns={{ minWidth: 200 }} gap={3}>
+                <TextInput label="Code" placeholder="e.g. TIKTOK5" value={newCode.code} onChange={(v) => setNewCode((f) => ({ ...f, code: v.toUpperCase() }))} />
+                <NumberInput label="Credits to give" min={1} value={newCode.credits === "" ? null : Number(newCode.credits)} onChange={(v) => setNewCode((f) => ({ ...f, credits: v == null ? "" : String(v) }))} />
+                <NumberInput label="Max redemptions" isOptional description="Blank = unlimited" min={1} value={newCode.maxRedemptions === "" ? null : Number(newCode.maxRedemptions)} onChange={(v) => setNewCode((f) => ({ ...f, maxRedemptions: v == null ? "" : String(v) }))} />
+                <TextInput label="Expires" isOptional placeholder="YYYY-MM-DD" value={newCode.expiresAt} onChange={(v) => setNewCode((f) => ({ ...f, expiresAt: v }))} />
+              </Grid>
+              <TextInput label="Note" description="For you — not shown to users." placeholder="e.g. TikTok launch video, Aug 2026" value={newCode.note} onChange={(v) => setNewCode((f) => ({ ...f, note: v }))} />
+              <HStack>
+                <Button label="Create code" variant="primary" isLoading={creatingCode} onClick={createPromoCode} />
+              </HStack>
+            </VStack>
+          </Card>
+          {promoCodes === null ? <Loading /> : promoCodes.length === 0 ? <Text color="secondary">No promo codes yet — create one above.</Text> : (
+            <Card padding={0}>
+              <List hasDividers>
+                {promoCodes.map((c) => (
+                  <ListItem
+                    key={c.id}
+                    label={c.code}
+                    description={`${c.redemptions_count} used${c.max_redemptions ? ` / ${c.max_redemptions} max` : " / unlimited"}${c.expires_at ? ` · expires ${fmtDate(c.expires_at)}` : ""}${c.note ? ` · ${c.note}` : ""}`}
+                    endContent={
+                      <HStack gap={2} align="center">
+                        <Token label={`+${c.credits}`} size="sm" color="green" />
+                        {!c.active && <Badge label="inactive" />}
+                        <Button size="sm" label={c.active ? "Deactivate" : "Activate"} isLoading={busyId === c.id} onClick={() => togglePromoCode(c.id, !c.active)} />
+                      </HStack>
+                    }
+                  />
+                ))}
+              </List>
+            </Card>
+          )}
+        </VStack>
+      )}
+
+      {tab === "hub" && (
+        <VStack gap={5}>
+          <VStack gap={3}>
+            <Heading level={2}>Profiles</Heading>
+            {hubProfiles === null ? <Loading /> : hubProfiles.length === 0 ? <Text color="secondary">No one has joined the Talent Hub yet.</Text> : (
+              <Card padding={0}>
+                <List hasDividers>
+                  {hubProfiles.map((p) => (
+                    <ListItem
+                      key={p.id}
+                      label={`${p.display_name} — ${p.title}`}
+                      startContent={<Avatar name={p.display_name || "?"} size="sm" tooltip={false} />}
+                      description={[
+                        [p.industry, p.experience_level].filter(Boolean).join(" · "),
+                        (p.skills || []).join(", "),
+                        p.blurb ? `“${p.blurb}”` : "",
+                        (p.experience || []).length ? `Experience: ${p.experience.map((e) => `${e.role}${e.company ? ` @ ${e.company}` : ""}`).join("; ")}` : "",
+                        (p.education || []).length ? `Education: ${p.education.map((e) => `${e.degree}${e.school ? ` @ ${e.school}` : ""}`).join("; ")}` : "",
+                      ].filter(Boolean).join(" · ")}
+                      endContent={<Button size="sm" variant="ghost" label="Remove" isLoading={busyId === p.id} onClick={() => deleteHubProfile(p.id)} />}
+                    />
+                  ))}
+                </List>
+              </Card>
+            )}
+          </VStack>
+          <VStack gap={3}>
+            <Heading level={2}>Service listings</Heading>
+            {hubServices === null ? <Loading /> : hubServices.length === 0 ? <Text color="secondary">No services listed yet.</Text> : (
+              <Card padding={0}>
+                <List hasDividers>
+                  {hubServices.map((s) => (
+                    <ListItem
+                      key={s.id}
+                      label={`${s.title} — KES ${s.price_kes.toLocaleString()}`}
+                      description={`${s.category} · ${s.hub_profiles?.display_name || "Unknown"}${s.delivery_days ? ` · ${s.delivery_days}-day delivery` : ""} · ${s.description.slice(0, 140)}`}
+                      endContent={<Button size="sm" variant="ghost" label="Remove" isLoading={busyId === s.id} onClick={() => deleteHubService(s.id)} />}
+                    />
+                  ))}
+                </List>
+              </Card>
+            )}
+          </VStack>
+        </VStack>
+      )}
+
+      {tab === "articles" && (articles === null ? <Loading /> : articles.length === 0 ? <Text color="secondary">No articles generated yet.</Text> : (
+        <Card padding={0}>
+          <List hasDividers>
+            {articles.map((a) => (
+              <ListItem
+                key={a.id}
+                label={a.title}
+                description={`${a.industry} · ${fmtDate(a.created_at, { day: "numeric", month: "short" })}`}
+                endContent={
+                  <HStack gap={1}>
+                    <Button size="sm" variant="ghost" label="View" onClick={() => window.open(`/news/${a.id}`, "_blank")} />
+                    <Button size="sm" variant="ghost" label="Delete" isLoading={busyId === a.id} onClick={() => deleteArticle(a.id)} />
+                  </HStack>
+                }
+              />
+            ))}
+          </List>
+        </Card>
+      ))}
+
+      {tab === "jobs" && (
+        <VStack gap={4}>
+          <TextInput label="Search jobs" isLabelHidden placeholder="Search by title or company…" value={q} onChange={setQ} startIcon="search" hasClear />
+          {filteredJobs === null ? <Loading /> : filteredJobs.length === 0 ? <Text color="secondary">No jobs match.</Text> : (
+            <Card padding={0}>
+              <List hasDividers>
+                {filteredJobs.map((j) => (
+                  <ListItem
+                    key={j.id}
+                    label={`${j.title} — ${j.company}`}
+                    description={[j.location, j.job_type].filter(Boolean).join(" · ")}
+                    startContent={<Avatar name={j.company || "?"} size="sm" tooltip={false} />}
+                    endContent={<Button size="sm" variant="ghost" label="Delete" isLoading={busyId === j.id} onClick={() => deleteJob(j.id)} />}
+                  />
+                ))}
+              </List>
+            </Card>
+          )}
+        </VStack>
       )}
 
       {tab === "marketing" && (
-        <>
-          <div className="post-card">
-            <h3 style={{ marginBottom: 10 }}>Channels</h3>
-            {marketingChannels === null ? (
-              <div className="loading"><span className="spinner" /> Loading…</div>
-            ) : (
-              <div className="history-list">
-                {marketingChannels.map((c) => (
-                  <div key={c.key} className="history-item">
-                    <div>
-                      <span className="hi-title">{c.label}</span>
-                      {c.note && <div className="field-note" style={{ marginTop: 2 }}>{c.note}</div>}
-                    </div>
-                    <span className={`credits-pill ${c.enabled ? "" : "warn"}`}>{c.enabled ? "Live" : "Not configured"}</span>
-                  </div>
+        <VStack gap={4}>
+          <Card padding={5}>
+            <VStack gap={4}>
+              <HStack justify="between" align="center" gap={3} wrap="wrap">
+                <VStack gap={0}>
+                  <Heading level={3}>Channels</Heading>
+                  <Text type="supporting" color="secondary">Runs once a day (vercel.json cron). Channels without their env vars are skipped — see the README.</Text>
+                </VStack>
+                <Button label="Run now" variant="primary" isLoading={runningMarketing} onClick={runMarketingNow} />
+              </HStack>
+              {marketingChannels === null ? <Loading /> : (
+                <List hasDividers>
+                  {marketingChannels.map((c) => (
+                    <ListItem key={c.key} label={c.label} description={c.note || undefined} endContent={<Badge label={c.enabled ? "Live" : "Not configured"} variant={c.enabled ? "success" : "warning"} />} />
+                  ))}
+                </List>
+              )}
+              {marketingRunResult && (
+                <Banner status="info" title="Run finished" description={JSON.stringify(marketingRunResult)} isDismissable onDismiss={() => setMarketingRunResult(null)} />
+              )}
+            </VStack>
+          </Card>
+          <Heading level={2}>Recent activity</Heading>
+          {marketingContent === null ? <Loading /> : marketingContent.length === 0 ? <Text color="secondary">Nothing generated yet — hit “Run now”.</Text> : (
+            <Card padding={0}>
+              <List hasDividers>
+                {marketingContent.map((m) => (
+                  <ListItem
+                    key={m.id}
+                    label={m.subject || m.body.slice(0, 80)}
+                    description={`${m.kind}${m.segment ? ` · ${m.segment}` : ""} · ${m.status}${m.error ? ` · ${m.error.slice(0, 120)}` : ""} · ${fmtDateTime(m.created_at)}`}
+                    startContent={<Badge label={m.channel} />}
+                  />
                 ))}
-              </div>
-            )}
-            <p className="field-note" style={{ marginTop: 12 }}>
-              Runs automatically once a day (see vercel.json's cron-marketing entry). Disabled channels are
-              skipped — set the matching env vars (see README) to turn one on.
-            </p>
-            <button className="btn-primary" style={{ marginTop: 10 }} disabled={runningMarketing} onClick={runMarketingNow}>
-              {runningMarketing ? "Running…" : "Run now"}
-            </button>
-            {marketingRunResult && (
-              <pre className="field-note" style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>
-                {JSON.stringify(marketingRunResult, null, 2)}
-              </pre>
-            )}
-          </div>
-
-          <h3 style={{ margin: "20px 0 10px" }}>Recent activity</h3>
-          {marketingContent === null ? (
-            <div className="loading"><span className="spinner" /> Loading…</div>
-          ) : (
-            <div className="history-list">
-              {marketingContent.map((m) => (
-                <div key={m.id} className="history-item">
-                  <div>
-                    <span className="hi-title">
-                      <span className="credits-pill" style={{ marginRight: 8 }}>{m.channel}</span>
-                      {m.subject || m.body.slice(0, 80)}
-                    </span>
-                    <div className="field-note" style={{ marginTop: 2 }}>
-                      {m.kind}{m.segment ? ` · ${m.segment}` : ""} · {m.status}
-                      {m.error ? ` · ${m.error.slice(0, 120)}` : ""}
-                      {" · "}{new Date(m.created_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {marketingContent.length === 0 && <p className="step-hint">Nothing generated yet — hit "Run now" above.</p>}
-            </div>
+              </List>
+            </Card>
           )}
-        </>
+        </VStack>
       )}
 
       {tab === "traffic" && (
-        <>
-          <p className="field-note" style={{ marginBottom: 12 }}>
-            Excludes page views and CV generations made from admin accounts — this is real visitor
-            activity only. Click a day to see its most-viewed pages.
-          </p>
-          {dailyTraffic === null ? (
-            <div className="loading"><span className="spinner" /> Loading…</div>
-          ) : (
-            <div className="data-table" style={{ overflowX: "auto" }}>
-              <div className="data-table-head">
-                <span style={{ flex: 1, minWidth: 100 }}>Date</span>
-                <span style={{ width: 80, textAlign: "right" }}>Views</span>
-                <span style={{ width: 80, textAlign: "right" }}>Signups</span>
-                <span style={{ width: 100, textAlign: "right" }}>Generations</span>
-                <span style={{ width: 110, textAlign: "right" }}>Revenue KES</span>
-              </div>
-            <div className="history-list">
-              {[...dailyTraffic].reverse().map((d) => {
-                const isOpen = expandedDay === d.date;
-                const detail = dayDetail[d.date];
-                return (
-                  <div key={d.date} className="history-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
-                    <button
-                      style={{ display: "flex", background: "none", padding: 0, textAlign: "left", width: "100%" }}
-                      onClick={() => toggleDay(d.date)}
+        <VStack gap={4}>
+          <Text color="secondary">Real visitor activity only — page views and generations from admin accounts are excluded. Open a day to see its top pages.</Text>
+          {dailyTraffic === null ? <Loading /> : (
+            <Card padding={2}>
+              <CollapsibleGroup hasDividers value={expandedDay || ""} onChange={(v) => { if (v && v !== expandedDay) toggleDay(v); else setExpandedDay(null); }}>
+                {[...dailyTraffic].reverse().map((d) => {
+                  const detail = dayDetail[d.date];
+                  return (
+                    <Collapsible
+                      key={d.date}
+                      value={d.date}
+                      trigger={
+                        <Grid columns={5} gap={2} width="100%">
+                          <Text weight="semibold">{new Date(`${d.date}T00:00:00`).toLocaleDateString("en-KE", { weekday: "short", day: "numeric", month: "short" })}</Text>
+                          <Text hasTabularNumbers>{d.pageViews} views</Text>
+                          <Text hasTabularNumbers>{d.signups} signups</Text>
+                          <Text hasTabularNumbers>{d.generations} CVs</Text>
+                          <Text hasTabularNumbers>KES {d.revenueKes.toLocaleString()}</Text>
+                        </Grid>
+                      }
                     >
-                      <span className="hi-title" style={{ flex: 1, minWidth: 100 }}>
-                        {new Date(`${d.date}T00:00:00`).toLocaleDateString("en-KE", { weekday: "short", day: "numeric", month: "short" })}
-                      </span>
-                      <span style={{ width: 80, textAlign: "right" }}>{d.pageViews}</span>
-                      <span style={{ width: 80, textAlign: "right" }}>{d.signups}</span>
-                      <span style={{ width: 100, textAlign: "right" }}>{d.generations}</span>
-                      <span style={{ width: 110, textAlign: "right" }}>{d.revenueKes.toLocaleString()}</span>
-                    </button>
-                    {isOpen && (
-                      <div style={{ paddingLeft: 4 }}>
-                        {dayDetailLoading === d.date ? (
-                          <p className="field-note">Loading top pages…</p>
-                        ) : detail ? (
-                          detail.topPages.length === 0 ? (
-                            <p className="field-note">No page views that day.</p>
-                          ) : (
-                            <div className="field-note">
-                              {detail.topPages.map((p) => (
-                                <div key={p.path} style={{ display: "flex", justifyContent: "space-between", maxWidth: 420 }}>
-                                  <span>{p.path}</span><span>{p.count}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            </div>
+                      {dayDetailLoading === d.date ? <Spinner size="sm" /> : detail ? (
+                        detail.topPages.length === 0 ? <Text color="secondary">No page views that day.</Text> : (
+                          <VStack gap={1}>
+                            {detail.topPages.map((p) => (
+                              <HStack key={p.path} justify="between" maxWidth={420}>
+                                <Text type="code">{p.path}</Text>
+                                <Text hasTabularNumbers>{p.count}</Text>
+                              </HStack>
+                            ))}
+                          </VStack>
+                        )
+                      ) : null}
+                    </Collapsible>
+                  );
+                })}
+              </CollapsibleGroup>
+            </Card>
           )}
-        </>
+        </VStack>
       )}
-    </AppSidebar>
+    </VStack>
   );
-}
 
-function BarCard({ title, data }) {
-  if (!data) {
-    return (
-      <div className="dash-card bar-card">
-        <h3>{title}</h3>
-        <div className="loading" style={{ padding: "16px 0" }}><span className="spinner" /></div>
-      </div>
-    );
-  }
-  const top = data.slice(0, 8);
-  const max = top.length ? Math.max(...top.map((d) => d.count)) : 1;
   return (
-    <div className="dash-card bar-card">
-      <h3>{title}</h3>
-      {top.length === 0 ? (
-        <p className="field-note">No data yet.</p>
-      ) : (
-        <div className="bar-list">
-          {top.map((d) => (
-            <div className="bar-row" key={d.label}>
-              <span className="bar-label" title={d.label}>{d.label}</span>
-              <div className="bar-track">
-                <div className="bar-fill" style={{ width: `${(d.count / max) * 100}%` }} />
-              </div>
-              <span className="bar-count">{d.count}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FunnelCard({ funnel, className = "" }) {
-  if (!funnel) {
-    return (
-      <div className={`dash-card funnel-card ${className}`}>
-        <h3>USER JOURNEY</h3>
-        <div className="loading" style={{ padding: "16px 0" }}><span className="spinner" /></div>
-      </div>
-    );
-  }
-  const stages = [
-    { label: "Signed up", value: funnel.signups },
-    { label: "Generated a CV", value: funnel.generated },
-    { label: "Paid", value: funnel.paid },
-    { label: "Hired", value: funnel.hired },
-  ];
-  const max = stages[0].value || 1;
-  return (
-    <div className={`dash-card funnel-card ${className}`}>
-      <h3>USER JOURNEY</h3>
-      <div className="funnel-list">
-        {stages.map((s) => {
-          const pct = max ? Math.round((s.value / max) * 100) : 0;
-          return (
-            <div className="funnel-row" key={s.label}>
-              <span className="funnel-label">{s.label}</span>
-              <div className="funnel-track"><div className="funnel-fill" style={{ width: `${pct}%` }} /></div>
-              <span className="funnel-value">{s.value} <span className="funnel-pct">{pct}%</span></span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <>
+      <Layout
+        height="auto"
+        start={isNarrow ? undefined : <LayoutPanel width={240} hasDivider isScrollable={false}>{nav}</LayoutPanel>}
+        content={<LayoutContent padding={6} isScrollable={false}>{content}</LayoutContent>}
+      />
+      <AlertDialog
+        isOpen={!!confirmReq}
+        onOpenChange={(open) => !open && answerConfirm(false)}
+        title="Are you sure?"
+        description={confirmReq?.message || ""}
+        actionLabel="Continue"
+        onAction={() => answerConfirm(true)}
+      />
+    </>
   );
 }

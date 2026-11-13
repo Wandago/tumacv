@@ -4,5 +4,5 @@
    app/layout.js imports first.
 
    Later layers win regardless of specificity:
-   reset < legacy < astryx-base < astryx-theme < app */
-@layer reset, legacy, astryx-base, astryx-theme, app;
+   reset < astryx-base < astryx-theme < app */
+@layer reset, astryx-base, astryx-theme, app;

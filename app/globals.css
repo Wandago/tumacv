@@ -4,5 +4,4 @@
 @import "@astryxdesign/core/astryx.css";
 @import "../theme/tumacv.css";
 
-@import "./legacy.css" layer(legacy);
-@import "./app.css" layer(app);
+@import "./app.css";
