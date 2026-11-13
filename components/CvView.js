@@ -1,6 +1,7 @@
 "use client";
 import { Text } from "@astryxdesign/core/Text";
 import { normalizeCv } from "../lib/cvResult";
+import { resolveTemplate } from "../lib/templates";
 
 function initials(name) {
   const parts = (name || "").trim().split(/\s+/).filter(Boolean);
@@ -53,171 +54,143 @@ function ContactList({ contact, className }) {
   );
 }
 
+const list = (xs) => (Array.isArray(xs) ? xs.filter(Boolean) : []);
+
+function Bullets({ items }) {
+  const b = list(items);
+  return b.length ? <ul>{b.map((x, j) => <li key={j}>{x}</li>)}</ul> : null;
+}
+
+function Experience({ items, timeline = false }) {
+  return (
+    <div className={timeline ? "exp timeline" : "exp"}>
+      {list(items).map((e, i) => (
+        <div className="exp-item" key={i}>
+          <div className="role-row">
+            <span className="role">
+              {e.role}
+              {e.company && <span className="co">{timeline ? " · " : ", "}{e.company}</span>}
+            </span>
+            <span className="dates">{e.dates}</span>
+          </div>
+          <Bullets items={e.bullets} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Education({ items }) {
+  return (
+    <div className="edu">
+      {list(items).map((e, i) => (
+        <div className="edu-item" key={i}>
+          <div className="role-row">
+            <span className="role">{e.degree}</span>
+            <span className="dates">{e.dates}</span>
+          </div>
+          {e.school && <div className="co">{e.school}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Skills({ items, chips = false, sep = " · " }) {
+  const s = list(items);
+  if (!s.length) return null;
+  return chips ? (
+    <div className="chips">{s.map((x) => <span className="chip" key={x}>{x}</span>)}</div>
+  ) : (
+    <p className="skills-line">{s.join(sep)}</p>
+  );
+}
+
+// Each section once, by key; designs choose the order and the headings.
+function sectionsFor(data, t) {
+  const certs = list(data.certifications);
+  const heads = t.heads || {};
+  return {
+    summary: data.summary ? { title: heads.summary || "Profile", body: <p className="summary">{data.summary}</p> } : null,
+    experience: list(data.experience).length
+      ? { title: heads.experience || "Experience", body: <Experience items={data.experience} timeline={t.timeline} /> }
+      : null,
+    education: list(data.education).length ? { title: heads.education || "Education", body: <Education items={data.education} /> } : null,
+    skills: list(data.skills).length
+      ? { title: heads.skills || "Skills", body: <Skills items={data.skills} chips={t.chips} sep={t.sep} /> }
+      : null,
+    certifications: certs.length
+      ? { title: heads.certifications || "Certifications", body: t.chips ? <Skills items={certs} chips /> : <Bullets items={certs} /> }
+      : null,
+  };
+}
+
+function Header({ data, t }) {
+  const c = data.contact || {};
+  const bits = [c.email, c.phone, c.location, c.linkedin].filter(Boolean);
+  return (
+    <header className="cv-head">
+      {t.monogram && <div className="monogram">{initials(data.name)}</div>}
+      <div className="cv-id">
+        <h1>{data.name}</h1>
+        {data.title && <div className="cv-title">{data.title}</div>}
+      </div>
+      {t.iconContacts ? <ContactList contact={c} className="cv-contact" /> : bits.length > 0 && <div className="cv-contact">{bits.join("   ·   ")}</div>}
+    </header>
+  );
+}
+
+const Section = ({ s, name }) =>
+  s ? (
+    <section className={`cv-sec sec-${name}`}>
+      <h2>{s.title}</h2>
+      {s.body}
+    </section>
+  ) : null;
+
+// How each design arranges the CV (the look is in app/cv.css).
+const DESIGNS = {
+  nairobi: { layout: "split", iconContacts: true, main: ["summary", "experience"], side: ["skills", "education", "certifications"], chips: true },
+  atlas: { layout: "sidebar", monogram: true, iconContacts: true, timeline: true, main: ["summary", "experience"], side: ["skills", "education", "certifications"], chips: true },
+  savannah: { layout: "labelled", order: ["summary", "experience", "education", "skills", "certifications"], heads: { summary: "About" }, sep: "  /  " },
+  kilimani: { layout: "single", iconContacts: true, order: ["summary", "experience", "skills", "education", "certifications"], chips: true },
+  ivory: { layout: "single", order: ["summary", "experience", "skills", "education", "certifications"] },
+  swift: { layout: "single", order: ["summary", "experience", "skills", "education", "certifications"], heads: { summary: "Summary" } },
+  campus: { layout: "single", iconContacts: true, order: ["summary", "education", "skills", "experience", "certifications"], chips: true, heads: { summary: "About me", experience: "Experience & projects" } },
+  boardroom: { layout: "single", order: ["summary", "experience", "skills", "education", "certifications"], heads: { summary: "Executive profile", experience: "Professional experience", skills: "Core competencies" }, sep: "   •   " },
+};
+
 export default function CvView({ data: raw, template }) {
   // Normalizing here too covers CVs saved before the API started doing it.
   const data = normalizeCv(raw);
   if (!data) return <Text color="secondary">This CV couldn't be displayed. Generate it again from the home page.</Text>;
-  const c = data.contact || {};
-  const contactBits = [c.email, c.phone, c.location, c.linkedin].filter(Boolean);
+  const id = resolveTemplate(template);
+  const t = DESIGNS[id];
+  const sec = sectionsFor(data, t);
 
-  if (template === "modern") {
-    return (
-      <div className="cv modern">
-        <aside className="side">
-          <div className="monogram">{initials(data.name)}</div>
-          <h1>{data.name}</h1>
-          <div className="cv-title">{data.title}</div>
-          <ContactList contact={c} className="cv-contact" />
-          {(data.skills || []).length > 0 && (
-            <>
-              <h2>Skills</h2>
-              <div>{(data.skills || []).map((s) => <span className="skill-tag" key={s}>{s}</span>)}</div>
-            </>
-          )}
-          <h2>Education</h2>
-          {(data.education || []).map((e, i) => (
-            <div key={i} className="side-edu">
-              <b>{e.degree}</b><br />{e.school}<br /><span className="dates">{e.dates}</span>
-            </div>
-          ))}
-          {(data.certifications || []).length > 0 && (
-            <>
-              <h2>Certifications</h2>
-              <ul className="side-certs">{data.certifications.map((x) => <li key={x}>{x}</li>)}</ul>
-            </>
-          )}
-        </aside>
-        <div>
-          <h2 style={{ marginTop: 0 }}>Profile</h2>
-          <p>{data.summary}</p>
-          <h2>Experience</h2>
-          <div className="timeline">
-            {(data.experience || []).map((e, i) => (
-              <div className="exp-item" key={i}>
-                <div className="role-row">{e.role} · <span className="co">{e.company}</span></div>
-                <div className="dates" style={{ fontSize: "12px" }}>{e.dates}</div>
-                <ul>{(e.bullets || []).map((b, j) => <li key={j}>{b}</li>)}</ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+  if (t.layout === "split" || t.layout === "sidebar") {
+    const side = (
+      <aside className="side">
+        {t.layout === "sidebar" && <Header data={data} t={t} />}
+        {t.side.map((k) => <Section key={k} name={k} s={sec[k]} />)}
+      </aside>
     );
-  }
-
-  if (template === "compact") {
     return (
-      <div className="cv compact">
-        <div className="cv-head">
-          <h1>{data.name}</h1><span className="cv-title">{data.title}</span>
-          <div className="cv-contact">{contactBits.join(" · ")}</div>
+      <div className={`cv ${id} layout-${t.layout}`}>
+        {t.layout === "split" && <Header data={data} t={t} />}
+        <div className="cv-cols">
+          {t.layout === "sidebar" && side}
+          <div className="main">{t.main.map((k) => <Section key={k} name={k} s={sec[k]} />)}</div>
+          {t.layout === "split" && side}
         </div>
-        <p className="summary">{data.summary}</p>
-        <h2>Experience</h2>
-        {(data.experience || []).map((e, i) => (
-          <div className="exp-item" key={i}>
-            <div className="role-row"><span>{e.role}, {e.company}</span><span className="dates">{e.dates}</span></div>
-            <ul>{(e.bullets || []).map((b, j) => <li key={j}>{b}</li>)}</ul>
-          </div>
-        ))}
-        <h2>Skills</h2>
-        <p className="skills-line">{(data.skills || []).join(" · ")}</p>
-        <h2>Education</h2>
-        {(data.education || []).map((e, i) => (
-          <div className="role-row" key={i}><span>{e.degree}, {e.school}</span><span className="dates">{e.dates}</span></div>
-        ))}
-        {(data.certifications || []).length > 0 && (
-          <><h2>Certifications</h2><p className="skills-line">{data.certifications.join(" · ")}</p></>
-        )}
-      </div>
-    );
-  }
-
-  if (template === "minimal") {
-    return (
-      <div className="cv minimal">
-        <div className="cv-head">
-          <h1>{data.name}</h1>
-          <div className="cv-title">{data.title}</div>
-          <ContactList contact={c} className="cv-contact" />
-        </div>
-        {data.summary && <p className="summary">{data.summary}</p>}
-        <h2>Experience</h2>
-        {(data.experience || []).map((e, i) => (
-          <div className="exp-item" key={i}>
-            <div className="role-row"><span>{e.role}</span><span className="dates">{e.dates}</span></div>
-            <div className="co">{e.company}</div>
-            <ul>{(e.bullets || []).map((b, j) => <li key={j}>{b}</li>)}</ul>
-          </div>
-        ))}
-        <h2>Education</h2>
-        {(data.education || []).map((e, i) => (
-          <div className="role-row" key={i}><span>{e.degree}, {e.school}</span><span className="dates">{e.dates}</span></div>
-        ))}
-        <h2>Skills</h2>
-        <p className="skills-line">{(data.skills || []).join("   ·   ")}</p>
-        {(data.certifications || []).length > 0 && (
-          <><h2>Certifications</h2><p className="skills-line">{data.certifications.join("   ·   ")}</p></>
-        )}
-      </div>
-    );
-  }
-
-  if (template === "executive") {
-    return (
-      <div className="cv executive">
-        <div className="cv-head">
-          <h1>{data.name}</h1>
-          <div className="cv-title">{data.title}</div>
-          <div className="cv-contact">{contactBits.join("   ·   ")}</div>
-        </div>
-        <h2>Executive Profile</h2>
-        <p>{data.summary}</p>
-        <h2>Professional Experience</h2>
-        {(data.experience || []).map((e, i) => (
-          <div className="exp-item" key={i}>
-            <div className="role-row"><span>{e.role} — {e.company}</span><span className="dates">{e.dates}</span></div>
-            <ul>{(e.bullets || []).map((b, j) => <li key={j}>{b}</li>)}</ul>
-          </div>
-        ))}
-        <h2>Core Competencies</h2>
-        <p className="skills">{(data.skills || []).join("  •  ")}</p>
-        <h2>Education</h2>
-        {(data.education || []).map((e, i) => (
-          <div className="role-row" key={i}><span>{e.degree}, {e.school}</span><span className="dates">{e.dates}</span></div>
-        ))}
-        {(data.certifications || []).length > 0 && (
-          <><h2>Certifications</h2><p>{data.certifications.join("  •  ")}</p></>
-        )}
       </div>
     );
   }
 
   return (
-    <div className="cv classic">
-      <div className="cv-head">
-        <h1>{data.name}</h1>
-        <div className="cv-title">{data.title}</div>
-        <div className="cv-contact">{contactBits.join("  ·  ")}</div>
-      </div>
-      <h2>Profile</h2>
-      <p>{data.summary}</p>
-      <h2>Experience</h2>
-      {(data.experience || []).map((e, i) => (
-        <div className="exp-item" key={i}>
-          <div className="role-row"><span>{e.role}, {e.company}</span><span className="dates">{e.dates}</span></div>
-          <ul>{(e.bullets || []).map((b, j) => <li key={j}>{b}</li>)}</ul>
-        </div>
-      ))}
-      <h2>Skills</h2>
-      <p className="skills">{(data.skills || []).join(" · ")}</p>
-      <h2>Education</h2>
-      {(data.education || []).map((e, i) => (
-        <div className="role-row" key={i}><span>{e.degree}, {e.school}</span><span className="dates">{e.dates}</span></div>
-      ))}
-      {(data.certifications || []).length > 0 && (
-        <><h2>Certifications</h2><p>{data.certifications.join(" · ")}</p></>
-      )}
+    <div className={`cv ${id} layout-${t.layout}`}>
+      <Header data={data} t={t} />
+      {t.order.map((k) => <Section key={k} name={k} s={sec[k]} />)}
     </div>
   );
 }

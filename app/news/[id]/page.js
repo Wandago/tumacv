@@ -77,7 +77,7 @@ export default async function ArticlePage({ params }) {
             <Link href="/news">← All articles</Link>
             <VStack gap={3}>
               <HStack gap={2} align="center">
-                <Token label={article.industry} size="sm" color="green" />
+                <Token label={article.industry} size="sm" color="pink" />
                 <Text type="supporting" color="secondary">
                   {new Date(article.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
                 </Text>

@@ -18,6 +18,7 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Icon } from "@astryxdesign/core/Icon";
 import PageHeader from "../../components/PageHeader";
+import { WaveIllustration } from "../../components/brand/Illustration";
 import { BriefcaseIcon, UsersIcon } from "../../lib/icons";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { EXPERIENCE_LEVELS } from "../../lib/gamification";
@@ -82,7 +83,7 @@ function ServiceCard({ s }) {
     <Card padding={5}>
       <VStack gap={3} height="100%">
         <HStack>
-          <Token label={s.category} size="sm" color="green" />
+          <Token label={s.category} size="sm" color="pink" />
         </HStack>
         <Heading level={3}>{s.title}</Heading>
         <Text color="secondary" maxLines={4}>{s.description}</Text>
@@ -159,6 +160,8 @@ export default function HubClient() {
               title="Talent Hub"
               description="Kenyan professionals who've chosen to be found — browse by industry, or by the services they offer. Every profile is written by the person behind it."
               actions={<Button label="Add yourself" variant="primary" onClick={() => router.push("/dashboard")} />}
+              tone="lilac"
+              illustration={<WaveIllustration size={200} hideOnPhones float />}
             />
 
             <TabList value={view} onChange={setView} hasDivider>

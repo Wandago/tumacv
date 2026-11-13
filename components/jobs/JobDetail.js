@@ -21,7 +21,7 @@ export default function JobDetail({ job, onClose, onApply }) {
             <HStack gap={2} wrap="wrap">
               {job.location && <Token label={job.location} size="sm" />}
               {job.type && <Token label={job.type} size="sm" />}
-              {job.salary && <Token label={job.salary} size="sm" color="green" />}
+              {job.salary && <Token label={job.salary} size="sm" color="yellow" />}
               {job.postedAt && <Token label={`Posted ${postedAgo(job.postedAt)}`} size="sm" />}
             </HStack>
             <HStack gap={2} wrap="wrap">

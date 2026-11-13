@@ -1,50 +1,54 @@
 /**
- * TumaCV theme — Astryx neutral, re-accented in the TumaCV "kijani" green.
+ * TumaCV "Sunset Pop" theme — every client-facing page (landing, sign-in,
+ * the CV builder and result, jobs, pricing, hub, news, support, legal).
+ * The dashboard and admin keep the original look (theme/classic.ts).
  *
- * This is the editable source. After changing it, rebuild the CSS + JS the
- * app actually loads (needed for SSR, so there's no flash of unstyled
- * components):
- *
+ * After changing this file, rebuild what the app loads:
  *   npx @astryxdesign/cli theme build theme/tumacv.ts
  *
- * Neutral sets its accent as explicit tokens (near-black), and explicit
- * tokens win over a color.accent seed, so every accent token is overridden
- * here rather than seeding color.accent.
+ * Palette. The pops share lightness and chroma in OKLCH, so they sit together
+ * instead of fighting; one deep ink and a warm paper hold them:
+ *   magenta   #DA008F  brand, primary actions
+ *   coral     #F84B4B
+ *   tangerine #FE860F
+ *   sunshine  #FBD530
+ *   plum      #6B1D7B
+ *   ink       #15111F  text, dark tiles
+ *   paper     #FCF8F4  page
+ * plus soft tints of the same hues (blush, peach, butter, lilac) for quieter
+ * tiles. There is deliberately no green anywhere in the brand.
  */
 import {defineTheme} from '@astryxdesign/core/theme';
 import {neutralTheme} from '@astryxdesign/theme-neutral';
 
-const SYSTEM_FALLBACKS = 'BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const SYSTEM = 'BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const INK = '#15111F';
 
-// The bold colour cards ("vivid" cards) on the screens people work in:
-// builder, result, dashboard, jobs and the landing page. Each Card colour
-// variant becomes a solid, saturated block, and everything inside it (text,
-// icons, borders, primary buttons) is re-pointed so it reads on that block.
-// Light blocks carry near-black ink; dark blocks carry white, and their
-// primary button turns white with the block's own colour as its label.
-// Every pairing passes WCAG AA (4.5:1+) for body text.
-const INK = '#14121a';
-function vivid(background: string, onDark: boolean, accentLabel?: string) {
+// Solid colour tiles (components/brand/Tile.js maps tone names to these Card
+// variants). Inside a tile, text, icons, borders, fields and primary buttons
+// are re-pointed so they read on the tile: ink on light tiles, white on dark
+// ones, where the primary button turns white with the tile's colour as label.
+// Every pairing passes WCAG AA for body text.
+function tile(background: string, onDark: boolean, accentLabel?: string) {
   const fg = onDark ? '#ffffff' : INK;
   return {
     colorScheme: onDark ? 'dark' : 'light',
     borderRadius: 'var(--radius-page)',
     color: fg,
     '--color-text-primary': fg,
-    '--color-text-secondary': onDark ? '#ffffffdb' : '#14121abf',
+    '--color-text-secondary': onDark ? '#ffffffd9' : '#15111fbf',
     '--color-text-accent': fg,
     '--color-icon-primary': fg,
-    '--color-icon-secondary': onDark ? '#ffffffcc' : '#14121aa6',
+    '--color-icon-secondary': onDark ? '#ffffffcc' : '#15111fa6',
     '--color-icon-accent': fg,
-    '--color-border': onDark ? '#ffffff33' : '#14121a26',
-    '--color-border-emphasized': onDark ? '#ffffff59' : '#14121a40',
-    '--color-overlay-hover': onDark ? '#ffffff1a' : '#14121a12',
-    '--color-overlay-pressed': onDark ? '#ffffff26' : '#14121a1f',
+    '--color-border': onDark ? '#ffffff33' : '#15111f1f',
+    '--color-border-emphasized': onDark ? '#ffffff59' : '#15111f40',
+    '--color-overlay-hover': onDark ? '#ffffff1a' : '#15111f12',
+    '--color-overlay-pressed': onDark ? '#ffffff26' : '#15111f1f',
     '--color-accent': onDark ? '#ffffff' : INK,
     '--color-on-accent': onDark ? accentLabel ?? INK : '#ffffff',
-    '--color-background-muted': onDark ? '#ffffff1f' : '#14121a12',
-    // Fields on a dark block read as frosted glass rather than black boxes.
-    ...(onDark ? {'--color-background-surface': '#ffffff1f'} : {}),
+    '--color-background-muted': onDark ? '#ffffff1f' : '#15111f0f',
+    '--color-background-surface': onDark ? '#ffffff1a' : '#ffffff',
   };
 }
 
@@ -52,60 +56,82 @@ export const tumacvTheme = defineTheme({
   name: 'tumacv',
   extends: neutralTheme,
 
-  // System fonts: no webfont to download on slow mobile data, and each
-  // platform's own UI face (SF on iPhone, Roboto on Android, Segoe on Windows).
   typography: {
-    scale: {base: 15, ratio: 1.22},
-    body: {family: '-apple-system', fallbacks: SYSTEM_FALLBACKS},
-    // Headings use Bricolage Grotesque (self-hosted, 41 KB, latin subset,
-    // loaded in app/layout.js) — the one webfont, for character where it
-    // shows; body text stays on the fast system face.
+    scale: {base: 15, ratio: 1.25},
+    // Plus Jakarta Sans for everything you read, Bricolage Grotesque for
+    // headlines; Instrument Serif italic is the editorial accent on a word
+    // or two (components/brand/Accent.js). All self-hosted latin subsets,
+    // loaded in app/layout.js.
+    body: {family: 'Plus Jakarta Sans Variable', fallbacks: `-apple-system, ${SYSTEM}`},
     heading: {
       family: 'Bricolage Grotesque Variable',
-      fallbacks: `-apple-system, ${SYSTEM_FALLBACKS}`,
+      fallbacks: `-apple-system, ${SYSTEM}`,
       weights: {1: 'semibold', 2: 'semibold', 3: 'semibold', 4: 'semibold'},
     },
-    code: {
-      family: 'ui-monospace',
-      fallbacks: '"SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-    },
+    code: {family: 'ui-monospace', fallbacks: '"SF Mono", Monaco, Consolas, monospace'},
   },
 
-  // Slightly softer corners than neutral: friendlier for a consumer product.
-  radius: {base: 5, multiplier: 1.25},
+  radius: {base: 6, multiplier: 1.35},
 
   tokens: {
-    // Kijani green. Light: #0b8a3f is 4.9:1 against white, so it passes AA
-    // both as text on white and as a fill under white text. Dark: the
-    // brighter #32d158 reads on dark surfaces, with near-black text on it.
-    '--color-accent': ['#0b8a3f', '#32d158'],
-    '--color-accent-muted': ['#e3f4e8', '#173a22'],
-    '--color-text-accent': ['#08702f', '#5ee07c'],
-    '--color-icon-accent': ['#0b8a3f', '#32d158'],
-    '--color-on-accent': ['#ffffff', '#06210f'],
+    '--color-accent': ['#DA008F', '#FF4FB0'],
+    '--color-accent-muted': ['#FFE1F1', '#3B1531'],
+    '--color-text-accent': ['#B5007A', '#FF85C8'],
+    '--color-icon-accent': ['#DA008F', '#FF4FB0'],
+    '--color-on-accent': ['#FFFFFF', INK],
 
-    // A faint green cast on the page canvas so the brand reads even on
-    // screens without much accent on them.
-    '--color-background-body': ['#f3f6f3', '#121413'],
+    '--color-background-body': ['#FCF8F4', '#110D17'],
+    '--color-background-surface': ['#FFFFFF', '#1B1524'],
+    '--color-background-card': ['#FFFFFF', '#1B1524'],
+    '--color-background-popover': ['#FFFFFF', '#241C2F'],
+    '--color-background-muted': ['#F5EEE8', '#FFFFFF0F'],
+    '--color-background-inverted': [INK, '#F7F2EE'],
+
+    '--color-text-primary': [INK, '#F7F2EE'],
+    '--color-text-secondary': ['#5E566B', '#BAB1C5'],
+    '--color-icon-primary': [INK, '#F7F2EE'],
+    '--color-icon-secondary': ['#5E566B', '#BAB1C5'],
+    '--color-border': ['#15111F14', '#FFFFFF17'],
+    '--color-border-emphasized': ['#DED5CD', '#3A3146'],
+
+    // "Success" (a filled-in field, a confirmation banner) in brand plum
+    // instead of the stock green, which fights the palette.
+    '--color-success': ['#7A2E8E', '#D58BE5'],
+    '--color-success-muted': ['#7A2E8E1F', '#D58BE533'],
+    '--color-on-success': ['#FFFFFF', INK],
+
+    // Token / badge families, re-tuned to the palette.
+    '--color-background-pink': ['#DA008F1A', '#DA008F33'],
+    '--color-text-pink': ['#9C0066', '#FFA3D6'],
+    '--color-icon-pink': ['#DA008F', '#FF4FB0'],
+    '--color-background-purple': ['#6B1D7B1A', '#B85CCB33'],
+    '--color-text-purple': ['#56145F', '#E7BCF0'],
+    '--color-icon-purple': ['#6B1D7B', '#D58BE5'],
+    '--color-background-orange': ['#FE860F24', '#FE860F33'],
+    '--color-text-orange': ['#874000', '#FFC58C'],
+    '--color-icon-orange': ['#E36F00', '#FE9A3A'],
+    '--color-background-yellow': ['#FBD53040', '#FBD53033'],
+    '--color-text-yellow': ['#6A5200', '#FFE48A'],
+    '--color-icon-yellow': ['#C9A300', '#FBD530'],
+    '--color-background-red': ['#F84B4B1F', '#F84B4B33'],
+    '--color-text-red': ['#A1191C', '#FFB3B3'],
+    '--color-icon-red': ['#E03535', '#FF7070'],
   },
 
   components: {
-    // Pill buttons, matching TumaCV's existing look.
     button: {base: {borderRadius: '9999px'}},
-    // Neutral repaints the accent progress bar blue (its "info" colour);
-    // TumaCV's progress is the brand green.
+    progressbar: {'variant:accent': {'--color-accent': 'light-dark(#DA008F, #FF4FB0)'}},
     card: {
-      'variant:green': {...vivid('#a5e46f', false), '--color-background-green': '#a5e46f'},
-      'variant:purple': {...vivid('#6b3df5', true, '#4b1fd6'), '--color-background-purple': '#6b3df5'},
-      'variant:gray': {...vivid('#17151c', true), '--color-background-gray': 'light-dark(#17151c, #262330)'},
-      'variant:pink': {...vivid('#f9cde6', false), '--color-background-pink': '#f9cde6'},
-      'variant:yellow': {...vivid('#ffd23f', false), '--color-background-yellow': '#ffd23f'},
-      'variant:red': {...vivid('#d63a29', true, '#b52a1b'), '--color-background-red': '#d63a29'},
-      'variant:blue': {...vivid('#2d5bd7', true, '#1f45ae'), '--color-background-blue': '#2d5bd7'},
-      'variant:orange': {...vivid('#ff8c42', false), '--color-background-orange': '#ff8c42'},
-      'variant:teal': {...vivid('#1fc7b2', false), '--color-background-teal': '#1fc7b2'},
-      'variant:cyan': {...vivid('#bfe9ff', false), '--color-background-cyan': '#bfe9ff'},
+      'variant:pink': {...tile('#DA008F', true, '#A8006E'), '--color-background-pink': '#DA008F'},
+      'variant:red': {...tile('#F84B4B', false), '--color-background-red': '#F84B4B'},
+      'variant:orange': {...tile('#FE860F', false), '--color-background-orange': '#FE860F'},
+      'variant:yellow': {...tile('#FBD530', false), '--color-background-yellow': '#FBD530'},
+      'variant:purple': {...tile('#6B1D7B', true, '#6B1D7B'), '--color-background-purple': '#6B1D7B'},
+      'variant:gray': {...tile(INK, true, INK), '--color-background-gray': `light-dark(${INK}, #261E33)`},
+      'variant:teal': {...tile('#FFE1F1', false), '--color-background-teal': '#FFE1F1'},
+      'variant:cyan': {...tile('#FFE6D3', false), '--color-background-cyan': '#FFE6D3'},
+      'variant:blue': {...tile('#FFF1BF', false), '--color-background-blue': '#FFF1BF'},
+      'variant:green': {...tile('#F1E1F6', false), '--color-background-green': '#F1E1F6'},
     },
-    progressbar: {'variant:accent': {'--color-accent': 'light-dark(#0b8a3f, #32d158)'}},
   },
 });

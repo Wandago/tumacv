@@ -1,0 +1,175 @@
+/* The CV document (components/CvView.js, components/home/CvSheet.js) and its
+   eight designs (lib/templates.js).
+
+   This is the product's output — a page that prints and saves as PDF — so it
+   uses a fixed print palette instead of theme tokens: paper stays white and
+   ink stays dark in dark mode and on colour tiles, exactly as it will print.
+   Each design sets its accent as --acc (and a soft tint as --acc-soft).
+
+   In the `app` layer (see app/layers.css) — declared here, not on @import,
+   because Next's CSS loader drops `@import … layer()`. */
+@layer app {
+  .sheet {
+    --serif: "Instrument Serif", ui-serif, "New York", Georgia, "Times New Roman", serif;
+    --classic-serif: ui-serif, "New York", Georgia, "Times New Roman", serif;
+    --sans: "Plus Jakarta Sans Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --display: "Bricolage Grotesque Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --ink: #1a1a1f;
+    --muted: #5d5d66;
+    --rule: #e3e3e8;
+    color-scheme: light;
+    /* Re-point theme text tokens in case the sheet sits on a colour tile. */
+    --color-text-primary: var(--ink);
+    --color-text-secondary: var(--muted);
+    --color-icon-primary: var(--ink);
+    --color-icon-secondary: var(--muted);
+
+    background: #ffffff; width: 100%; max-width: 794px; min-height: 600px; margin-inline: auto;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(20, 16, 30, 0.08), 0 30px 70px -20px rgba(20, 16, 30, 0.28);
+    padding: 46px 50px; color: var(--ink);
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  @media (max-width: 640px) { .sheet { padding: 26px 20px; } }
+
+  .letter { font-family: var(--classic-serif); font-size: 14.5px; line-height: 1.75; white-space: pre-wrap; color: var(--ink); }
+
+  /* ---- Shared structure ---------------------------------------------------- */
+  .cv { --acc: #1a1a1f; --acc-soft: #f2f2f5; font-family: var(--sans); font-size: 12.5px; line-height: 1.55; color: var(--ink); }
+  .cv ul { list-style: disc; padding-left: 17px; margin: 4px 0 0; }
+  .cv li { margin-bottom: 3px; }
+  .cv li::marker { color: var(--acc); }
+  .cv p { margin: 0; }
+  .cv h1 { color: var(--ink); line-height: 1.1; }
+  .cv h2 { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--acc); margin: 0 0 8px; }
+  .cv .cv-sec { margin-top: 20px; }
+  .cv .cv-title { color: var(--muted); font-weight: 500; }
+  .cv .cv-contact { color: var(--muted); font-size: 11.5px; }
+  .cv .contact-item { display: inline-flex; align-items: center; gap: 5px; color: inherit; margin-right: 14px; }
+  .cv .contact-item svg { flex-shrink: 0; color: var(--acc); }
+  .cv .role-row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .cv .role { font-weight: 650; }
+  .cv .co { color: var(--muted); font-weight: 500; }
+  .cv .dates { color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cv .exp-item + .exp-item, .cv .edu-item + .edu-item { margin-top: 11px; }
+  .cv .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .cv .chip { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--acc-soft); color: var(--ink); }
+  .cv .monogram {
+    width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--acc); color: #fff; font-family: var(--display); font-weight: 650; font-size: 18px; margin-bottom: 14px;
+  }
+
+  /* Two-column layouts */
+  .cv .cv-cols { display: grid; gap: 30px; }
+  .cv.layout-split .cv-cols { grid-template-columns: 1fr 200px; }
+  .cv.layout-sidebar .cv-cols { grid-template-columns: 206px 1fr; }
+  .cv.layout-split .side .cv-sec:first-child, .cv.layout-split .main .cv-sec:first-child,
+  .cv.layout-sidebar .main .cv-sec:first-child { margin-top: 0; }
+  .cv .side .role-row { display: block; }
+  .cv .side .dates { display: block; }
+  @media (max-width: 640px) {
+    .cv.layout-split .cv-cols, .cv.layout-sidebar .cv-cols { grid-template-columns: 1fr; }
+  }
+
+  /* ---- Nairobi: modern split, navy, big display name ------------------------ */
+  .cv.nairobi { --acc: #1f2a44; --acc-soft: #eaeef6; }
+  .cv.nairobi .cv-head { padding-bottom: 18px; margin-bottom: 22px; border-bottom: 2px solid var(--acc); }
+  .cv.nairobi h1 { font-family: var(--display); font-size: 30px; font-weight: 650; letter-spacing: -0.02em; }
+  .cv.nairobi .cv-title { font-size: 14px; margin: 3px 0 10px; color: var(--acc); font-weight: 600; }
+  .cv.nairobi .side { border-left: 1px solid var(--rule); padding-left: 22px; }
+
+  /* ---- Atlas: tinted sidebar, monogram, timeline ----------------------------- */
+  .cv.atlas { --acc: #2e4a7d; --acc-soft: #ffffff; --side: #f1f4f9; }
+  .cv.atlas .side {
+    background: var(--side); margin: -46px 0 -46px -50px; padding: 40px 22px 40px 50px; border-radius: 8px 0 0 8px;
+  }
+  .cv.atlas h1 { font-family: var(--display); font-size: 22px; font-weight: 650; letter-spacing: -0.01em; }
+  .cv.atlas .cv-title { font-size: 12.5px; color: var(--acc); font-weight: 600; margin-top: 4px; }
+  .cv.atlas .cv-contact { display: grid; gap: 6px; margin-top: 14px; font-size: 11px; }
+  .cv.atlas .side .chip { border: 1px solid #d6deeb; }
+  .cv.atlas .timeline { position: relative; padding-left: 16px; }
+  .cv.atlas .timeline .exp-item { position: relative; }
+  .cv.atlas .timeline .exp-item::before {
+    content: ""; position: absolute; left: -16px; top: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--acc);
+  }
+  .cv.atlas .timeline .exp-item::after {
+    content: ""; position: absolute; left: -12.5px; top: 15px; bottom: -10px; width: 1px; background: #cfd8e8;
+  }
+  .cv.atlas .timeline .exp-item:last-child::after { display: none; }
+  .cv.atlas .timeline .role-row { display: block; }
+  .cv.atlas .timeline .dates { display: block; margin-top: 1px; }
+  @media (max-width: 640px) {
+    .cv.atlas .side { margin: -26px -20px 0; padding: 24px 20px; border-radius: 8px 8px 0 0; }
+  }
+
+  /* ---- Savannah: editorial serif, labels in a margin column ----------------- */
+  .cv.savannah { --acc: #b4532a; --acc-soft: #f8ece5; }
+  .cv.savannah .cv-head { margin-bottom: 8px; }
+  .cv.savannah h1 { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 42px; letter-spacing: -0.01em; line-height: 1; }
+  .cv.savannah .cv-title { font-size: 13px; margin: 6px 0 8px; letter-spacing: 0.04em; }
+  .cv.savannah .cv-sec { display: grid; grid-template-columns: 118px 1fr; gap: 20px; border-top: 1px solid var(--rule); padding-top: 14px; margin-top: 16px; }
+  .cv.savannah h2 { margin: 2px 0 0; font-size: 10.5px; }
+  @media (max-width: 640px) { .cv.savannah .cv-sec { grid-template-columns: 1fr; gap: 6px; } }
+
+  /* ---- Kilimani: bold plum header band -------------------------------------- */
+  .cv.kilimani { --acc: #4a1f55; --acc-soft: #f3e9f5; }
+  .cv.kilimani .cv-head {
+    background: var(--acc); color: #fff; margin: -46px -50px 6px; padding: 34px 50px 26px; border-radius: 8px 8px 0 0;
+  }
+  .cv.kilimani h1 { font-family: var(--display); color: #fff; font-size: 32px; font-weight: 650; letter-spacing: -0.02em; }
+  .cv.kilimani .cv-title { color: #e7d3ec; font-size: 14px; margin: 4px 0 12px; }
+  .cv.kilimani .cv-contact, .cv.kilimani .contact-item svg { color: #f1e6f3; }
+  .cv.kilimani h2 { display: flex; align-items: center; gap: 8px; }
+  .cv.kilimani h2::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+  @media (max-width: 640px) { .cv.kilimani .cv-head { margin: -26px -20px 6px; padding: 26px 20px 20px; } }
+
+  /* ---- Ivory: classic centred serif, ATS-safe -------------------------------- */
+  .cv.ivory { font-family: var(--classic-serif); font-size: 13px; --acc: #1a1a1f; }
+  .cv.ivory .cv-head { text-align: center; padding-bottom: 14px; border-bottom: 1.5px solid var(--ink); }
+  .cv.ivory h1 { font-family: var(--classic-serif); font-size: 28px; font-weight: 600; letter-spacing: 0.01em; }
+  .cv.ivory .cv-title { font-size: 14px; margin: 3px 0 8px; font-style: italic; }
+  .cv.ivory h2 { color: var(--ink); font-size: 12px; letter-spacing: 0.16em; border-bottom: 1px solid #cfcfd4; padding-bottom: 4px; }
+
+  /* ---- Swift: dense single column -------------------------------------------- */
+  .cv.swift { font-size: 11.8px; line-height: 1.45; --acc: #333338; }
+  .cv.swift .cv-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  .cv.swift h1 { font-family: var(--display); font-size: 22px; font-weight: 700; }
+  .cv.swift .cv-title { font-size: 13px; }
+  .cv.swift .cv-contact { flex-basis: 100%; }
+  .cv.swift .cv-sec { margin-top: 13px; }
+  .cv.swift h2 { color: var(--ink); margin-bottom: 5px; }
+  .cv.swift .exp-item + .exp-item { margin-top: 8px; }
+
+  /* ---- Campus: education first, coral chips ---------------------------------- */
+  .cv.campus { --acc: #c2453e; --acc-soft: #fbeae8; }
+  .cv.campus .cv-head { padding: 18px 20px; border-radius: 12px; background: var(--acc-soft); }
+  .cv.campus h1 { font-family: var(--display); font-size: 28px; font-weight: 650; letter-spacing: -0.015em; }
+  .cv.campus .cv-title { color: var(--acc); font-weight: 600; font-size: 13.5px; margin: 3px 0 10px; }
+  .cv.campus h2::before { content: "●"; margin-right: 6px; font-size: 8px; vertical-align: 2px; }
+
+  /* ---- Boardroom: formal, spaced capitals ------------------------------------ */
+  .cv.boardroom { --acc: #26303b; --acc-soft: #eef0f2; }
+  .cv.boardroom .cv-head { border-top: 6px solid var(--acc); padding-top: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+  .cv.boardroom h1 { font-family: var(--display); font-size: 27px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+  .cv.boardroom .cv-title { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; margin: 6px 0 8px; }
+  .cv.boardroom h2 { color: var(--ink); letter-spacing: 0.2em; }
+  .cv.boardroom .skills-line { font-weight: 500; }
+
+  /* ---- Print ------------------------------------------------------------------ */
+  @media print {
+    .print-root .letter { font-size: 12pt; }
+    .cv .role-row, .cv h2 { break-after: avoid; }
+    .cv li { break-inside: avoid; }
+    /* Atlas's tinted sidebar is painted on the page canvas instead of on the
+       sidebar box: the canvas fills every printed page edge to edge, so the
+       band runs unbroken down every page, the last one too. */
+    html:has(.print-root .cv.atlas) {
+      background: linear-gradient(90deg, #f1f4f9 0 calc(15mm + 206px + 8px), #ffffff 0) !important;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .print-root .cv.atlas .side { background: none; margin: 0; padding: 0 8px 0 0; border-radius: 0; }
+    /* Bleeding bands become inset panels in print (the top margin row sits
+       above them). */
+    .print-root .cv.kilimani .cv-head { margin: 0 0 6px; padding: 8mm 9mm 6mm; border-radius: 4mm; }
+  }
+}

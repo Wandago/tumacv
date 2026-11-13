@@ -1,35 +1,38 @@
 // TumaCV's illustration set: flat, chunky objects with one shade side and a
-// soft ground shadow, drawn to sit on the bold colour cards (components/vivid).
+// soft ground shadow, in the Sunset Pop palette (theme/tumacv.ts), drawn to
+// sit on paper or on the colour tiles (components/brand/Tile.js).
 // Inline SVG so they cost no requests and stay crisp at any size. The colours
 // are illustration paint, not UI colour — they're the same in light and dark
 // mode, like a printed sticker. `hideOnPhones` drops one that sits beside a
-// headline when the screen is too narrow for both.
+// headline when the screen is too narrow for both; `float` gives it a slow
+// idle bob (off for people who prefer reduced motion — app/app.css).
 
 const P = {
-  ink: "#14121a",
+  ink: "#15111F",
   paper: "#ffffff",
-  paperShade: "#e9e4f5",
-  line: "#cfc8de",
-  lime: "#a5e46f",
-  limeDeep: "#6fbf3a",
-  purple: "#6b3df5",
-  purpleDeep: "#4b1fd6",
-  lilac: "#c9b8ff",
-  yellow: "#ffd23f",
-  yellowDeep: "#f0a800",
-  coral: "#ff6a55",
-  coralDeep: "#d63a29",
-  blue: "#2d5bd7",
-  sky: "#9cc0ff",
-  pink: "#f9cde6",
-  pinkDeep: "#f08ac2",
+  paperShade: "#f3e9ef",
+  line: "#e6d7df",
+  lime: "#FBD530", // sunshine — ticks and highlights
+  limeDeep: "#E0B400",
+  purple: "#DA008F", // magenta
+  purpleDeep: "#A8006E",
+  lilac: "#FFC2E3",
+  yellow: "#FBD530",
+  yellowDeep: "#E0B400",
+  coral: "#F84B4B",
+  coralDeep: "#C93030",
+  blue: "#6B1D7B", // plum
+  sky: "#FFD9EC",
+  pink: "#FFE1F1",
+  pinkDeep: "#FE860F", // tangerine
   skin: "#8a5a3c",
 };
 
-function Svg({ size = 160, title, hideOnPhones = false, children }) {
+function Svg({ size = 160, title, hideOnPhones = false, float = false, children }) {
+  const cls = [hideOnPhones && "hide-on-phones", float && "float"].filter(Boolean).join(" ");
   return (
     <svg
-      className={hideOnPhones ? "hide-on-phones" : undefined}
+      className={cls || undefined}
       style={{ flexShrink: 0 }}
       viewBox="0 0 200 200"
       width={size}

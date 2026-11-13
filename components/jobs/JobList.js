@@ -21,7 +21,7 @@ export default function JobList({ jobs, onOpen, onApply, compact = false }) {
           startContent={<Avatar src={j.logo || undefined} name={j.company} size="md" tooltip={false} />}
           endContent={
             <HStack gap={2} align="center">
-              {!compact && <Token size="sm" label={j.source} color={j.source === "TumaCV" ? "green" : "gray"} className="hide-on-phones" />}
+              {!compact && <Token size="sm" label={j.source} color={j.source === "TumaCV" ? "pink" : "gray"} className="hide-on-phones" />}
               <Button
                 label="Tailor & apply"
                 size="sm"

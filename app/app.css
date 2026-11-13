@@ -15,172 +15,61 @@
   html[data-theme="dark"] [data-astryx-theme]:not([data-theme]) { color-scheme: dark; }
   html[data-theme="light"] [data-astryx-theme]:not([data-theme]) { color-scheme: light; }
 
-  /* Things that step aside on phones, where the text needs the whole width:
-     illustrations beside a headline (components/vivid), secondary labels in
-     job rows. `.show-on-phones` is the short stand-in for a hidden label. */
-  @media (max-width: 720px) { .hide-on-phones { display: none; } }
-  @media (min-width: 721px) { .show-on-phones { display: none; } }
-
   /* ---------------------------------------------------------------------------
-     The CV document (components/CvView.js, components/home/CvSheet.js).
-     This is the product's output — a page that prints and saves as PDF — so
-     it uses a fixed print palette instead of theme tokens: paper stays white
-     and ink stays black in dark mode, exactly as it will print.
+     Sunset Pop brand details (components/brand) that component props can't
+     express. Colours come from theme tokens; durations from motion tokens.
      --------------------------------------------------------------------------- */
-  .sheet {
-    --kijani: #0b8a3f;
-    --kijani-dark: #056a2f;
-    --serif: ui-serif, "New York", Georgia, "Times New Roman", serif;
-    --body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
-    color-scheme: light;
-    /* A sheet can sit on a bold colour card (the landing page's purple hero);
-       the card re-points text tokens to white, so the paper puts them back. */
-    --color-text-primary: #1a1a1a;
-    --color-text-secondary: #555555;
-    --color-icon-primary: #1a1a1a;
-    --color-icon-secondary: #555555;
-  }
-  /* Astryx's reset strips list bullets; a CV's experience bullets need them. */
-  .cv ul { list-style: disc; }
 
-  .sheet {
-    background: #ffffff; width: 100%; max-width: 794px; min-height: 600px; margin-inline: auto;
-    border-radius: 6px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.10), 0 24px 60px rgba(0,0,0,0.20);
-    padding: 46px 50px; color: #1a1a1a;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  @media (max-width: 640px) { .sheet { padding: 26px 20px; } }
+  /* Things that step aside on phones, where the text needs the whole width:
+     illustrations beside a headline, secondary labels in job rows.
+     `.show-on-phones` is the short stand-in for a hidden label. */
+  @media (max-width: 720px) { .hide-on-phones { display: none !important; } }
+  @media (min-width: 721px) { .show-on-phones { display: none !important; } }
 
-  .letter { font-family: var(--serif); font-size: 14.5px; line-height: 1.7; white-space: pre-wrap; color: #1a1a1a; }
-
-  .cv { font-size: 13px; line-height: 1.5; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .cv h1 { letter-spacing: -0.01em; color: #1a1a1a; }
-  .cv ul { padding-left: 18px; }
-  .cv li { margin-bottom: 3px; }
-  .cv .dates { color: #666; font-variant-numeric: tabular-nums; }
-  .cv .contact-item {
-    display: inline-flex; align-items: center; gap: 5px; color: inherit;
-  }
-  .cv .contact-item svg { flex-shrink: 0; opacity: 0.75; }
-
-  /* Classic — traditional, ATS-safe, a whisper of brand color */
-  .cv.classic { font-family: var(--serif); }
-  .cv.classic .cv-head { text-align: center; border-bottom: 2px solid #1a1a1a; padding-bottom: 14px; position: relative; }
-  .cv.classic .cv-head::after {
-    content: ""; position: absolute; left: 50%; bottom: -3px; transform: translateX(-50%);
-    width: 46px; height: 2px; background: var(--kijani-dark);
-  }
-  .cv.classic h1 { font-size: 27px; font-weight: 600; }
-  .cv.classic .cv-title { font-size: 14px; margin-top: 3px; color: #333; }
-  .cv.classic .cv-contact { font-size: 12px; color: #444; margin-top: 8px; }
-  .cv.classic h2 {
-    font-size: 13px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600;
-    margin: 22px 0 9px; border-bottom: 1px solid #ccc; padding-bottom: 4px;
-  }
-  .cv.classic .role-row { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
-  .cv.classic .skills { line-height: 1.7; }
-
-  /* Modern — tinted sidebar block, monogram, timeline experience */
-  .cv.modern { font-family: var(--body); display: grid; grid-template-columns: 208px 1fr; gap: 30px; }
-  .cv.modern .side {
-    background: linear-gradient(175deg, color-mix(in srgb, var(--kijani) 8%, #fff), color-mix(in srgb, var(--kijani) 2%, #fff));
-    margin: -46px 0 -46px -50px; padding: 40px 22px 40px 50px;
-    border-radius: 6px 0 0 6px; border-right: 1px solid color-mix(in srgb, var(--kijani) 18%, transparent);
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  .cv.modern .monogram {
-    width: 46px; height: 46px; border-radius: 50%; margin-bottom: 14px;
-    background: linear-gradient(135deg, var(--kijani), var(--kijani-dark));
-    color: #fff; display: flex; align-items: center; justify-content: center;
-    font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: 0.02em;
-  }
-  .cv.modern h1 { font-family: var(--display); font-size: 21px; font-weight: 700; line-height: 1.15; }
-  .cv.modern .cv-title { color: var(--kijani-dark); font-weight: 600; font-size: 12.5px; margin-top: 4px; }
-  .cv.modern .cv-contact { font-size: 11px; color: #444; margin-top: 14px; display: grid; gap: 6px; }
-  .cv.modern h2 {
-    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--kijani-dark); margin: 20px 0 8px; font-weight: 600;
-  }
-  .cv.modern .side h2:first-of-type { margin-top: 24px; }
-  .cv.modern .skill-tag {
-    display: inline-block; font-size: 11px; background: #fff; color: #1a1a1a;
-    border: 1px solid color-mix(in srgb, var(--kijani) 30%, transparent);
-    border-radius: 999px; padding: 3px 9px; margin: 0 5px 5px 0;
-  }
-  .cv.modern .side-edu { margin-bottom: 9px; font-size: 11.5px; line-height: 1.5; }
-  .cv.modern .side-certs { font-size: 11.5px; padding-left: 16px; }
-  .cv.modern .role-row { font-weight: 600; }
-  .cv.modern .role-row .co { color: #555; font-weight: 500; }
-  .cv.modern .timeline { position: relative; padding-left: 16px; margin-top: 2px; }
-  .cv.modern .timeline .exp-item { position: relative; padding-bottom: 2px; }
-  .cv.modern .timeline .exp-item::before {
-    content: ""; position: absolute; left: -16px; top: 5px; width: 7px; height: 7px;
-    border-radius: 50%; background: var(--kijani-dark);
-  }
-  .cv.modern .timeline .exp-item::after {
-    content: ""; position: absolute; left: -12.5px; top: 13px; bottom: -9px; width: 1px;
-    background: color-mix(in srgb, var(--kijani) 25%, transparent);
-  }
-  .cv.modern .timeline .exp-item:last-child::after { display: none; }
-  @media (max-width: 640px) {
-    .cv.modern { grid-template-columns: 1fr; }
-    .cv.modern .side { margin: -26px -20px 20px; padding: 24px 20px; border-radius: 6px 6px 0 0; border-right: 0; }
+  /* The editorial accent word (components/brand/Accent.js). */
+  .accent-serif {
+    font-family: "Instrument Serif", ui-serif, Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: var(--color-text-accent);
   }
 
-  /* Compact — dense, ruled sections, small accent markers */
-  .cv.compact { font-family: var(--body); font-size: 12px; line-height: 1.45; }
-  .cv.compact h1 { font-size: 20px; font-weight: 700; display: inline; }
-  .cv.compact .cv-title { display: inline; margin-left: 10px; color: #444; }
-  .cv.compact .cv-contact { font-size: 11px; color: #555; margin: 5px 0 2px; }
-  .cv.compact h2 {
-    font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
-    margin: 15px 0 6px; color: #1a1a1a; display: flex; align-items: center; gap: 6px;
+  /* Display headlines sit tighter than body text — on Sunset Pop pages only,
+     not inside the classic dashboard/admin theme. */
+  @scope ([data-astryx-theme="tumacv"]) to ([data-astryx-theme="tumacv-classic"]) {
+    h1, h2 { letter-spacing: -0.022em; }
   }
-  .cv.compact h2::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--kijani-dark); flex-shrink: 0; }
-  .cv.compact .cv-head { border-bottom: 2px solid var(--kijani-dark); padding-bottom: 9px; }
-  .cv.compact .role-row { display: flex; justify-content: space-between; gap: 10px; font-weight: 600; }
-  .cv.compact ul { padding-left: 16px; }
-  .cv.compact .skills-line { line-height: 1.6; }
 
-  /* Minimal — generous whitespace, left-aligned, understated */
-  .cv.minimal { font-family: var(--body); font-size: 12.5px; line-height: 1.6; }
-  .cv.minimal .cv-head { margin-bottom: 22px; }
-  .cv.minimal h1 { font-size: 25px; font-weight: 600; letter-spacing: -0.015em; }
-  .cv.minimal .cv-title { font-size: 13px; color: #555; margin-top: 4px; }
-  .cv.minimal .cv-contact { font-size: 11px; color: #777; margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
-  .cv.minimal h2 {
-    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 600;
-    color: #999; margin: 26px 0 11px; display: flex; align-items: center; gap: 10px;
+  /* Scroll reveal (components/brand/Reveal.js). */
+  .reveal[data-reveal="waiting"] { opacity: 0; transform: translateY(var(--spacing-6)); }
+  .reveal[data-reveal="shown"] {
+    opacity: 1; transform: none;
+    transition: opacity var(--duration-slow) var(--ease-standard) var(--reveal-delay, 0ms),
+                transform var(--duration-slow) var(--ease-standard) var(--reveal-delay, 0ms);
   }
-  .cv.minimal h2::after { content: ""; flex: 1; height: 1px; background: #e5e5e5; }
-  .cv.minimal .role-row { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
-  .cv.minimal .co { color: #666; font-size: 12px; margin-bottom: 4px; }
-  .cv.minimal .summary { color: #333; }
-  .cv.minimal ul { padding-left: 16px; }
-  .cv.minimal li::marker { color: var(--kijani-dark); }
 
-  /* Executive — formal, senior, heavier structure */
-  .cv.executive { font-family: var(--serif); font-size: 13px; line-height: 1.55; }
-  .cv.executive .cv-head { text-align: center; padding-bottom: 18px; margin-bottom: 4px; position: relative; }
-  .cv.executive .cv-head { border-bottom: 1px solid #1a1a1a; }
-  .cv.executive .cv-head::before {
-    content: ""; display: block; height: 1px; background: var(--kijani-dark);
-    margin-bottom: 3px;
-  }
-  .cv.executive h1 { font-size: 28px; font-weight: 700; letter-spacing: 0.02em; }
-  .cv.executive .cv-title { font-size: 14px; margin-top: 4px; letter-spacing: 0.04em; text-transform: uppercase; color: #444; }
-  .cv.executive .cv-contact { font-size: 12px; color: #444; margin-top: 8px; }
-  .cv.executive h2 {
-    font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;
-    margin: 24px 0 10px; color: #1a1a1a; border-bottom: 1px solid #1a1a1a; padding-bottom: 4px;
-  }
-  .cv.executive .role-row { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; }
+  /* Interactive tiles lift a touch on hover (components/brand/Tile.js). */
+  .tile-lift { transition: transform var(--duration-medium) var(--ease-standard), box-shadow var(--duration-medium) var(--ease-standard); }
+  .tile-lift:hover { transform: translateY(calc(-1 * var(--spacing-1))) rotate(-0.4deg); }
 
-  .cv .exp-item { margin-bottom: 12px; }
-  .cv .summary { margin-top: 10px; }
+  /* Idle float for illustrations (`float` prop). */
+  @keyframes tuma-float { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(calc(-1 * var(--spacing-2))) } }
+  .float { animation: tuma-float 5.5s ease-in-out infinite; }
+
+  /* Endless word strip (components/brand/Marquee.js). */
+  .marquee { overflow: hidden; mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent); }
+  .marquee-track { width: max-content; white-space: pre; animation: tuma-marquee 38s linear infinite; }
+  @keyframes tuma-marquee { to { transform: translateX(-50%); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track { animation: none; }
+    .reveal[data-reveal] { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .float { animation: none; }
+    .tile-lift, .tile-lift:hover { transition: none; transform: none; }
+  }
+
+  /* The CV document and its designs live in app/cv.css. */
 
   /* Landing-page previews: a real rendered CV, cropped with a fade. */
   .preview-card {
@@ -189,6 +78,17 @@
   }
   .preview-card .sheet { box-shadow: none; border-radius: 0; min-height: 0; }
   .preview-card-tall { max-height: 640px; }
+
+  /* Miniature real CVs in the design picker (components/home/Builder.js). */
+  .cv-thumb {
+    height: 210px; overflow: hidden; border-radius: var(--radius-element);
+    background: #ffffff; border: 1px solid var(--color-border);
+  }
+  .cv-thumb .sheet {
+    width: 794px; max-width: none; min-height: 0; margin: 0;
+    transform: scale(0.3); transform-origin: top left;
+    box-shadow: none; border-radius: 0; pointer-events: none;
+  }
 
   /* Printing / Save as PDF: only the clean copy CvSheet.PrintCopy mounts
      under <body> is printed — never the app around it. */
@@ -216,22 +116,5 @@
       border-radius: 0; box-shadow: none; background: transparent;
       padding: 0 15mm;
     }
-    /* Modern's tinted sidebar is painted on the page canvas instead of on
-       the sidebar box: the canvas background fills every printed page edge
-       to edge, so the band runs unbroken down every page, the last one too. */
-    html:has(.print-root .cv.modern) {
-      background: linear-gradient(90deg,
-        color-mix(in srgb, #0b8a3f 7%, #fff) 0 calc(15mm + 208px),
-        color-mix(in srgb, #0b8a3f 18%, #fff) calc(15mm + 208px) calc(15mm + 208px + 1px),
-        #ffffff 0) !important;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-    .print-root .cv.modern .side {
-      background: none; border-right: 0; border-radius: 0;
-      margin: 0; padding: 0 22px 0 0;
-    }
-    .print-root .letter { font-size: 12pt; }
-    .cv .role-row, .cv h2 { break-after: avoid; }
-    .cv li { break-inside: avoid; }
   }
 }

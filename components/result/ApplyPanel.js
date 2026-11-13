@@ -1,14 +1,14 @@
 "use client";
 import { useState } from "react";
-import { Card } from "@astryxdesign/core/Card";
+import Tile from "../brand/Tile";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Heading, Text } from "@astryxdesign/core/Text";
 import { Button } from "@astryxdesign/core/Button";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
-import StepPills from "../vivid/StepPills";
-import { PaperPlaneIllustration, CvIllustration } from "../vivid/Illustration";
+import StepPills from "../brand/StepPills";
+import { PaperPlaneIllustration, CvIllustration } from "../brand/Illustration";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { APPLICATION_STATUSES } from "../../lib/applicationStatus";
 import { PrinterIcon } from "../../lib/icons";
@@ -64,7 +64,7 @@ export default function ApplyPanel({ result, isFresh, onSavePdf }) {
   const step = !job ? 0 : status && status !== "tailored" ? 2 : saved ? 1 : 0;
 
   return (
-    <Card variant="purple" padding={6} className="no-print">
+    <Tile tone="plum" padding={8} className="no-print">
       <VStack gap={4}>
         <HStack gap={3} align="start" justify="between">
           <VStack gap={3}>
@@ -73,7 +73,7 @@ export default function ApplyPanel({ result, isFresh, onSavePdf }) {
               <Text color="secondary" weight="semibold">
                 {job ? `Apply kit · ${job.company}` : isFresh ? "Your documents are ready" : "Saved application"}
               </Text>
-              <Heading level={1} type="display-3" textWrap="balance">{title}</Heading>
+              <Heading level={1} type="display-2" textWrap="balance">{title}</Heading>
               {job?.location && <Text color="secondary">{job.location} · via {job.source}</Text>}
             </VStack>
           </VStack>
@@ -119,6 +119,6 @@ export default function ApplyPanel({ result, isFresh, onSavePdf }) {
         </HStack>
         {err && <Text color="secondary">{err}</Text>}
       </VStack>
-    </Card>
+    </Tile>
   );
 }

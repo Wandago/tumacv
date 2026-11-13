@@ -213,7 +213,7 @@ export default function Onboarding() {
             <VStack gap={2}>
               {!isEditing && (
                 <HStack>
-                  <Token label="Step 2 of 2" size="sm" color="green" />
+                  <Token label="Step 2 of 2" size="sm" color="pink" />
                 </HStack>
               )}
               <Heading level={1}>{isEditing ? "Your profile" : "A little about you"}</Heading>

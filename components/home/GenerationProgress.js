@@ -1,14 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Card } from "@astryxdesign/core/Card";
+import Tile from "../brand/Tile";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Heading, Text } from "@astryxdesign/core/Text";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
-import StepPills from "../vivid/StepPills";
-import { StopwatchIllustration } from "../vivid/Illustration";
+import StepPills from "../brand/StepPills";
+import { StopwatchIllustration } from "../brand/Illustration";
 
 // The API doesn't stream progress, so these stages are paced to how long a
 // generation typically takes (~20-40s). They describe what really happens,
@@ -35,7 +35,7 @@ export default function GenerationProgress() {
   const current = STAGES.reduce((idx, s, i) => (elapsed >= s.at ? i : idx), 0);
 
   return (
-    <Card variant="gray" padding={8}>
+    <Tile tone="ink" padding={8}>
       <VStack gap={6}>
         <HStack justify="between" align="start" gap={4}>
           <VStack gap={2}>
@@ -48,7 +48,7 @@ export default function GenerationProgress() {
               Usually 20–40 seconds. Keep this tab open — if anything fails, no credit is used.
             </Text>
           </VStack>
-          <StopwatchIllustration size={150} hideOnPhones />
+          <StopwatchIllustration size={150} hideOnPhones float />
         </HStack>
         <ProgressBar label="Progress" isLabelHidden value={percent} variant="accent" />
         <List density="compact">
@@ -74,6 +74,6 @@ export default function GenerationProgress() {
           </Text>
         )}
       </VStack>
-    </Card>
+    </Tile>
   );
 }

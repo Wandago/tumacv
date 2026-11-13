@@ -12,9 +12,9 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { Icon } from "@astryxdesign/core/Icon";
 import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
 import GenerationProgress from "../home/GenerationProgress";
-import ResultView from "../home/ResultView";
+import ResultScreen from "../result/ResultScreen";
 import CreditsModal from "../CreditsModal";
-import { TEMPLATES } from "../../lib/templates";
+import { TEMPLATES, DEFAULT_TEMPLATE } from "../../lib/templates";
 import { FREE_MODE, isUnlimited } from "../../lib/plans";
 import { SparklesIcon } from "../../lib/icons";
 
@@ -24,13 +24,13 @@ const words = (s) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 // then the finished application with its apply kit. Null in other phases.
 export function ApplyScreen({ flow, onBack }) {
   const { state } = flow;
-  const [template, setTemplate] = useState(state.template || "modern");
+  const [template, setTemplate] = useState(state.template || DEFAULT_TEMPLATE);
   if (state.phase === "generating") {
     return <Layout height="auto" contentWidth={720} content={<LayoutContent padding={6} isScrollable={false}><GenerationProgress /></LayoutContent>} />;
   }
   if (state.phase === "done") {
     return (
-      <ResultView
+      <ResultScreen
         result={state.result}
         template={template}
         setTemplate={setTemplate}
@@ -47,7 +47,7 @@ export function ApplyScreen({ flow, onBack }) {
 // The dialogs around it: confirm, add-your-CV-first, errors, top-up.
 export function ApplyDialogs({ flow, user }) {
   const { state, confirm, reset, toBuilder } = flow;
-  const [template, setTemplate] = useState("modern");
+  const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
   const close = (open) => !open && reset();
 
   if (state.phase === "needCredits") return <CreditsModal user={user} onClose={reset} />;

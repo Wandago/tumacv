@@ -11,7 +11,6 @@ import { Token } from "@astryxdesign/core/Token";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { matchScore } from "../../lib/gamification";
-import { statusOf } from "../../lib/applicationStatus";
 import { FileTextIcon, PlusIcon } from "../../lib/icons";
 
 const fmtDate = (d) => new Date(d).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
@@ -28,7 +27,7 @@ export default function ApplicationsCard({ history, onOpen, onNew }) {
           <HStack justify="between" align="center" gap={3} wrap="wrap">
             <VStack gap={0}>
               <Heading level={3}>Your applications</Heading>
-              <Text type="supporting" color="secondary">Open one to download it again, switch its style, or update where it's at.</Text>
+              <Text type="supporting" color="secondary">Open any of them to download again or switch its style.</Text>
             </VStack>
             <Button label="New application" variant="primary" size="sm" icon={<Icon icon={PlusIcon} />} onClick={onNew} />
           </HStack>
@@ -51,21 +50,16 @@ export default function ApplicationsCard({ history, onOpen, onNew }) {
           <List hasDividers>
             {filtered.map((h) => {
               const score = matchScore(h.result?.fit);
-              const status = statusOf(h);
-              const job = h.result?.job;
               return (
                 <ListItem
                   key={h.id}
                   label={h.job_title || "Application"}
-                  description={[job?.source && `via ${job.source}`, (h.template || "modern").replace(/^./, (c) => c.toUpperCase()), fmtDate(h.created_at)].filter(Boolean).join(" · ")}
-                  startContent={<Avatar name={job?.company || h.job_title || "A"} size="sm" tooltip={false} />}
+                  description={`${(h.template || "modern").replace(/^./, (c) => c.toUpperCase())} · ${fmtDate(h.created_at)}`}
+                  startContent={<Avatar name={h.job_title || "A"} size="sm" tooltip={false} />}
                   endContent={
-                    <HStack gap={2} align="center">
-                      {status && <Token size="sm" label={status.label} color={status.color} />}
-                      {score !== null && (
-                        <Token size="sm" label={`${score}% match`} color={score >= 70 ? "green" : score >= 40 ? "yellow" : "red"} />
-                      )}
-                    </HStack>
+                    score !== null ? (
+                      <Token size="sm" label={`${score}% match`} color={score >= 70 ? "green" : score >= 40 ? "yellow" : "red"} />
+                    ) : null
                   }
                   onClick={() => onOpen(h)}
                 />

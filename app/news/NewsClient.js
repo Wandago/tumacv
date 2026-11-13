@@ -12,6 +12,7 @@ import { Center } from "@astryxdesign/core/Center";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Icon } from "@astryxdesign/core/Icon";
 import PageHeader from "../../components/PageHeader";
+import { TargetIllustration } from "../../components/brand/Illustration";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { NewspaperIcon } from "../../lib/icons";
 
@@ -40,6 +41,8 @@ export default function NewsClient() {
               eyebrow="News & insights"
               title="Career advice for the Kenyan job market"
               description="Fresh, specific guidance — written daily, one article at a time."
+              tone="butter"
+              illustration={<TargetIllustration size={190} hideOnPhones float />}
             />
             {articles && articles.length > 0 && (
               <Selector
@@ -64,7 +67,7 @@ export default function NewsClient() {
                   <ClickableCard key={a.id} label={a.title} href={`/news/${a.id}`} padding={5}>
                     <VStack gap={3} height="100%">
                       <HStack justify="between" align="center" gap={2}>
-                        <Token label={a.industry} size="sm" color="green" />
+                        <Token label={a.industry} size="sm" color="pink" />
                         <Text type="supporting" color="secondary">{fmtDate(a.created_at)}</Text>
                       </HStack>
                       <Heading level={3}>{a.title}</Heading>

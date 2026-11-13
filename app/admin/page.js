@@ -525,7 +525,7 @@ export default function Admin() {
             />
           )}
           <Grid columns={{ minWidth: 260 }} gap={4}>
-            <StatCard label="Total users" value={stats.totalUsers} />
+            <StatCard label="Total users" value={stats.totalUsers} variant="green" />
             <StatCard label="Signups · 7 days" value={stats.signupsWeek} />
             <StatCard label="Applications" value={stats.totalGenerations} />
             <StatCard label="Revenue (complete)" value={`KES ${stats.totalRevenue.toLocaleString()}`} />

@@ -10,7 +10,8 @@ import { isLinkedInUrl } from "../lib/linkedin";
 import CreditsModal from "../components/CreditsModal";
 import Landing from "../components/home/Landing";
 import Builder from "../components/home/Builder";
-import ResultView from "../components/home/ResultView";
+import { DEFAULT_TEMPLATE } from "../lib/templates";
+import ResultScreen from "../components/result/ResultScreen";
 
 // The homepage is three screens: the marketing page for visitors, and for
 // signed-in users the guided builder, then the result.
@@ -22,7 +23,7 @@ export default function Home() {
   const [jobUrl, setJobUrl] = useState("");
   const [profileText, setProfileText] = useState("");
   const [profileWasSaved, setProfileWasSaved] = useState(false);
-  const [template, setTemplate] = useState("modern");
+  const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
   const [fetching, setFetching] = useState(false);
   const [fetchErr, setFetchErr] = useState("");
   const [genErr, setGenErr] = useState("");
@@ -225,7 +226,7 @@ export default function Home() {
 
   if (result) {
     return (
-      <ResultView
+      <ResultScreen
         result={result}
         template={template}
         setTemplate={setTemplate}

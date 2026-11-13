@@ -27,21 +27,17 @@ import ResultView from "../../components/home/ResultView";
 import ApplicationsCard from "../../components/dashboard/ApplicationsCard";
 import BadgesCard from "../../components/dashboard/BadgesCard";
 import TopUpCard from "../../components/dashboard/TopUpCard";
-import JobsForYou from "../../components/dashboard/JobsForYou";
-import useOneTapApply from "../../components/jobs/useOneTapApply";
-import { ApplyScreen, ApplyDialogs } from "../../components/jobs/ApplyFlow";
-import { TrophyIllustration } from "../../components/vivid/Illustration";
 import { FlameIcon, LogOutIcon, PlusIcon, SettingsIcon, SparklesIcon, WalletIcon } from "../../lib/icons";
 
 function StatCard({ label, value, caption, icon, variant }) {
   return (
-    <Card padding={6} variant={variant} minHeight={176}>
+    <Card padding={5} variant={variant}>
       <VStack gap={1}>
         <HStack gap={2} align="center">
           {icon && <Icon icon={icon} color="accent" size="sm" />}
           <Text type="supporting" color="secondary" weight="medium">{label}</Text>
         </HStack>
-        <Heading level={3} type="display-1">{value}</Heading>
+        <Heading level={3} type="display-2">{value}</Heading>
         {caption && <Text type="supporting" color="secondary">{caption}</Text>}
       </VStack>
     </Card>
@@ -59,7 +55,6 @@ export default function Dashboard() {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
   const [hiredBusy, setHiredBusy] = useState(false);
-  const flow = useOneTapApply(user || null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.search.includes("paid=1")) {
@@ -132,30 +127,14 @@ export default function Dashboard() {
     );
   }
 
-  if (flow.state.phase === "generating" || flow.state.phase === "done") {
-    return (
-      <ApplyScreen
-        flow={flow}
-        onBack={() => {
-          flow.reset();
-          loadData(user);
-          window.scrollTo({ top: 0 });
-        }}
-      />
-    );
-  }
-
   if (viewing) {
     return (
       <ResultView
-        result={{ ...viewing.result, id: viewing.id, jobTitle: viewing.job_title || viewing.result?.jobTitle }}
+        result={{ ...viewing.result, jobTitle: viewing.job_title || viewing.result?.jobTitle }}
         template={viewTemplate}
         setTemplate={setViewTemplate}
         backLabel="Back to dashboard"
-        onBack={() => {
-          setViewing(null);
-          loadData(user);
-        }}
+        onBack={() => setViewing(null)}
         isFresh={false}
       />
     );
@@ -198,7 +177,7 @@ export default function Dashboard() {
           <VStack gap={6}>
             <HStack justify="between" align="center" gap={3} wrap="wrap">
               <VStack gap={1}>
-                <Heading level={1} type="display-2">{firstName ? `Hi, ${firstName}` : "Your dashboard"}</Heading>
+                <Heading level={1}>{firstName ? `Hi, ${firstName}` : "Your dashboard"}</Heading>
                 <Text color="secondary">Your applications, credits and progress in one place.</Text>
               </VStack>
               <HStack gap={2} wrap="wrap">
@@ -228,19 +207,12 @@ export default function Dashboard() {
               />
             )}
             {profile?.hired ? (
-              <Card variant="red" padding={8}>
-                <HStack justify="between" align="center" gap={4}>
-                  <VStack gap={3}>
-                    <Text color="secondary" weight="semibold">You did it</Text>
-                    <Heading level={2} type="display-2" textWrap="balance">Congratulations on landing the job!</Heading>
-                    <Text color="secondary">Come back any time you need TumaCV again.</Text>
-                    <HStack>
-                      <Button size="sm" variant="ghost" label="Not hired anymore? Undo" isLoading={hiredBusy} onClick={() => toggleHired(false)} />
-                    </HStack>
-                  </VStack>
-                  <TrophyIllustration size={170} hideOnPhones />
-                </HStack>
-              </Card>
+              <Banner
+                status="success"
+                title="🎉 Congratulations on landing the job!"
+                description="Come back any time you need TumaCV again."
+                endContent={<Button size="sm" variant="ghost" label="Not hired anymore? Undo" isLoading={hiredBusy} onClick={() => toggleHired(false)} />}
+              />
             ) : (
               history.length > 0 && (
                 <Banner
@@ -269,7 +241,6 @@ export default function Dashboard() {
               <StatCard
                 label="Streak"
                 icon={FlameIcon}
-                variant="orange"
                 value={streak.streak > 0 ? <CountUp value={streak.streak} /> : "—"}
                 caption={
                   (streak.status === "at-risk"
@@ -281,16 +252,13 @@ export default function Dashboard() {
                     : "Start a streak today") + (gStats.longestStreak > 0 ? ` · best ${gStats.longestStreak}` : "")
                 }
               />
-              <StatCard label="Applications" icon={SparklesIcon} variant="purple" value={<CountUp value={history.length} />} caption={`${weekCount} this week`} />
+              <StatCard label="Applications" icon={SparklesIcon} value={<CountUp value={history.length} />} caption={`${weekCount} this week`} />
               <StatCard
                 label="Average match"
-                variant="yellow"
                 value={gStats.averageScore !== null ? `${gStats.averageScore}%` : "—"}
                 caption={gStats.bestScore !== null && gStats.bestScore !== undefined ? `best ${gStats.bestScore}%` : "Generate one to see it"}
               />
             </Grid>
-
-            <JobsForYou history={history} profile={profile} onApply={flow.begin} />
 
             <ApplicationsCard history={history} onOpen={(h) => { setViewing(h); setViewTemplate(h.template || "modern"); window.scrollTo({ top: 0 }); }} onNew={() => router.push("/")} />
 
@@ -310,7 +278,7 @@ export default function Dashboard() {
               <TrendChart title="Activity, last 30 days" series={activitySeries} />
             </Grid>
 
-            <Card padding={6} variant="cyan">
+            <Card padding={5} variant="muted">
               <VStack gap={2}>
                 <Text weight="semibold">
                   💡 {profile?.industry
@@ -340,7 +308,6 @@ export default function Dashboard() {
               <ReferralCard user={user} />
             </Grid>
           </VStack>
-          <ApplyDialogs flow={flow} user={user} />
         </LayoutContent>
       }
     />

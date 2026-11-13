@@ -1,8 +1,12 @@
 import "./layers.css";
 import "./globals.css";
-// Heading face (theme/tumacv.ts). Latin-only weight axis; the browser downloads
-// just the latin file (41 KB) thanks to unicode-range.
+// Sunset Pop typefaces (theme/tumacv.ts), self-hosted. Each stylesheet lists
+// several subsets with unicode-range, so browsers download only latin:
+// Bricolage Grotesque (headlines, 41 KB), Plus Jakarta Sans (body, 27 KB),
+// Instrument Serif italic (accent words, 22 KB).
 import "@fontsource-variable/bricolage-grotesque/wght.css";
+import "@fontsource-variable/plus-jakarta-sans/wght.css";
+import "@fontsource/instrument-serif/400-italic.css";
 import ReferralCapture from "../components/ReferralCapture";
 import AppProviders from "../components/AppProviders";
 import AppFrame from "../components/AppFrame";
@@ -36,7 +40,7 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="light dark" />
-        <meta name="theme-color" content="#0b7a3b" />
+        <meta name="theme-color" content="#FCF8F4" />
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
       <body>

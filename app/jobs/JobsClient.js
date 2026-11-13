@@ -4,6 +4,8 @@ import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
 import { Heading, Text } from "@astryxdesign/core/Text";
 import { Card } from "@astryxdesign/core/Card";
+import Tile from "../../components/brand/Tile";
+import Accent from "../../components/brand/Accent";
 import { Button } from "@astryxdesign/core/Button";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
@@ -16,7 +18,7 @@ import JobDetail from "../../components/jobs/JobDetail";
 import PostJobDialog from "../../components/jobs/PostJobDialog";
 import useOneTapApply from "../../components/jobs/useOneTapApply";
 import { ApplyScreen, ApplyDialogs } from "../../components/jobs/ApplyFlow";
-import { JobSearchIllustration } from "../../components/vivid/Illustration";
+import { JobSearchIllustration } from "../../components/brand/Illustration";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { BriefcaseIcon, PlusIcon } from "../../lib/icons";
 
@@ -85,13 +87,13 @@ export default function JobsClient() {
       content={
         <LayoutContent padding={6} isScrollable={false}>
           <VStack gap={6}>
-            <Card variant="blue" padding={8}>
+            <Tile tone="ink" padding={10}>
               <HStack gap={6} align="center">
                 <StackItem size="fill">
                   <VStack gap={5}>
                     <VStack gap={2}>
                       <Text weight="semibold" color="secondary">Jobs · updated all day</Text>
-                      <Heading level={1} type="display-1" textWrap="balance">Find it. Tailor it. Apply.</Heading>
+                      <Heading level={1} type="display-1" textWrap="balance">Find it. <Accent>Tailor it.</Accent> Apply.</Heading>
                       <Text type="large" color="secondary" textWrap="pretty">
                         Live jobs from across the web — in Kenya and remote roles open to Kenyans. Tap “Tailor &amp; apply”
                         and your CV and cover letter are rewritten for that job in about a minute.
@@ -118,9 +120,9 @@ export default function JobsClient() {
                     </SegmentedControl>
                   </VStack>
                 </StackItem>
-                <JobSearchIllustration size={220} hideOnPhones />
+                <JobSearchIllustration size={230} hideOnPhones float />
               </HStack>
-            </Card>
+            </Tile>
 
             <HStack gap={2} wrap="wrap" align="center">
               <Text color="secondary" weight="medium">Popular:</Text>

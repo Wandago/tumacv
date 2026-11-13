@@ -11,11 +11,17 @@ import { HStack, VStack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Link } from "@astryxdesign/core/Link";
 import { Divider } from "@astryxdesign/core/Divider";
+import { Heading } from "@astryxdesign/core/Text";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import Tile from "./brand/Tile";
+import Accent from "./brand/Accent";
+import ClassicTheme from "./ClassicTheme";
 import { supabaseBrowser } from "../lib/supabaseClient";
 import { FREE_MODE, isUnlimited } from "../lib/plans";
 import { trackPageView } from "../lib/track";
 import { useThemeMode } from "./AppProviders";
-import { BrandMark, MonitorIcon, MoonIcon, SunIcon, PlusIcon } from "../lib/icons";
+import { ArrowRightIcon, BrandMark, ClassicBrandMark, MonitorIcon, MoonIcon, SunIcon, PlusIcon } from "../lib/icons";
 
 const EXPLORE_LINKS = [
   { href: "/jobs", label: "Jobs" },
@@ -71,7 +77,8 @@ function useAccount() {
   return { user, profile };
 }
 
-function SiteFooter() {
+// The dashboard and admin keep their original footer (and theme).
+function ClassicFooter() {
   return (
     <VStack as="footer" gap={3} paddingBlock={8} paddingInline={4} hAlign="center" className="no-print">
       <Divider />
@@ -85,6 +92,67 @@ function SiteFooter() {
         TumaCV · Tailored CVs and cover letters for Kenyan job seekers
       </Text>
     </VStack>
+  );
+}
+
+const FOOTER_COLUMNS = [
+  { title: "Product", links: [["/", "Tailor a CV"], ["/jobs", "Jobs"], ["/pricing", "Pricing"], ["/hub", "Talent Hub"]] },
+  { title: "Help", links: [["/support", "Support"], ["/news", "Career news"]] },
+  { title: "Legal", links: [["/privacy", "Privacy"], ["/terms", "Terms"]] },
+];
+
+function SiteFooter({ user }) {
+  const router = useRouter();
+  return (
+    <Layout
+      height="auto"
+      contentWidth={1180}
+      content={
+        <LayoutContent padding={6} isScrollable={false}>
+          <Tile tone="ink" padding={10}>
+            <VStack gap={10}>
+              <Grid columns={{ minWidth: 300 }} gap={8} align="end">
+                <VStack gap={5}>
+                  <HStack gap={2} align="center">
+                    <BrandMark size={32} />
+                    <Text weight="semibold" size="lg">TumaCV</Text>
+                  </HStack>
+                  <Heading level={2} type="display-2" textWrap="balance">
+                    Send the CV that <Accent>gets the call.</Accent>
+                  </Heading>
+                  <HStack>
+                    <Button
+                      label={user ? "Tailor a new CV" : "Start free"}
+                      variant="primary"
+                      size="lg"
+                      endContent={<Icon icon={ArrowRightIcon} />}
+                      onClick={() => router.push(user ? "/" : "/login?mode=signup")}
+                    />
+                  </HStack>
+                </VStack>
+                <Grid columns={3} gap={6}>
+                  {FOOTER_COLUMNS.map((col) => (
+                    <VStack key={col.title} gap={3}>
+                      <Text type="supporting" color="secondary" weight="semibold">{col.title}</Text>
+                      {col.links.map(([href, label]) => (
+                        <Link key={href} href={href} isStandalone>{label}</Link>
+                      ))}
+                    </VStack>
+                  ))}
+                </Grid>
+              </Grid>
+              <Divider />
+              <HStack justify="between" align="center" gap={3} wrap="wrap">
+                <Text type="supporting" color="secondary">
+                  © {new Date().getFullYear()} TumaCV · Tailored CVs and cover letters for Kenyan job seekers · Made in Nairobi
+                </Text>
+                <ThemeModeButton />
+              </HStack>
+            </VStack>
+          </Tile>
+        </LayoutContent>
+      }
+    />
   );
 }
 
@@ -104,10 +172,14 @@ export default function AppFrame({ children }) {
   const creditsLabel = FREE_MODE ? "Free" : unlimited ? "Unlimited" : `${profile?.credits ?? "…"} credits`;
   const isActive = (href) => pathname === href || pathname.startsWith(href + "/");
 
+  // The signed-in dashboard and admin stay exactly as they were: original
+  // theme, logo and footer. Everything else is Sunset Pop.
+  const classic = /^\/(dashboard|admin)(\/|$)/.test(pathname);
+
   const topNav = (
     <TopNav
       label="Main navigation"
-      heading={<TopNavHeading heading="TumaCV" headingHref="/" logo={<BrandMark size={26} />} />}
+      heading={<TopNavHeading heading="TumaCV" headingHref="/" logo={classic ? <ClassicBrandMark size={26} /> : <BrandMark size={28} />} />}
       startContent={
         <>
           {user && <TopNavItem label="Dashboard" href="/dashboard" isSelected={isActive("/dashboard")} />}
@@ -122,7 +194,7 @@ export default function AppFrame({ children }) {
           <ThemeModeButton />
           {user ? (
             <>
-              <Badge variant={unlimited || FREE_MODE ? "success" : "neutral"} label={creditsLabel} />
+              <Badge variant={classic && (unlimited || FREE_MODE) ? "success" : "neutral"} label={creditsLabel} />
               <Button
                 label="New CV"
                 variant="primary"
@@ -139,10 +211,21 @@ export default function AppFrame({ children }) {
     />
   );
 
+  if (classic) {
+    return (
+      <ClassicTheme>
+        <AppShell height="auto" variant="wash" topNav={topNav}>
+          {children}
+          <ClassicFooter />
+        </AppShell>
+      </ClassicTheme>
+    );
+  }
+
   return (
     <AppShell height="auto" variant="wash" topNav={topNav}>
       {children}
-      <SiteFooter />
+      <SiteFooter user={user} />
     </AppShell>
   );
 }
