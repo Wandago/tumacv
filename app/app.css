@@ -175,16 +175,47 @@
   .preview-card .sheet { box-shadow: none; border-radius: 0; min-height: 0; }
   .preview-card-tall { max-height: 640px; }
 
+  /* Printing / Save as PDF: only the clean copy CvSheet.PrintCopy mounts
+     under <body> is printed — never the app around it. */
+  @media screen {
+    .print-root { display: none; }
+  }
   @media print {
-    .no-print,
-    .astryx-top-nav,
-    .astryx-app-shell-header { display: none !important; }
-    /* A scroll container prints only its first page in Firefox and Safari
-       (incl. iOS "Save as PDF"), which used to cut two-page CVs off. */
-    html, body, .astryx-app-shell, .astryx-layout, .astryx-layout-content {
-      overflow: visible !important; height: auto !important; max-height: none !important;
+    /* No page margin means no room for the browser's own header and footer
+       (date, page title, URL, page numbers), so they don't print. The top
+       and bottom margins come from the repeating rows in CvSheet.PrintCopy,
+       the side margins from the sheet's padding. */
+    @page { size: A4; margin: 0; }
+    html { background: #ffffff; }
+    body { background: transparent !important; }
+    html, body { color-scheme: light !important; margin: 0 !important;
+      height: auto !important; overflow: visible !important;
     }
-    .sheet { box-shadow: none; max-width: none; width: 100%; margin: 0; min-height: 0; border-radius: 0; }
+    body > :not(.print-root) { display: none !important; }
+    .print-root { display: block !important; }
+    .print-layout { width: 100%; border-collapse: collapse; border-spacing: 0; }
+    .print-layout td { padding: 0; vertical-align: top; }
+    .print-gap { height: 14mm; }
+    .print-root .sheet {
+      max-width: none; width: 100%; min-height: 0; margin: 0;
+      border-radius: 0; box-shadow: none; background: transparent;
+      padding: 0 15mm;
+    }
+    /* Modern's tinted sidebar is painted on the page canvas instead of on
+       the sidebar box: the canvas background fills every printed page edge
+       to edge, so the band runs unbroken down every page, the last one too. */
+    html:has(.print-root .cv.modern) {
+      background: linear-gradient(90deg,
+        color-mix(in srgb, #0b8a3f 7%, #fff) 0 calc(15mm + 208px),
+        color-mix(in srgb, #0b8a3f 18%, #fff) calc(15mm + 208px) calc(15mm + 208px + 1px),
+        #ffffff 0) !important;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .print-root .cv.modern .side {
+      background: none; border-right: 0; border-radius: 0;
+      margin: 0; padding: 0 22px 0 0;
+    }
+    .print-root .letter { font-size: 12pt; }
     .cv .role-row, .cv h2 { break-after: avoid; }
     .cv li { break-inside: avoid; }
   }

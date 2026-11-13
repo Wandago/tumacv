@@ -10,7 +10,7 @@ import { TabList, Tab } from "@astryxdesign/core/TabList";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Link } from "@astryxdesign/core/Link";
-import CvSheet from "./CvSheet";
+import CvSheet, { printDocument } from "./CvSheet";
 import FitCheck from "./FitCheck";
 import ShareButtons from "../ShareButtons";
 import { TEMPLATES } from "../../lib/templates";
@@ -26,6 +26,9 @@ export default function ResultView({ result, template, setTemplate, onBack, back
   const [copied, setCopied] = useState(false);
   const [docxBusy, setDocxBusy] = useState(false);
   const [err, setErr] = useState("");
+
+  const docName = (result.cv?.name || "").trim().replace(/\s+/g, "_");
+  const printTitle = docName ? `${docName}_${tab === "cv" ? "CV" : "Cover_Letter"}` : undefined;
 
   async function copyLetter() {
     await navigator.clipboard.writeText(result.coverLetter);
@@ -85,12 +88,12 @@ export default function ResultView({ result, template, setTemplate, onBack, back
                     options={TEMPLATES.map((t) => ({ value: t.id, label: t.name }))}
                   />
                   <Button label="Word (.docx)" size="sm" icon={<Icon icon={DownloadIcon} />} isLoading={docxBusy} onClick={downloadDocx} />
-                  <Button label="Save as PDF" size="sm" variant="primary" icon={<Icon icon={PrinterIcon} />} onClick={() => window.print()} />
+                  <Button label="Save as PDF" size="sm" variant="primary" icon={<Icon icon={PrinterIcon} />} onClick={() => printDocument(printTitle)} />
                 </HStack>
               ) : (
                 <HStack gap={2} wrap="wrap">
                   <Button label={copied ? "Copied" : "Copy letter"} size="sm" icon={<Icon icon={copied ? "check" : "copy"} />} onClick={copyLetter} />
-                  <Button label="Save as PDF" size="sm" variant="primary" icon={<Icon icon={PrinterIcon} />} onClick={() => window.print()} />
+                  <Button label="Save as PDF" size="sm" variant="primary" icon={<Icon icon={PrinterIcon} />} onClick={() => printDocument(printTitle)} />
                 </HStack>
               )}
             </HStack>
@@ -99,6 +102,9 @@ export default function ResultView({ result, template, setTemplate, onBack, back
             <CvSheet>
               {tab === "cv" ? <CvSheet.Cv data={result.cv} template={template} /> : <CvSheet.Letter text={result.coverLetter} />}
             </CvSheet>
+            <CvSheet.PrintCopy>
+              {tab === "cv" ? <CvSheet.Cv data={result.cv} template={template} /> : <CvSheet.Letter text={result.coverLetter} />}
+            </CvSheet.PrintCopy>
 
             {isFresh && (
             <Card variant="muted" padding={5} className="no-print">
