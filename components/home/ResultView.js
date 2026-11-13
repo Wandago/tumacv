@@ -13,14 +13,14 @@ import { Link } from "@astryxdesign/core/Link";
 import CvSheet, { printDocument } from "./CvSheet";
 import FitCheck from "./FitCheck";
 import ShareButtons from "../ShareButtons";
-import { TEMPLATES } from "../../lib/templates";
+import { TEMPLATES, resolveTemplate } from "../../lib/templates";
 import { FREE_MODE } from "../../lib/plans";
 import { generateCvDocx, downloadBlob } from "../../lib/generateDocx";
 import { ArrowLeftIcon, DownloadIcon, PlusIcon, PrinterIcon } from "../../lib/icons";
 
-// Shows a generated application. Used right after generating (home) and
-// when reopening a past one (dashboard) — `backLabel`/`onBack` and
-// `isFresh` cover the difference.
+// The dashboard's view of a saved application, in the dashboard's original
+// look (it stays as it was). Client-facing screens use
+// components/result/ResultScreen.js instead.
 export default function ResultView({ result, template, setTemplate, onBack, backLabel = "Edit inputs", onNew, isFresh = true }) {
   const [tab, setTab] = useState("cv");
   const [copied, setCopied] = useState(false);
@@ -83,7 +83,7 @@ export default function ResultView({ result, template, setTemplate, onBack, back
                     isLabelHidden
                     size="sm"
                     width={140}
-                    value={template}
+                    value={resolveTemplate(template)}
                     onChange={setTemplate}
                     options={TEMPLATES.map((t) => ({ value: t.id, label: t.name }))}
                   />

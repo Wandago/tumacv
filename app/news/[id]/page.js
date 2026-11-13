@@ -85,7 +85,7 @@ export default async function ArticlePage({ params }) {
               <Heading level={1} type="display-3" textWrap="balance">{article.title}</Heading>
             </VStack>
             <ArticleBody content={article.content} />
-            <Card variant="green" padding={5}>
+            <Card variant="muted" padding={5}>
               <VStack gap={2}>
                 <Heading level={3}>Put it into practice</Heading>
                 <Text>Tailor your CV and cover letter to a real job posting in about a minute.</Text>

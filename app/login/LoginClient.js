@@ -2,7 +2,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Center } from "@astryxdesign/core/Center";
-import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { Grid } from "@astryxdesign/core/Grid";
+import { List, ListItem } from "@astryxdesign/core/List";
+import Tile from "../../components/brand/Tile";
+import Accent from "../../components/brand/Accent";
+import { WaveIllustration } from "../../components/brand/Illustration";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
 import { Heading, Text } from "@astryxdesign/core/Text";
 import { Card } from "@astryxdesign/core/Card";
 import { Button } from "@astryxdesign/core/Button";
@@ -299,12 +305,43 @@ export default function LoginClient() {
   }[mode];
 
   return (
-    <Center paddingBlock={8} paddingInline={4}>
+    <Layout
+      height="auto"
+      contentWidth={1120}
+      content={
+        <LayoutContent padding={6} isScrollable={false}>
+          <Grid columns={{ minWidth: 380 }} gap={8} align="stretch">
+            <Tile tone="kijani" padding={10} className="hide-on-phones">
+              <VStack gap={6} height="100%">
+                <HStack gap={2} align="center">
+                  <BrandMark size={36} />
+                  <Text weight="semibold" size="lg">TumaCV</Text>
+                </HStack>
+                <Heading level={2} type="display-1" textWrap="balance">
+                  Your next job starts <Accent>here.</Accent>
+                </Heading>
+                <List density="compact">
+                  {[
+                    `${FREE_SIGNUP_CREDITS} free applications — no card`,
+                    "Live jobs, one tap to a tailored CV",
+                    "Eight print-ready CV designs",
+                    "Pay with M-Pesa or Airtel Money",
+                  ].map((line) => (
+                    <ListItem key={line} label={line} startContent={<Icon icon="check" />} />
+                  ))}
+                </List>
+                <StackItem size="fill" />
+                <HStack justify="end">
+                  <WaveIllustration size={200} float />
+                </HStack>
+              </VStack>
+            </Tile>
+    <Center paddingBlock={6}>
       <VStack gap={5} width="100%" maxWidth={440}>
         <VStack gap={2} hAlign="center">
           <BrandMark size={40} />
           {mode === "signup" && <Token label="Step 1 of 2" size="sm" color="green" />}
-          <Heading level={1} justify="center">{title}</Heading>
+          <Heading level={1} type="display-3" justify="center">{title}</Heading>
           <Text color="secondary" justify="center" textWrap="balance">{subtitle}</Text>
         </VStack>
 
@@ -438,5 +475,9 @@ export default function LoginClient() {
         </HStack>
       </VStack>
     </Center>
+          </Grid>
+        </LayoutContent>
+      }
+    />
   );
 }

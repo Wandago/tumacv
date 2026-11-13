@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Card } from "@astryxdesign/core/Card";
+import Tile from "../brand/Tile";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
 import { Heading, Text } from "@astryxdesign/core/Text";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
+import StepPills from "../brand/StepPills";
+import { StopwatchIllustration } from "../brand/Illustration";
 
 // The API doesn't stream progress, so these stages are paced to how long a
 // generation typically takes (~20-40s). They describe what really happens,
@@ -33,15 +35,22 @@ export default function GenerationProgress() {
   const current = STAGES.reduce((idx, s, i) => (elapsed >= s.at ? i : idx), 0);
 
   return (
-    <Card padding={6} elevation="low">
-      <VStack gap={5}>
-        <VStack gap={1}>
-          <Heading level={2}>Tailoring your application</Heading>
-          <Text color="secondary">
-            Usually 20–40 seconds. Keep this tab open — if anything fails, no credit is used.
-          </Text>
-        </VStack>
-        <ProgressBar label="Progress" isLabelHidden value={percent} />
+    <Tile tone="ink" padding={8}>
+      <VStack gap={6}>
+        <HStack justify="between" align="start" gap={4}>
+          <VStack gap={2}>
+            <StepPills total={STAGES.length} current={current} label={`Stage ${current + 1} of ${STAGES.length}`} />
+            <Text color="secondary" weight="semibold">Tailoring your application</Text>
+            <Heading level={2} type="display-1">
+              <Text type="inherit" hasTabularNumbers>{percent}%</Text>
+            </Heading>
+            <Text color="secondary">
+              Usually 20–40 seconds. Keep this tab open — if anything fails, no credit is used.
+            </Text>
+          </VStack>
+          <StopwatchIllustration size={150} hideOnPhones float />
+        </HStack>
+        <ProgressBar label="Progress" isLabelHidden value={percent} variant="accent" />
         <List density="compact">
           {STAGES.map((s, i) => (
             <ListItem
@@ -49,25 +58,22 @@ export default function GenerationProgress() {
               label={s.label}
               startContent={
                 i < current ? (
-                  <Icon icon="success" color="success" />
+                  <Icon icon="success" />
                 ) : i === current ? (
                   <Spinner size="sm" />
                 ) : (
-                  <Icon icon="clock" color="disabled" />
+                  <Icon icon="clock" color="secondary" />
                 )
               }
             />
           ))}
         </List>
         {elapsed > 45 && (
-          <HStack gap={2} align="center">
-            <Spinner size="sm" />
-            <Text type="supporting" color="secondary">
-              Taking longer than usual — long CVs need more time. Still working.
-            </Text>
-          </HStack>
+          <Text type="supporting" color="secondary">
+            Taking longer than usual — long CVs need more time. Still working.
+          </Text>
         )}
       </VStack>
-    </Card>
+    </Tile>
   );
 }

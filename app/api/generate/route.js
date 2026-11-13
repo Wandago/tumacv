@@ -35,6 +35,32 @@ Respond with ONLY a JSON object matching exactly:
 }
 Use empty strings for unknown contact fields. Do not fabricate contact details.`;
 
+// The job an application was tailored for, when it came from the jobs page
+// (components/jobs). Stored with the application so the tracker can show the
+// company and send the user back to the right "apply" page.
+function cleanJobMeta(j) {
+  if (!j || typeof j !== "object") return null;
+  const str = (v, n) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, n) : "");
+  const url = (v) => {
+    try {
+      const u = new URL(v);
+      return /^https?:$/.test(u.protocol) ? u.toString().slice(0, 1000) : "";
+    } catch {
+      return "";
+    }
+  };
+  const meta = {
+    id: str(j.id, 200),
+    source: str(j.source, 60),
+    title: str(j.title, 160),
+    company: str(j.company, 120),
+    location: str(j.location, 120),
+    applyUrl: url(j.applyUrl),
+    howToApply: str(j.howToApply, 500),
+  };
+  return meta.title ? meta : null;
+}
+
 export async function POST(req) {
   try {
     const authed = await requireUser(req);
@@ -43,7 +69,8 @@ export async function POST(req) {
     }
     const { user, admin } = authed;
 
-    const { jobText, profileText, template } = await req.json();
+    const { jobText, profileText, template, job } = await req.json();
+    const jobMeta = cleanJobMeta(job);
     if (!jobText || jobText.trim().length < 80) {
       return Response.json({ error: "The job description looks too short. Paste the full posting." }, { status: 400 });
     }
@@ -139,14 +166,22 @@ export async function POST(req) {
       creditsLeft = credits ?? Math.max(0, profile.credits - 1);
     }
 
-    await admin.from("generations").insert({
-      user_id: user.id,
-      job_title: parsed.jobTitle || (parsed.cv?.title ?? "Application"),
-      template: template || "modern",
-      result: parsed,
-    });
+    const stored = jobMeta
+      ? { ...parsed, job: jobMeta, tracking: { status: "tailored", updatedAt: new Date().toISOString() } }
+      : parsed;
+    const { data: row, error: insertErr } = await admin
+      .from("generations")
+      .insert({
+        user_id: user.id,
+        job_title: jobMeta ? `${jobMeta.title} — ${jobMeta.company}`.slice(0, 200) : parsed.jobTitle || (parsed.cv?.title ?? "Application"),
+        template: template || "modern",
+        result: stored,
+      })
+      .select("id")
+      .single();
+    if (insertErr) console.error("generate: could not save generation:", insertErr);
 
-    return Response.json({ ...parsed, creditsLeft });
+    return Response.json({ ...stored, id: row?.id ?? null, creditsLeft });
   } catch (err) {
     console.error(err);
     return Response.json({ error: "Something went wrong. Try again." }, { status: 500 });

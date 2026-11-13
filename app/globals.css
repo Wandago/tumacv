@@ -3,5 +3,8 @@
 @import "@astryxdesign/core/reset.css";
 @import "@astryxdesign/core/astryx.css";
 @import "../theme/tumacv.css";
+/* The original green theme, for /dashboard and /admin (components/ClassicTheme.js). */
+@import "../theme/tumacv-classic.css";
 
 @import "./app.css";
+@import "./cv.css";

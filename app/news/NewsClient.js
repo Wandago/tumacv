@@ -12,6 +12,7 @@ import { Center } from "@astryxdesign/core/Center";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Icon } from "@astryxdesign/core/Icon";
 import PageHeader from "../../components/PageHeader";
+import { TargetIllustration } from "../../components/brand/Illustration";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { NewspaperIcon } from "../../lib/icons";
 
@@ -40,6 +41,8 @@ export default function NewsClient() {
               eyebrow="News & insights"
               title="Career advice for the Kenyan job market"
               description="Fresh, specific guidance — written daily, one article at a time."
+              tone="cream"
+              illustration={<TargetIllustration size={190} hideOnPhones float />}
             />
             {articles && articles.length > 0 && (
               <Selector

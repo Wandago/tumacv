@@ -22,7 +22,9 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
               "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob:",
+              // Company logos on the jobs page: Himalayas, Remotive, and Google
+              // Jobs' logo CDN (JSearch). Anything else falls back to initials.
+              "img-src 'self' data: blob: https://cdn-images.himalayas.app https://remotive.com https://encrypted-tbn0.gstatic.com",
               "connect-src 'self' https://*.supabase.co https://sandbox.intasend.com https://payment.intasend.com https://challenges.cloudflare.com",
               "frame-src 'self' https://challenges.cloudflare.com",
               "frame-ancestors 'none'",

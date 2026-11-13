@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
-import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
 import { Heading, Text } from "@astryxdesign/core/Text";
 import { Card } from "@astryxdesign/core/Card";
 import { Grid } from "@astryxdesign/core/Grid";
@@ -13,7 +13,9 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Collapsible, CollapsibleGroup } from "@astryxdesign/core/Collapsible";
 import GlobalPayHelp from "../../components/GlobalPayHelp";
-import PageHeader from "../../components/PageHeader";
+import Tile from "../../components/brand/Tile";
+import Accent from "../../components/brand/Accent";
+import { PhoneCoinsIllustration } from "../../components/brand/Illustration";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { PLANS, FREE_MODE, FREE_SIGNUP_CREDITS, MPESA_ENABLED, PADDLE_ENABLED, toUsd } from "../../lib/plans";
 import { openPaddleCheckout, paddlePriceIdFor } from "../../lib/paddle";
@@ -40,6 +42,8 @@ const FAQ = [
     a: "One tailored CV + cover letter for one job posting. Regenerating the same job with edits doesn't cost extra credits within the same session.",
   },
 ];
+
+const PLAN_TONES = { basic: "lime", plus: "kijani", pro: "forest" };
 
 export default function PricingClient() {
   const router = useRouter();
@@ -105,12 +109,18 @@ export default function PricingClient() {
       content={
         <LayoutContent padding={6} isScrollable={false}>
           <VStack gap={8}>
-            <PageHeader
-              isCentered
-              eyebrow="No subscriptions, ever"
-              title="Pay only for the applications you send"
-              description={`Top up once and the credits are yours — nothing renews, nothing expires. You start with ${FREE_SIGNUP_CREDITS} free the moment you sign up.`}
-            />
+            <HStack gap={8} align="center">
+              <VStack gap={4}>
+                <Text color="accent" weight="semibold">No subscriptions, ever</Text>
+                <Heading level={1} type="display-1" textWrap="balance">
+                  Pay only for the applications you <Accent>send.</Accent>
+                </Heading>
+                <Text type="large" color="secondary" textWrap="pretty">
+                  Top up once and the credits are yours — nothing renews, nothing expires. You start with {FREE_SIGNUP_CREDITS} free the moment you sign up.
+                </Text>
+              </VStack>
+              <PhoneCoinsIllustration size={220} hideOnPhones float />
+            </HStack>
 
             {FREE_MODE ? (
               <Banner status="success" title="TumaCV is completely free during beta" description="Every signed-in account gets unlimited applications. Pricing below kicks in after beta." />
@@ -119,29 +129,31 @@ export default function PricingClient() {
             ) : null}
 
             <Grid columns={{ minWidth: 220 }} gap={4}>
-              <Card padding={6} variant="muted">
-                <VStack gap={3}>
+              <Tile tone="mint" padding={8} minHeight={320}>
+                <VStack gap={3} height="100%">
                   <HStack justify="between" align="center">
                     <Heading level={3}>Free</Heading>
                     <Token label="On signup" size="sm" />
                   </HStack>
-                  <Text size="3xl" weight="bold">KES 0</Text>
+                  <Heading level={4} type="display-2">KES 0</Heading>
                   <Text color="secondary">{FREE_SIGNUP_CREDITS} applications to try it properly — no card needed.</Text>
-                  <Button label={user ? "Start an application" : "Create a free account"} onClick={() => router.push(user ? "/" : "/login?mode=signup")} width="100%" />
+                  <StackItem size="fill" />
+                  <Button label={user ? "Start an application" : "Create a free account"} variant="primary" onClick={() => router.push(user ? "/" : "/login?mode=signup")} width="100%" />
                 </VStack>
-              </Card>
+              </Tile>
               {Object.values(PLANS).map((p) => (
-                <Card key={p.id} padding={6} variant={p.id === "plus" ? "green" : "default"} elevation={p.id === "plus" ? "med" : "none"}>
-                  <VStack gap={3}>
+                <Tile key={p.id} tone={PLAN_TONES[p.id] || "cream"} padding={8} minHeight={320} interactive>
+                  <VStack gap={3} height="100%">
                     <HStack justify="between" align="center">
                       <Heading level={3}>{p.name}</Heading>
-                      {p.id === "plus" && <Token label="Most popular" size="sm" color="green" />}
+                      {p.id === "plus" && <Token label="Most popular" size="sm" color="yellow" />}
                     </HStack>
                     <VStack gap={0}>
-                      <Text size="3xl" weight="bold">KES {p.priceKes}</Text>
+                      <Heading level={4} type="display-2">KES {p.priceKes}</Heading>
                       {PADDLE_ENABLED && !MPESA_ENABLED && <Text type="supporting" color="secondary">≈ ${toUsd(p.priceKes)}</Text>}
                     </VStack>
                     <Text color="secondary">{p.blurb} · about KES {perApp(p)} each</Text>
+                    <StackItem size="fill" />
                     <Button
                       label={buttonLabel(p)}
                       variant="primary"
@@ -151,7 +163,7 @@ export default function PricingClient() {
                       onClick={() => (MPESA_ENABLED ? buy(p.id) : PADDLE_ENABLED ? payWithCard(p.id) : undefined)}
                     />
                   </VStack>
-                </Card>
+                </Tile>
               ))}
             </Grid>
 
@@ -163,7 +175,7 @@ export default function PricingClient() {
                 "One application = one tailored CV + cover letter for one job.",
                 "None of the plans expire.",
               ].map((line) => (
-                <ListItem key={line} label={line} startContent={<Icon icon="check" color="success" />} />
+                <ListItem key={line} label={line} startContent={<Icon icon="check" color="accent" />} />
               ))}
             </List>
 
@@ -174,7 +186,7 @@ export default function PricingClient() {
             )}
 
             <VStack gap={4}>
-              <Heading level={2}>Common questions</Heading>
+              <Heading level={2} type="display-3">Common questions</Heading>
               <Card padding={2}>
                 <CollapsibleGroup hasDividers>
                   {FAQ.map((f) => (

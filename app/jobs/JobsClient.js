@@ -1,139 +1,193 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
-import { VStack, HStack } from "@astryxdesign/core/Stack";
-import { Text } from "@astryxdesign/core/Text";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
 import { Card } from "@astryxdesign/core/Card";
-import { Grid } from "@astryxdesign/core/Grid";
+import Tile from "../../components/brand/Tile";
+import Accent from "../../components/brand/Accent";
 import { Button } from "@astryxdesign/core/Button";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { TextArea } from "@astryxdesign/core/TextArea";
-import { Banner } from "@astryxdesign/core/Banner";
-import { Collapsible, CollapsibleGroup } from "@astryxdesign/core/Collapsible";
+import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { Center } from "@astryxdesign/core/Center";
-import { Spinner } from "@astryxdesign/core/Spinner";
+import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { Icon } from "@astryxdesign/core/Icon";
-import PageHeader from "../../components/PageHeader";
-import ArticleBody from "../../components/ArticleBody";
-import { BriefcaseIcon, SparklesIcon } from "../../lib/icons";
+import { Banner } from "@astryxdesign/core/Banner";
+import JobList from "../../components/jobs/JobList";
+import JobDetail from "../../components/jobs/JobDetail";
+import PostJobDialog from "../../components/jobs/PostJobDialog";
+import useOneTapApply from "../../components/jobs/useOneTapApply";
+import { ApplyScreen, ApplyDialogs } from "../../components/jobs/ApplyFlow";
+import { JobSearchIllustration } from "../../components/brand/Illustration";
 import { supabaseBrowser } from "../../lib/supabaseClient";
+import { BriefcaseIcon, PlusIcon } from "../../lib/icons";
+
+const POPULAR = ["Sales", "Customer service", "Accounting", "Marketing", "Data", "Software", "Admin", "NGO", "Logistics", "Teaching"];
+const PAGE = 20;
 
 export default function JobsClient() {
-  const router = useRouter();
-  const [jobs, setJobs] = useState(null);
   const [user, setUser] = useState(null);
-  const [posting, setPosting] = useState(false);
-  const [form, setForm] = useState({ title: "", company: "", location: "", job_type: "Full-time", description: "", how_to_apply: "" });
+  const [q, setQ] = useState("");
+  const [query, setQuery] = useState("");
+  const [scope, setScope] = useState("all");
+  const [data, setData] = useState(null);
   const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [shown, setShown] = useState(PAGE);
+  const [open, setOpen] = useState(null);
+  const [posting, setPosting] = useState(false);
+  const flow = useOneTapApply(user);
 
   useEffect(() => {
-    const sb = supabaseBrowser();
-    sb.auth.getUser().then(({ data }) => setUser(data?.user || null));
-    sb.from("jobs").select("*").order("created_at", { ascending: false }).limit(100)
-      .then(({ data }) => setJobs(data || []));
+    supabaseBrowser().auth.getUser().then(({ data: d }) => setUser(d?.user || null));
+    const initial = new URLSearchParams(window.location.search).get("q");
+    if (initial) {
+      setQ(initial);
+      setQuery(initial);
+    }
   }, []);
 
-  function set(k, v) { setForm((f) => ({ ...f, [k]: v })); }
-
-  async function post() {
+  const load = useCallback(async () => {
+    setData(null);
     setErr("");
-    if (!form.title || !form.company || form.description.length < 60 || !form.how_to_apply) {
-      setErr("Fill in the title, company, a real description (60+ characters), and how to apply.");
-      return;
+    setShown(PAGE);
+    try {
+      const res = await fetch(`/api/jobs?${new URLSearchParams({ q: query, scope })}`);
+      if (!res.ok) throw new Error();
+      setData(await res.json());
+    } catch {
+      setErr("Couldn't load jobs right now. Check your connection and try again.");
+      setData({ jobs: [], sources: [] });
     }
-    if (form.title.length > 150 || form.company.length > 150 || form.location.length > 150 ||
-        form.job_type.length > 50 || form.description.length > 8000 || form.how_to_apply.length > 500) {
-      setErr("One of those fields is too long — trim it down and try again.");
-      return;
-    }
-    setBusy(true);
-    const sb = supabaseBrowser();
-    const { data, error } = await sb.from("jobs")
-      .insert({ ...form, user_id: user.id })
-      .select().single();
-    setBusy(false);
-    if (error) { setErr("Could not post. Try again."); return; }
-    setJobs((j) => [data, ...(j || [])]);
-    setPosting(false);
-    setForm({ title: "", company: "", location: "", job_type: "Full-time", description: "", how_to_apply: "" });
+  }, [query, scope]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  function search(term) {
+    setQ(term);
+    setQuery(term.trim());
   }
+
+  function apply(job) {
+    setOpen(null);
+    flow.begin(job);
+  }
+
+  const screen = <ApplyScreen flow={flow} onBack={() => { flow.reset(); window.scrollTo({ top: 0 }); }} />;
+  if (flow.state.phase === "generating" || flow.state.phase === "done") return screen;
+
+  const jobs = data?.jobs || [];
+  const live = (data?.sources || []).filter((s) => s.ok && s.count > 0).map((s) => s.name);
 
   return (
     <Layout
       height="auto"
-      contentWidth={900}
+      contentWidth={1120}
       content={
         <LayoutContent padding={6} isScrollable={false}>
           <VStack gap={6}>
-            <PageHeader
-              eyebrow="Jobs board"
-              title="Jobs in Kenya"
-              description="Hiring? Post here for free. Job seekers: open any job, then generate a CV matched to it in one click."
-              actions={
-                user ? (
-                  <Button label={posting ? "Close" : "Post a job — free"} variant={posting ? "ghost" : "primary"} onClick={() => setPosting(!posting)} />
-                ) : (
-                  <Button label="Sign in to post a job — free" variant="primary" onClick={() => router.push("/login")} />
-                )
-              }
-            />
+            <Tile tone="ink" padding={10}>
+              <HStack gap={6} align="center">
+                <StackItem size="fill">
+                  <VStack gap={5}>
+                    <VStack gap={2}>
+                      <Text weight="semibold" color="secondary">Jobs · updated all day</Text>
+                      <Heading level={1} type="display-1" textWrap="balance">Find it. <Accent>Tailor it.</Accent> Apply.</Heading>
+                      <Text type="large" color="secondary" textWrap="pretty">
+                        Live jobs from across the web — in Kenya and remote roles open to Kenyans. Tap “Tailor &amp; apply”
+                        and your CV and cover letter are rewritten for that job in about a minute.
+                      </Text>
+                    </VStack>
+                    <HStack
+                      as="form"
+                      gap={2}
+                      align="end"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        search(q);
+                      }}
+                    >
+                      <StackItem size="fill">
+                        <TextInput label="Search jobs" isLabelHidden size="lg" startIcon="search" placeholder="Job title, skill or company" value={q} onChange={setQ} hasClear />
+                      </StackItem>
+                      <Button label="Search" variant="primary" size="lg" type="submit" />
+                    </HStack>
+                    <SegmentedControl label="Where" value={scope} onChange={setScope}>
+                      <SegmentedControlItem value="all" label="Everywhere" />
+                      <SegmentedControlItem value="kenya" label="In Kenya" />
+                      <SegmentedControlItem value="remote" label="Remote" />
+                    </SegmentedControl>
+                  </VStack>
+                </StackItem>
+                <JobSearchIllustration size={230} hideOnPhones float />
+              </HStack>
+            </Tile>
 
-            {posting && (
-              <Card padding={6}>
+            <HStack gap={2} wrap="wrap" align="center">
+              <Text color="secondary" weight="medium">Popular:</Text>
+              {POPULAR.map((p) => (
+                <Button key={p} label={p} size="sm" variant={query.toLowerCase() === p.toLowerCase() ? "primary" : "secondary"} onClick={() => search(p)} />
+              ))}
+            </HStack>
+
+            <HStack justify="between" align="end" gap={3} wrap="wrap">
+              <VStack gap={0}>
+                <Heading level={2}>
+                  {data === null ? "Finding jobs…" : `${jobs.length} ${jobs.length === 1 ? "job" : "jobs"}${query ? ` for “${query}”` : ""}`}
+                </Heading>
+                {live.length > 0 && <Text type="supporting" color="secondary">From {live.join(", ")}. Each listing links to its source.</Text>}
+              </VStack>
+              <Button
+                label="Hiring? Post a job free"
+                variant="ghost"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => (user ? setPosting(true) : (window.location.href = "/login"))}
+              />
+            </HStack>
+
+            {err && <Banner status="error" title={err} endContent={<Button size="sm" label="Try again" onClick={load} />} />}
+
+            {data === null ? (
+              <Card padding={5}>
                 <VStack gap={4}>
-                  <Grid columns={{ minWidth: 240 }} gap={3}>
-                    <TextInput label="Job title" value={form.title} onChange={(v) => set("title", v.slice(0, 150))} placeholder="e.g. Sales Executive" />
-                    <TextInput label="Company" value={form.company} onChange={(v) => set("company", v.slice(0, 150))} placeholder="e.g. Acme Ltd" />
-                    <TextInput label="Location" value={form.location} onChange={(v) => set("location", v.slice(0, 150))} placeholder="e.g. Nairobi / Remote" />
-                    <TextInput label="Type" value={form.job_type} onChange={(v) => set("job_type", v.slice(0, 50))} placeholder="Full-time / Part-time / Gig" />
-                  </Grid>
-                  <TextArea label="Description & requirements" rows={8} maxLength={8000} value={form.description} onChange={(v) => set("description", v)} placeholder="Responsibilities, requirements, salary range if you can share it…" />
-                  <TextInput label="How to apply" value={form.how_to_apply} onChange={(v) => set("how_to_apply", v.slice(0, 500))} placeholder="Email, phone, or application link" />
-                  {err && <Banner status="error" title={err} />}
-                  <HStack>
-                    <Button label="Publish job" variant="primary" isLoading={busy} onClick={post} />
-                  </HStack>
+                  {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} height={44} />)}
                 </VStack>
               </Card>
-            )}
-
-            {jobs === null ? (
-              <Center minHeight={200}><Spinner /></Center>
             ) : jobs.length === 0 ? (
-              <EmptyState icon={<Icon icon={BriefcaseIcon} size="lg" />} title="No jobs posted yet" description="Be the first — posting is free." />
+              <EmptyState
+                icon={<Icon icon={BriefcaseIcon} size="lg" />}
+                title={query ? `No jobs for “${query}” right now` : "No jobs right now"}
+                description="Try a broader search, or switch between In Kenya and Remote."
+                actions={query ? <Button label="Clear search" onClick={() => search("")} /> : undefined}
+              />
             ) : (
-              <Card padding={2}>
-                <CollapsibleGroup hasDividers>
-                  {jobs.map((j) => (
-                    <Collapsible
-                      key={j.id}
-                      value={j.id}
-                      trigger={
-                        <VStack gap={0}>
-                          <Text weight="semibold">{j.title}</Text>
-                          <Text type="supporting" color="secondary">
-                            {j.company}{j.location ? ` · ${j.location}` : ""}{j.job_type ? ` · ${j.job_type}` : ""} ·{" "}
-                            {new Date(j.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
-                          </Text>
-                        </VStack>
-                      }
-                    >
-                      <VStack gap={4}>
-                        <ArticleBody content={j.description} />
-                        <Text><Text weight="semibold">How to apply:</Text> {j.how_to_apply}</Text>
-                        <HStack>
-                          <Button label="Tailor my CV for this job" variant="primary" icon={<Icon icon={SparklesIcon} />} onClick={() => router.push(`/?jobid=${j.id}`)} />
-                        </HStack>
-                      </VStack>
-                    </Collapsible>
-                  ))}
-                </CollapsibleGroup>
-              </Card>
+              <VStack gap={4}>
+                <Card padding={0}>
+                  <JobList jobs={jobs.slice(0, shown)} onOpen={setOpen} onApply={apply} />
+                </Card>
+                {shown < jobs.length && (
+                  <HStack justify="center">
+                    <Button label={`Show more (${jobs.length - shown})`} onClick={() => setShown((n) => n + PAGE)} />
+                  </HStack>
+                )}
+              </VStack>
             )}
           </VStack>
+
+          <JobDetail job={open} onClose={() => setOpen(null)} onApply={apply} />
+          <ApplyDialogs flow={flow} user={user} />
+          {user && (
+            <PostJobDialog
+              isOpen={posting}
+              onClose={() => setPosting(false)}
+              user={user}
+              onPosted={() => {
+                setPosting(false);
+                load();
+              }}
+            />
+          )}
         </LayoutContent>
       }
     />

@@ -18,6 +18,7 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import PageHeader from "../../components/PageHeader";
+import { PaperPlaneIllustration } from "../../components/brand/Illustration";
 import { ArrowLeftIcon, LifeBuoyIcon, PlusIcon } from "../../lib/icons";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 
@@ -173,6 +174,8 @@ export default function SupportClient() {
           eyebrow="A real person replies"
           title="Help & feedback"
           description="Hit a bug, stuck on a payment, or have an idea? We read every message and reply to all of them."
+          tone="peach"
+          illustration={<PaperPlaneIllustration size={190} hideOnPhones float />}
         />
         <Card padding={6}>
           {selected?.justSentAnon ? (

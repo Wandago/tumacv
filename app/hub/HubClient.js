@@ -18,6 +18,7 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Icon } from "@astryxdesign/core/Icon";
 import PageHeader from "../../components/PageHeader";
+import { WaveIllustration } from "../../components/brand/Illustration";
 import { BriefcaseIcon, UsersIcon } from "../../lib/icons";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { EXPERIENCE_LEVELS } from "../../lib/gamification";
@@ -159,6 +160,8 @@ export default function HubClient() {
               title="Talent Hub"
               description="Kenyan professionals who've chosen to be found — browse by industry, or by the services they offer. Every profile is written by the person behind it."
               actions={<Button label="Add yourself" variant="primary" onClick={() => router.push("/dashboard")} />}
+              tone="sand"
+              illustration={<WaveIllustration size={200} hideOnPhones float />}
             />
 
             <TabList value={view} onChange={setView} hasDivider>
