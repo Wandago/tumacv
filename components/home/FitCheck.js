@@ -5,8 +5,10 @@ import { Heading, Text } from "@astryxdesign/core/Text";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Token } from "@astryxdesign/core/Token";
 import { matchScore } from "../../lib/gamification";
+import { TargetIllustration } from "../vivid/Illustration";
 
-// How well the CV covers the job: matched keywords in green, gaps in red.
+// How well the CV covers the job: the match score as a big number, matched
+// keywords in green, gaps in red.
 // Gaps are never papered over by the AI, so this is where they surface.
 export default function FitCheck({ fit }) {
   if (!fit) return null;
@@ -17,18 +19,21 @@ export default function FitCheck({ fit }) {
   const variant = score >= 70 ? "success" : score >= 40 ? "warning" : "error";
 
   return (
-    <Card padding={5} className="no-print">
+    <Card variant="yellow" padding={6} className="no-print">
       <VStack gap={4}>
-        <HStack justify="between" align="center" gap={4} wrap="wrap">
+        <HStack justify="between" align="start" gap={3}>
           <VStack gap={0}>
-            <Heading level={3}>Fit check</Heading>
-            <Text type="supporting" color="secondary">How much of what this job asks for your CV covers</Text>
+            <Text weight="semibold" color="secondary">Fit check</Text>
+            {score !== null ? (
+              <Heading level={2} type="display-1">
+                <Text type="inherit" hasTabularNumbers>{score}%</Text>
+              </Heading>
+            ) : (
+              <Heading level={2} type="display-3">Your match</Heading>
+            )}
+            <Text color="secondary">of what this job asks for is in your CV</Text>
           </VStack>
-          {score !== null && (
-            <Text size="xl" weight="bold" hasTabularNumbers>
-              {score}% match
-            </Text>
-          )}
+          <TargetIllustration size={96} />
         </HStack>
         {score !== null && <ProgressBar label="Match" isLabelHidden value={score} variant={variant} />}
         <HStack gap={2} wrap="wrap">
@@ -41,8 +46,8 @@ export default function FitCheck({ fit }) {
         </HStack>
         {missing.length > 0 && (
           <Text type="supporting" color="secondary">
-            Red items are asked for in the job but aren't in your profile. If you do have them, add them and
-            generate again. If you don't, prepare an answer for the interview — nothing was invented to cover the gap.
+            Red items are asked for but aren't in your profile. Have them? Add them and generate again. If not, prepare
+            an answer for the interview — nothing was invented to cover the gap.
           </Text>
         )}
       </VStack>

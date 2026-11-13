@@ -17,9 +17,8 @@ import { trackPageView } from "../lib/track";
 import { useThemeMode } from "./AppProviders";
 import { BrandMark, MonitorIcon, MoonIcon, SunIcon, PlusIcon } from "../lib/icons";
 
-// The jobs board is hidden for now — the /jobs routes still exist and admins
-// can still moderate postings, but nothing links to it from the public site.
 const EXPLORE_LINKS = [
+  { href: "/jobs", label: "Jobs" },
   { href: "/pricing", label: "Pricing" },
   { href: "/hub", label: "Talent Hub" },
   { href: "/news", label: "News" },

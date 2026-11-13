@@ -20,6 +20,8 @@ import GenerationProgress from "./GenerationProgress";
 import { TEMPLATES } from "../../lib/templates";
 import { looksLikeBareLinkedInUrl } from "../../lib/linkedin";
 import { ArrowRightIcon, SparklesIcon } from "../../lib/icons";
+import StepPills from "../vivid/StepPills";
+import { CvIllustration, JobSearchIllustration, SwatchIllustration } from "../vivid/Illustration";
 
 export const MIN_CHARS = 80;
 const filled = (s) => s.trim().length >= MIN_CHARS;
@@ -36,6 +38,22 @@ function lengthStatus(text, what) {
   if (n === 0) return undefined;
   if (n < MIN_CHARS) return { type: "warning", message: `A bit short — add more of the ${what} (${n}/${MIN_CHARS} characters).` };
   return { type: "success", message: `${words(text).toLocaleString()} words — good to go.` };
+}
+
+// The coloured header of each step: progress pills, the question, and an
+// illustration beside it on wider screens.
+function StepHeader({ index, title, sub, illustration }) {
+  return (
+    <HStack justify="between" align="start" gap={4}>
+      <VStack gap={2}>
+        <StepPills total={3} current={index} />
+        <Text color="secondary" weight="semibold">Step {index + 1} of 3</Text>
+        <Heading level={2} type="display-3" textWrap="balance">{title}</Heading>
+        <Text color="secondary" textWrap="pretty">{sub}</Text>
+      </VStack>
+      {illustration}
+    </HStack>
+  );
 }
 
 export default function Builder({
@@ -61,7 +79,7 @@ export default function Builder({
         <LayoutContent padding={6} isScrollable={false}>
           <VStack gap={6}>
             <VStack gap={1}>
-              <Heading level={1}>Tailor your CV to a job</Heading>
+              <Heading level={1} type="display-2">Tailor your CV to a job</Heading>
               <Text color="secondary">
                 Three quick steps. Everything is rewritten from your real experience — nothing invented.
               </Text>
@@ -74,14 +92,20 @@ export default function Builder({
             </TabList>
 
             {step === "job" && (
-              <Card padding={6}>
+              <Card variant="purple" padding={8}>
                 <VStack gap={5}>
-                  <VStack gap={1}>
-                    <Heading level={2}>Which job are you applying for?</Heading>
-                    <Text color="secondary">
-                      Paste a link from BrighterMonday, Fuzu, MyJobMag or a careers page — or paste the description itself.
-                    </Text>
-                  </VStack>
+                  <StepHeader
+                    index={0}
+                    title="Which job are you applying for?"
+                    sub="Paste a link from BrighterMonday, Fuzu, MyJobMag or a careers page — or paste the description itself."
+                    illustration={<JobSearchIllustration size={130} hideOnPhones />}
+                  />
+                  <Banner
+                    status="info"
+                    title="No job in mind yet?"
+                    description="Browse live jobs in Kenya and remote roles — then tailor to any of them in one tap."
+                    endContent={<Button size="sm" label="Browse jobs" href="/jobs" />}
+                  />
                   <HStack gap={2} align="end">
                     <StackItem size="fill">
                       <TextInput
@@ -119,15 +143,14 @@ export default function Builder({
             )}
 
             {step === "you" && (
-              <Card padding={6}>
+              <Card variant="yellow" padding={8}>
                 <VStack gap={5}>
-                  <VStack gap={1}>
-                    <Heading level={2}>Your experience</Heading>
-                    <Text color="secondary">
-                      Upload your LinkedIn PDF or a photo of your CV and we'll read it — or paste your CV text. Saved to
-                      your account, so you only do this once.
-                    </Text>
-                  </VStack>
+                  <StepHeader
+                    index={1}
+                    title="Your experience"
+                    sub="Upload your LinkedIn PDF or a photo of your CV and we'll read it — or paste your CV text. Saved to your account, so you only do this once."
+                    illustration={<CvIllustration size={130} hideOnPhones />}
+                  />
                   {profileWasSaved && profileOk && (
                     <Banner
                       status="success"
@@ -186,12 +209,14 @@ export default function Builder({
             )}
 
             {step === "style" && (
-              <Card padding={6}>
+              <Card variant="green" padding={8}>
                 <VStack gap={5}>
-                  <VStack gap={1}>
-                    <Heading level={2}>Pick a style</Heading>
-                    <Text color="secondary">You can switch styles after it's generated — the content stays the same.</Text>
-                  </VStack>
+                  <StepHeader
+                    index={2}
+                    title="Pick a style"
+                    sub="You can switch styles after it's generated — the content stays the same."
+                    illustration={<SwatchIllustration size={130} hideOnPhones />}
+                  />
                   <Grid columns={{ minWidth: 200 }} gap={3}>
                     {TEMPLATES.map((t) => (
                       <SelectableCard

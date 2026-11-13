@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack, HStack } from "@astryxdesign/core/Stack";
-import { Heading, Text } from "@astryxdesign/core/Text";
+import { Text } from "@astryxdesign/core/Text";
 import { Card } from "@astryxdesign/core/Card";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -12,6 +12,8 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Link } from "@astryxdesign/core/Link";
 import CvSheet, { printDocument } from "./CvSheet";
 import FitCheck from "./FitCheck";
+import ApplyPanel from "./ApplyPanel";
+import { Grid, GridSpan } from "@astryxdesign/core/Grid";
 import ShareButtons from "../ShareButtons";
 import { TEMPLATES } from "../../lib/templates";
 import { FREE_MODE } from "../../lib/plans";
@@ -21,7 +23,7 @@ import { ArrowLeftIcon, DownloadIcon, PlusIcon, PrinterIcon } from "../../lib/ic
 // Shows a generated application. Used right after generating (home) and
 // when reopening a past one (dashboard) — `backLabel`/`onBack` and
 // `isFresh` cover the difference.
-export default function ResultView({ result, template, setTemplate, onBack, backLabel = "Edit inputs", onNew, isFresh = true }) {
+export default function ResultView({ result, template, setTemplate, onBack, backLabel = "Edit inputs", onNew, newLabel = "New application", isFresh = true }) {
   const [tab, setTab] = useState("cv");
   const [copied, setCopied] = useState(false);
   const [docxBusy, setDocxBusy] = useState(false);
@@ -29,6 +31,7 @@ export default function ResultView({ result, template, setTemplate, onBack, back
 
   const docName = (result.cv?.name || "").trim().replace(/\s+/g, "_");
   const printTitle = docName ? `${docName}_${tab === "cv" ? "CV" : "Cover_Letter"}` : undefined;
+  const cvTitle = docName ? `${docName}_CV` : undefined;
 
   async function copyLetter() {
     await navigator.clipboard.writeText(result.coverLetter);
@@ -58,18 +61,17 @@ export default function ResultView({ result, template, setTemplate, onBack, back
       content={
         <LayoutContent padding={6} isScrollable={false}>
           <VStack gap={5}>
-            <HStack justify="between" align="center" wrap="wrap" gap={3} className="no-print">
-              <VStack gap={1}>
-                <Text color="accent" weight="semibold">{isFresh ? "Your documents are ready" : "Saved application"}</Text>
-                <Heading level={1}>{result.jobTitle || result.cv?.title || "Your application"}</Heading>
-              </VStack>
-              <HStack gap={2} wrap="wrap">
-                <Button label={backLabel} variant="ghost" icon={<Icon icon={ArrowLeftIcon} />} onClick={onBack} />
-                {onNew && <Button label="New application" icon={<Icon icon={PlusIcon} />} onClick={onNew} />}
-              </HStack>
+            <HStack justify="between" align="center" wrap="wrap" gap={2} className="no-print">
+              <Button label={backLabel} variant="ghost" icon={<Icon icon={ArrowLeftIcon} />} onClick={onBack} />
+              {onNew && <Button label={newLabel} icon={<Icon icon={PlusIcon} />} onClick={onNew} />}
             </HStack>
 
-            <FitCheck fit={result.fit} />
+            <Grid columns={{ minWidth: 320 }} gap={4}>
+              <GridSpan columns={result.fit ? 1 : "full"}>
+                <ApplyPanel result={result} isFresh={isFresh} onSavePdf={() => { setTab("cv"); setTimeout(() => printDocument(cvTitle), 60); }} />
+              </GridSpan>
+              <FitCheck fit={result.fit} />
+            </Grid>
 
             <HStack justify="between" align="center" wrap="wrap" gap={3} className="no-print">
               <TabList value={tab} onChange={setTab}>
@@ -107,7 +109,7 @@ export default function ResultView({ result, template, setTemplate, onBack, back
             </CvSheet.PrintCopy>
 
             {isFresh && (
-            <Card variant="muted" padding={5} className="no-print">
+            <Card variant="green" padding={6} className="no-print">
               <VStack gap={4} hAlign="center">
                 <Text color="secondary" justify="center">
                   Saved to your <Link href="/dashboard">dashboard</Link>

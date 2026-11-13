@@ -15,6 +15,12 @@
   html[data-theme="dark"] [data-astryx-theme]:not([data-theme]) { color-scheme: dark; }
   html[data-theme="light"] [data-astryx-theme]:not([data-theme]) { color-scheme: light; }
 
+  /* Things that step aside on phones, where the text needs the whole width:
+     illustrations beside a headline (components/vivid), secondary labels in
+     job rows. `.show-on-phones` is the short stand-in for a hidden label. */
+  @media (max-width: 720px) { .hide-on-phones { display: none; } }
+  @media (min-width: 721px) { .show-on-phones { display: none; } }
+
   /* ---------------------------------------------------------------------------
      The CV document (components/CvView.js, components/home/CvSheet.js).
      This is the product's output — a page that prints and saves as PDF — so
@@ -29,6 +35,12 @@
     --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
     color-scheme: light;
+    /* A sheet can sit on a bold colour card (the landing page's purple hero);
+       the card re-points text tokens to white, so the paper puts them back. */
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #555555;
+    --color-icon-primary: #1a1a1a;
+    --color-icon-secondary: #555555;
   }
   /* Astryx's reset strips list bullets; a CV's experience bullets need them. */
   .cv ul { list-style: disc; }
@@ -171,7 +183,10 @@
   .cv .summary { margin-top: 10px; }
 
   /* Landing-page previews: a real rendered CV, cropped with a fade. */
-  .preview-card { overflow: hidden; max-height: 440px; mask-image: linear-gradient(to bottom, black 70%, transparent); }
+  .preview-card {
+    overflow: hidden; max-height: 440px; border-radius: var(--radius-container);
+    mask-image: linear-gradient(to bottom, black 70%, transparent);
+  }
   .preview-card .sheet { box-shadow: none; border-radius: 0; min-height: 0; }
   .preview-card-tall { max-height: 640px; }
 

@@ -1,5 +1,8 @@
 import "./layers.css";
 import "./globals.css";
+// Heading face (theme/tumacv.ts). Latin-only weight axis; the browser downloads
+// just the latin file (41 KB) thanks to unicode-range.
+import "@fontsource-variable/bricolage-grotesque/wght.css";
 import ReferralCapture from "../components/ReferralCapture";
 import AppProviders from "../components/AppProviders";
 import AppFrame from "../components/AppFrame";

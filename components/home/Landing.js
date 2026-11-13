@@ -20,7 +20,9 @@ import { SAMPLE_CV } from "../../lib/sampleCv";
 import { TEMPLATES } from "../../lib/templates";
 import { FREE_MODE, FREE_SIGNUP_CREDITS } from "../../lib/plans";
 import { setPendingJob } from "../../lib/storage";
-import { ArrowRightIcon, FileTextIcon, SparklesIcon, TargetIcon } from "../../lib/icons";
+import { ArrowRightIcon, BriefcaseIcon, FileTextIcon, SparklesIcon, TargetIcon } from "../../lib/icons";
+import StepPills from "../vivid/StepPills";
+import { CvIllustration, JobSearchIllustration, PaperPlaneIllustration, WaveIllustration } from "../vivid/Illustration";
 
 // Columns: one generic CV · hiring a CV writer · TumaCV. Kept deliberately
 // even-handed — a good CV writer genuinely beats us on human judgement.
@@ -69,16 +71,22 @@ const FAQS = [
 const STEPS = [
   {
     icon: FileTextIcon,
-    title: "Paste a job",
-    body: "A link from BrighterMonday, Fuzu, MyJobMag or a company careers page — or the description text. Any posting, any board.",
+    variant: "purple",
+    Illustration: JobSearchIllustration,
+    title: "Paste a job — or pick one",
+    body: "A link from BrighterMonday, Fuzu, MyJobMag or a careers page, the description text, or any job from our live jobs page.",
   },
   {
     icon: SparklesIcon,
+    variant: "yellow",
+    Illustration: CvIllustration,
     title: "We tailor your CV",
     body: "Keywords, ordering and emphasis rewritten to match the job — from your real experience only. Nothing invented.",
   },
   {
     icon: TargetIcon,
+    variant: "red",
+    Illustration: PaperPlaneIllustration,
     title: "Check the fit, then send",
     body: "See your match score and what's missing, then download the CV and matching cover letter as PDF or Word.",
   },
@@ -144,11 +152,11 @@ export default function Landing({ publicStats }) {
                   <Token label="Built for Kenyan job seekers" color="green" />
                 </HStack>
                 <Heading level={1} type="display-1" textWrap="balance">
-                  One job. One tailored CV.
+                  One job. One tailored CV. One tap.
                 </Heading>
                 <Text type="large" color="secondary" textWrap="pretty">
-                  Paste any job posting. TumaCV rewrites your CV and cover letter to match it — keywords, ordering,
-                  emphasis — using only your real experience. Nothing invented.
+                  Paste any job posting — or pick one from our live jobs. TumaCV rewrites your CV and cover letter to
+                  match it, using only your real experience. Nothing invented.
                 </Text>
                 <HStack gap={2} align="end">
                   <StackItem size="fill">
@@ -173,19 +181,32 @@ export default function Landing({ publicStats }) {
                   <Button label="Pricing" variant="ghost" onClick={() => router.push("/pricing")} />
                 </HStack>
               </VStack>
-              <Card padding={0} elevation="high" className="preview-card">
-                <CvSheet>
-                  <CvSheet.Cv data={SAMPLE_CV} template="modern" />
-                </CvSheet>
+              <Card variant="purple" padding={6}>
+                <VStack gap={4}>
+                  <HStack justify="between" align="center" gap={2} wrap="wrap">
+                    <Text weight="semibold">Sales Executive · Unilever Kenya</Text>
+                    <Token label="92% match" color="yellow" />
+                  </HStack>
+                  <VStack className="preview-card">
+                    <CvSheet>
+                      <CvSheet.Cv data={SAMPLE_CV} template="modern" />
+                    </CvSheet>
+                  </VStack>
+                  <HStack gap={2} wrap="wrap">
+                    <Token label="Cover letter included" />
+                    <Token label="PDF + Word" />
+                    <Token label="Nothing invented" />
+                  </HStack>
+                </VStack>
               </Card>
             </Grid>
 
             <Grid columns={{ minWidth: 220 }} gap={4}>
-              {stats.map((s) => (
-                <Card key={s.label} padding={5} variant={s.label === "Applications tailored" ? "green" : "default"}>
+              {stats.map((s, i) => (
+                <Card key={s.label} padding={6} variant={["green", "yellow", "pink", "gray"][i]} minHeight={150}>
                   <VStack gap={1}>
-                    <Text type="supporting" color="secondary">{s.label}</Text>
-                    <Heading level={3} type="display-3">{s.value}</Heading>
+                    <Text color="secondary" weight="medium">{s.label}</Text>
+                    <Heading level={3} type="display-2">{s.value}</Heading>
                   </VStack>
                 </Card>
               ))}
@@ -197,21 +218,43 @@ export default function Landing({ publicStats }) {
                 title="Three steps, zero guesswork"
                 sub="Paste a job, add your CV once, and get a tailored application in about a minute."
               />
-              <Grid columns={{ minWidth: 260 }} gap={4}>
+              <Grid columns={{ minWidth: 280 }} gap={4}>
                 {STEPS.map((s, i) => (
-                  <Card key={s.title} padding={6}>
-                    <VStack gap={3}>
-                      <HStack gap={2} align="center">
-                        <Icon icon={s.icon} color="accent" size="lg" />
-                        <Text color="secondary" weight="semibold">Step {i + 1}</Text>
+                  <Card key={s.title} padding={8} variant={s.variant} minHeight={440}>
+                    <VStack gap={3} height="100%">
+                      <StepPills total={STEPS.length} current={i} />
+                      <Text color="secondary" weight="semibold">Step {i + 1}</Text>
+                      <Heading level={3} type="display-3" textWrap="balance">{s.title}</Heading>
+                      <Text color="secondary" textWrap="pretty">{s.body}</Text>
+                      <StackItem size="fill" />
+                      <HStack justify="end">
+                        <s.Illustration size={170} />
                       </HStack>
-                      <Heading level={3}>{s.title}</Heading>
-                      <Text color="secondary">{s.body}</Text>
                     </VStack>
                   </Card>
                 ))}
               </Grid>
             </VStack>
+
+            <Card variant="blue" padding={8}>
+              <HStack gap={6} align="center">
+                <StackItem size="fill">
+                  <VStack gap={4}>
+                    <Text color="secondary" weight="semibold">New · Jobs</Text>
+                    <Heading level={2} type="display-2" textWrap="balance">Jobs from across the web. One tap to apply.</Heading>
+                    <Text type="large" color="secondary" textWrap="pretty">
+                      Live jobs in Kenya and remote roles open to Kenyans, in one list. Pick one and TumaCV tailors your CV
+                      and cover letter to it, saves it to your tracker, and sends you to the apply page.
+                    </Text>
+                    <HStack gap={2} wrap="wrap">
+                      <Button label="Browse jobs" variant="primary" size="lg" icon={<Icon icon={BriefcaseIcon} />} href="/jobs" />
+                      <Button label="Start free" variant="ghost" size="lg" onClick={() => router.push("/login?mode=signup")} />
+                    </HStack>
+                  </VStack>
+                </StackItem>
+                <JobSearchIllustration size={240} hideOnPhones />
+              </HStack>
+            </Card>
 
             <VStack gap={6} id="example">
               <SectionHeading
@@ -219,17 +262,21 @@ export default function Landing({ publicStats }) {
                 title="See what you get"
                 sub="Every style below is the actual template, rendered live with example data — the same component every real CV goes through."
               />
-              <HStack justify="center">
-                <SegmentedControl label="CV style" value={exampleTemplate} onChange={setExampleTemplate}>
-                  {TEMPLATES.map((t) => (
-                    <SegmentedControlItem key={t.id} value={t.id} label={t.name} />
-                  ))}
-                </SegmentedControl>
-              </HStack>
-              <Card padding={0} elevation="med" className="preview-card preview-card-tall">
-                <CvSheet>
-                  <CvSheet.Cv data={SAMPLE_CV} template={exampleTemplate} />
-                </CvSheet>
+              <Card variant="pink" padding={8}>
+                <VStack gap={6}>
+                  <HStack justify="center">
+                    <SegmentedControl label="CV style" value={exampleTemplate} onChange={setExampleTemplate}>
+                      {TEMPLATES.map((t) => (
+                        <SegmentedControlItem key={t.id} value={t.id} label={t.name} />
+                      ))}
+                    </SegmentedControl>
+                  </HStack>
+                  <VStack className="preview-card preview-card-tall">
+                    <CvSheet>
+                      <CvSheet.Cv data={SAMPLE_CV} template={exampleTemplate} />
+                    </CvSheet>
+                  </VStack>
+                </VStack>
               </Card>
             </VStack>
 
@@ -262,9 +309,10 @@ export default function Landing({ publicStats }) {
               </Card>
             </VStack>
 
-            <Card variant="green" padding={8}>
+            <Card variant="green" padding={10}>
               <VStack gap={4} hAlign="center">
-                <Heading level={2} type="display-3" justify="center" textWrap="balance">
+                <WaveIllustration size={150} />
+                <Heading level={2} type="display-2" justify="center" textWrap="balance">
                   Your next application deserves better than a copy-paste.
                 </Heading>
                 <Text justify="center" textWrap="balance">
