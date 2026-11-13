@@ -1,6 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
-import Link from "next/link";
-import Nav from "../../../components/Nav";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Token } from "@astryxdesign/core/Token";
+import { Link } from "@astryxdesign/core/Link";
+import { Card } from "@astryxdesign/core/Card";
+import ArticleBody from "../../../components/ArticleBody";
 import { safeJsonLd } from "../../../lib/jsonLd";
 
 // Read-only, unauthenticated client is fine here — articles are publicly
@@ -34,13 +39,18 @@ export default async function ArticlePage({ params }) {
 
   if (!article) {
     return (
-      <main className="shell">
-        <Nav />
-        <div className="step">
-          <h1>Article not found</h1>
-          <p className="step-hint">It may have been removed. <Link href="/news">Browse all articles →</Link></p>
-        </div>
-      </main>
+      <Layout
+        height="auto"
+        contentWidth={680}
+        content={
+          <LayoutContent padding={6} isScrollable={false}>
+            <VStack gap={2}>
+              <Heading level={1}>Article not found</Heading>
+              <Text color="secondary">It may have been removed. <Link href="/news">Browse all articles →</Link></Text>
+            </VStack>
+          </LayoutContent>
+        }
+      />
     );
   }
 
@@ -56,23 +66,35 @@ export default async function ArticlePage({ params }) {
   };
 
   return (
-    <main className="shell">
-      <Nav />
-      {/* eslint-disable-next-line react/no-danger */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
-      <section className="hero hero-band hero-band-compact">
-        <div className="results-head">
-          <Link href="/news" className="btn-ghost" style={{ textDecoration: "none" }}>← All articles</Link>
-        </div>
-        <span className="news-industry">{article.industry}</span>
-        <h1 className="news-reader-title">{article.title}</h1>
-        <div className="news-meta">
-          {new Date(article.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-        </div>
-      </section>
-      <div className="step">
-        <div className="news-reader-body">{article.content}</div>
-      </div>
-    </main>
+    <Layout
+      height="auto"
+      contentWidth={720}
+      content={
+        <LayoutContent padding={6} isScrollable={false}>
+          {/* eslint-disable-next-line react/no-danger */}
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
+          <VStack gap={6}>
+            <Link href="/news">← All articles</Link>
+            <VStack gap={3}>
+              <HStack gap={2} align="center">
+                <Token label={article.industry} size="sm" color="green" />
+                <Text type="supporting" color="secondary">
+                  {new Date(article.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                </Text>
+              </HStack>
+              <Heading level={1} type="display-3" textWrap="balance">{article.title}</Heading>
+            </VStack>
+            <ArticleBody content={article.content} />
+            <Card variant="green" padding={5}>
+              <VStack gap={2}>
+                <Heading level={3}>Put it into practice</Heading>
+                <Text>Tailor your CV and cover letter to a real job posting in about a minute.</Text>
+                <Link href="/">Try TumaCV free →</Link>
+              </VStack>
+            </Card>
+          </VStack>
+        </LayoutContent>
+      }
+    />
   );
 }

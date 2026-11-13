@@ -2,8 +2,23 @@
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "../lib/supabaseClient";
 import { INDUSTRIES, EXPERIENCE_LEVELS } from "../lib/gamification";
+import { Card } from "@astryxdesign/core/Card";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Button } from "@astryxdesign/core/Button";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { Icon } from "@astryxdesign/core/Icon";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Selector } from "@astryxdesign/core/Selector";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Token } from "@astryxdesign/core/Token";
+import { Divider } from "@astryxdesign/core/Divider";
+import { Link } from "@astryxdesign/core/Link";
+import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { Grid } from "@astryxdesign/core/Grid";
 import SkillPicker from "./SkillPicker";
 import MyServices from "./MyServices";
+import { PlusIcon, UsersIcon } from "../lib/icons";
 
 const MAX_EXPERIENCE = 5;
 const MAX_EDUCATION = 3;
@@ -46,6 +61,7 @@ export default function TalentHubCard({ user, profile, latestGeneration }) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [removing, setRemoving] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -105,138 +121,157 @@ export default function TalentHubCard({ user, profile, latestGeneration }) {
   }
 
   async function remove() {
-    if (!confirm("Remove your profile from the public Talent Hub? You can rejoin anytime.")) return;
     setRemoving(true);
     const { error } = await supabaseBrowser().from("hub_profiles").delete().eq("id", user.id);
     setRemoving(false);
+    setConfirmRemove(false);
     if (!error) { setHubProfile(null); setEditing(false); }
   }
 
   if (hubProfile === undefined) return null;
 
+  const repeatRows = (key, fields, max, empty, addLabel) => (
+    <VStack gap={2}>
+      {form[key].map((row, i) => (
+        <HStack key={i} gap={2} align="end">
+          {fields.map(([field, label]) => (
+            <StackItem size="fill" key={field}>
+              <TextInput label={label} isLabelHidden={i > 0} value={row[field]} onChange={(v) => updateRow(key, i, field, v)} placeholder={label} />
+            </StackItem>
+          ))}
+          <IconButton label="Remove row" variant="ghost" icon={<Icon icon="close" />} onClick={() => removeRow(key, i)} />
+        </HStack>
+      ))}
+      {form[key].length < max && (
+        <HStack>
+          <Button label={addLabel} size="sm" variant="ghost" icon={<Icon icon={PlusIcon} />} onClick={() => addRow(key, empty, max)} />
+        </HStack>
+      )}
+    </VStack>
+  );
+
   return (
-    <section className="hub-card-section">
-      <div className="step-head"><span className="step-no">COMMUNITY</span><h2>Talent Hub</h2></div>
+    <Card padding={5}>
+      <VStack gap={4}>
+        <HStack gap={3} align="start">
+          <Icon icon={UsersIcon} color="accent" size="lg" />
+          <StackItem size="fill">
+            <VStack gap={1}>
+              <Heading level={3}>Talent Hub</Heading>
+              {!editing && !hubProfile && (
+                <Text color="secondary">
+                  Publish a short public profile card — name, title, industry, skills, and a few roles if you like — so
+                  employers browsing the <Link href="/hub">Talent Hub</Link> can find you. No contact info or full CV is
+                  ever shown.
+                </Text>
+              )}
+              {!editing && hubProfile && (
+                <Text color="secondary">
+                  Your profile is live on the <Link href="/hub">public Talent Hub</Link>.
+                </Text>
+              )}
+              {editing && (
+                <Text color="secondary">
+                  Visible to anyone on the internet. Only what you fill in below is shown — never your email, phone, or
+                  full CV.
+                </Text>
+              )}
+            </VStack>
+          </StackItem>
+        </HStack>
 
-      {!editing && !hubProfile && (
-        <div className="hub-optin-prompt">
-          <p className="step-hint">
-            Publish a short, public profile card — name, title, industry, skills, and a couple of
-            roles/education entries if you want — so employers browsing TumaCV's{" "}
-            <a href="/hub">Talent Hub</a> can see you're out there. No contact info, email, or
-            full CV is ever shown.
-          </p>
-          <button className="btn-primary" onClick={startEdit}>Join the Talent Hub</button>
-        </div>
-      )}
+        {!editing && !hubProfile && (
+          <HStack>
+            <Button label="Join the Talent Hub" variant="primary" onClick={startEdit} />
+          </HStack>
+        )}
 
-      {!editing && hubProfile && (
-        <div className="hub-optin-prompt">
-          <p className="field-note" style={{ marginBottom: 10 }}>
-            Your profile is live on the <a href="/hub">public Talent Hub</a>.
-          </p>
-          <div className="hub-preview-card">
-            <div className="hub-preview-name">{hubProfile.display_name}</div>
-            <div className="hub-preview-title">{hubProfile.title}</div>
-            {(hubProfile.skills || []).length > 0 && (
-              <div className="hub-preview-skills">
-                {hubProfile.skills.map((s) => <span className="chip" key={s}>{s}</span>)}
-              </div>
-            )}
-            {(hubProfile.experience || []).length > 0 && (
-              <div className="hub-preview-list">
-                {hubProfile.experience.map((e, i) => (
-                  <div key={i}>{e.role}{e.company ? ` · ${e.company}` : ""}</div>
+        {!editing && hubProfile && (
+          <>
+            <Card variant="muted" padding={4}>
+              <VStack gap={2}>
+                <VStack gap={0}>
+                  <Text weight="bold">{hubProfile.display_name}</Text>
+                  <Text color="secondary">{hubProfile.title}</Text>
+                </VStack>
+                {(hubProfile.skills || []).length > 0 && (
+                  <HStack gap={1.5} wrap="wrap">
+                    {hubProfile.skills.map((s) => <Token key={s} label={s} size="sm" />)}
+                  </HStack>
+                )}
+                {(hubProfile.experience || []).map((e, i) => (
+                  <Text key={`e${i}`} type="supporting">{e.role}{e.company ? ` · ${e.company}` : ""}</Text>
                 ))}
-              </div>
-            )}
-            {(hubProfile.education || []).length > 0 && (
-              <div className="hub-preview-list">
-                {hubProfile.education.map((e, i) => (
-                  <div key={i}>{e.degree}{e.school ? ` · ${e.school}` : ""}</div>
+                {(hubProfile.education || []).map((e, i) => (
+                  <Text key={`d${i}`} type="supporting" color="secondary">{e.degree}{e.school ? ` · ${e.school}` : ""}</Text>
                 ))}
-              </div>
-            )}
-          </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <button className="btn-ghost" onClick={startEdit}>Edit</button>
-            <button className="btn-ghost danger-btn" disabled={removing} onClick={remove}>
-              {removing ? "…" : "Remove from Talent Hub"}
-            </button>
-          </div>
-          <MyServices userId={user.id} />
-        </div>
-      )}
+              </VStack>
+            </Card>
+            <HStack gap={2}>
+              <Button label="Edit" onClick={startEdit} />
+              <Button label="Remove from Talent Hub" variant="ghost" onClick={() => setConfirmRemove(true)} />
+            </HStack>
+            <Divider />
+            <MyServices userId={user.id} />
+          </>
+        )}
 
-      {editing && (
-        <div className="hub-optin-prompt">
-          <p className="field-note" style={{ marginBottom: 12 }}>
-            Visible to anyone on the internet, including people without a TumaCV account. Only
-            what you fill in below is shown — never your email, phone, or full CV.
-          </p>
-          <label className="field-label">Display name</label>
-          <input type="text" value={form.displayName} onChange={(e) => setField("displayName", e.target.value)}
-            placeholder="e.g. Wanjiru K." />
-          <label className="field-label">Title / role</label>
-          <input type="text" value={form.title} onChange={(e) => setField("title", e.target.value)}
-            placeholder="e.g. Digital Marketing Specialist" />
-          <label className="field-label">Industry</label>
-          <select value={form.industry} onChange={(e) => setField("industry", e.target.value)}>
-            <option value="">Not specified</option>
-            {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
-          </select>
-          <label className="field-label">Experience level</label>
-          <select value={form.experienceLevel} onChange={(e) => setField("experienceLevel", e.target.value)}>
-            <option value="">Not specified</option>
-            {EXPERIENCE_LEVELS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
-          </select>
+        {editing && (
+          <VStack gap={4}>
+            <Grid columns={{ minWidth: 220 }} gap={3}>
+              <TextInput label="Display name" value={form.displayName} onChange={(v) => setField("displayName", v)} placeholder="e.g. Wanjiru K." />
+              <TextInput label="Title / role" value={form.title} onChange={(v) => setField("title", v)} placeholder="e.g. Digital Marketing Specialist" />
+              <Selector
+                label="Industry"
+                hasClear
+                placeholder="Not specified"
+                value={form.industry}
+                onChange={(v) => setField("industry", v || "")}
+                options={INDUSTRIES.map((i) => ({ value: i, label: i }))}
+              />
+              <Selector
+                label="Experience level"
+                hasClear
+                placeholder="Not specified"
+                value={form.experienceLevel}
+                onChange={(v) => setField("experienceLevel", v || "")}
+                options={EXPERIENCE_LEVELS.map((l) => ({ value: l.id, label: l.label }))}
+              />
+            </Grid>
+            <SkillPicker selected={form.skills} onChange={(skills) => setField("skills", skills)} />
+            <TextInput
+              label="One-line blurb"
+              isOptional
+              value={form.blurb}
+              onChange={(v) => setField("blurb", v)}
+              placeholder="A short line about what you're looking for"
+            />
+            <VStack gap={2}>
+              <Text weight="semibold">Work experience <Text color="secondary">(optional)</Text></Text>
+              {repeatRows("experience", [["role", "Role"], ["company", "Company"], ["dates", "Dates"]], MAX_EXPERIENCE, { role: "", company: "", dates: "" }, "Add work experience")}
+            </VStack>
+            <VStack gap={2}>
+              <Text weight="semibold">Education <Text color="secondary">(optional)</Text></Text>
+              {repeatRows("education", [["degree", "Degree / qualification"], ["school", "School"], ["dates", "Dates"]], MAX_EDUCATION, { degree: "", school: "", dates: "" }, "Add education")}
+            </VStack>
+            {err && <Banner status="error" title={err} />}
+            <HStack gap={2}>
+              <Button label={hubProfile ? "Save changes" : "Publish my card"} variant="primary" isLoading={saving} onClick={save} />
+              <Button label="Cancel" variant="ghost" onClick={() => setEditing(false)} />
+            </HStack>
+          </VStack>
+        )}
+      </VStack>
 
-          <label className="field-label">Skills</label>
-          <SkillPicker selected={form.skills} onChange={(skills) => setField("skills", skills)} />
-
-          <label className="field-label">One-line blurb (optional)</label>
-          <input type="text" value={form.blurb} onChange={(e) => setField("blurb", e.target.value)}
-            placeholder="A short line about what you're looking for" />
-
-          <label className="field-label">Work experience (optional)</label>
-          {form.experience.map((exp, i) => (
-            <div className="hub-repeat-row" key={i}>
-              <input type="text" value={exp.role} onChange={(e) => updateRow("experience", i, "role", e.target.value)} placeholder="Role" />
-              <input type="text" value={exp.company} onChange={(e) => updateRow("experience", i, "company", e.target.value)} placeholder="Company" />
-              <input type="text" value={exp.dates} onChange={(e) => updateRow("experience", i, "dates", e.target.value)} placeholder="Dates" />
-              <button type="button" className="btn-ghost hub-repeat-remove" onClick={() => removeRow("experience", i)} aria-label="Remove">✕</button>
-            </div>
-          ))}
-          {form.experience.length < MAX_EXPERIENCE && (
-            <button type="button" className="btn-ghost" onClick={() => addRow("experience", { role: "", company: "", dates: "" }, MAX_EXPERIENCE)}>
-              + Add work experience
-            </button>
-          )}
-
-          <label className="field-label" style={{ marginTop: 16 }}>Education (optional)</label>
-          {form.education.map((edu, i) => (
-            <div className="hub-repeat-row" key={i}>
-              <input type="text" value={edu.degree} onChange={(e) => updateRow("education", i, "degree", e.target.value)} placeholder="Degree / qualification" />
-              <input type="text" value={edu.school} onChange={(e) => updateRow("education", i, "school", e.target.value)} placeholder="School" />
-              <input type="text" value={edu.dates} onChange={(e) => updateRow("education", i, "dates", e.target.value)} placeholder="Dates" />
-              <button type="button" className="btn-ghost hub-repeat-remove" onClick={() => removeRow("education", i)} aria-label="Remove">✕</button>
-            </div>
-          ))}
-          {form.education.length < MAX_EDUCATION && (
-            <button type="button" className="btn-ghost" onClick={() => addRow("education", { degree: "", school: "", dates: "" }, MAX_EDUCATION)}>
-              + Add education
-            </button>
-          )}
-
-          {err && <p className="error">{err}</p>}
-          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-            <button className="btn-primary" disabled={saving} onClick={save}>
-              {saving ? "Saving…" : hubProfile ? "Save changes" : "Publish my card"}
-            </button>
-            <button className="btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
-          </div>
-        </div>
-      )}
-    </section>
+      <AlertDialog
+        isOpen={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title="Remove your Talent Hub profile?"
+        description="Your card disappears from the public Talent Hub straight away. You can rejoin any time."
+        actionLabel="Remove"
+        isActionLoading={removing}
+        onAction={remove}
+      />
+    </Card>
   );
 }

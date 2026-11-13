@@ -1,13 +1,107 @@
 "use client";
 import { useEffect, useState } from "react";
-import Nav from "../../components/Nav";
+import { useRouter } from "next/navigation";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Card } from "@astryxdesign/core/Card";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Button } from "@astryxdesign/core/Button";
+import { TabList, Tab } from "@astryxdesign/core/TabList";
+import { Selector } from "@astryxdesign/core/Selector";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Token } from "@astryxdesign/core/Token";
+import { Avatar } from "@astryxdesign/core/Avatar";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Center } from "@astryxdesign/core/Center";
+import { Spinner } from "@astryxdesign/core/Spinner";
+import { Divider } from "@astryxdesign/core/Divider";
+import { Icon } from "@astryxdesign/core/Icon";
+import PageHeader from "../../components/PageHeader";
+import { BriefcaseIcon, UsersIcon } from "../../lib/icons";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { EXPERIENCE_LEVELS } from "../../lib/gamification";
 import { SERVICE_CATEGORIES } from "../../lib/serviceCategories";
 
 const LEVEL_LABEL = Object.fromEntries(EXPERIENCE_LEVELS.map((l) => [l.id, l.label]));
 
+function ProfileCard({ p }) {
+  return (
+    <Card padding={5}>
+      <VStack gap={3}>
+        <HStack gap={3} align="center">
+          <Avatar name={p.display_name} size="md" tooltip={false} />
+          <VStack gap={0}>
+            <Text weight="bold">{p.display_name}</Text>
+            <Text color="secondary">{p.title}</Text>
+          </VStack>
+        </HStack>
+        {(p.industry || p.experience_level) && (
+          <Text type="supporting" color="secondary">
+            {[p.industry, p.experience_level ? LEVEL_LABEL[p.experience_level] : null].filter(Boolean).join(" · ")}
+          </Text>
+        )}
+        {p.blurb && <Text>{p.blurb}</Text>}
+        {(p.skills || []).length > 0 && (
+          <HStack gap={1.5} wrap="wrap">
+            {p.skills.map((s) => <Token key={s} label={s} size="sm" />)}
+          </HStack>
+        )}
+        {((p.experience || []).length > 0 || (p.education || []).length > 0) && <Divider />}
+        {(p.experience || []).length > 0 && (
+          <VStack gap={1}>
+            <Text type="supporting" weight="semibold" color="secondary">Experience</Text>
+            {p.experience.map((e, i) => (
+              <Text key={i} type="supporting">
+                <Text type="supporting" weight="semibold">{e.role}</Text>
+                {e.company ? ` · ${e.company}` : ""}
+                {e.dates ? <Text type="supporting" color="secondary">{` — ${e.dates}`}</Text> : null}
+              </Text>
+            ))}
+          </VStack>
+        )}
+        {(p.education || []).length > 0 && (
+          <VStack gap={1}>
+            <Text type="supporting" weight="semibold" color="secondary">Education</Text>
+            {p.education.map((e, i) => (
+              <Text key={i} type="supporting">
+                <Text type="supporting" weight="semibold">{e.degree}</Text>
+                {e.school ? ` · ${e.school}` : ""}
+                {e.dates ? <Text type="supporting" color="secondary">{` — ${e.dates}`}</Text> : null}
+              </Text>
+            ))}
+          </VStack>
+        )}
+      </VStack>
+    </Card>
+  );
+}
+
+function ServiceCard({ s }) {
+  return (
+    <Card padding={5}>
+      <VStack gap={3} height="100%">
+        <HStack>
+          <Token label={s.category} size="sm" color="green" />
+        </HStack>
+        <Heading level={3}>{s.title}</Heading>
+        <Text color="secondary" maxLines={4}>{s.description}</Text>
+        <StackItem size="fill" />
+        <Divider />
+        <HStack justify="between" align="center" gap={2}>
+          <VStack gap={0}>
+            <Text weight="semibold">{s.hub_profiles?.display_name || "TumaCV member"}</Text>
+            {s.delivery_days && <Text type="supporting" color="secondary">{s.delivery_days}-day delivery</Text>}
+          </VStack>
+          <Text size="lg" weight="bold">KES {s.price_kes.toLocaleString()}</Text>
+        </HStack>
+      </VStack>
+    </Card>
+  );
+}
+
 export default function HubClient() {
+  const router = useRouter();
   const [view, setView] = useState("people");
 
   const [profiles, setProfiles] = useState(null);
@@ -54,146 +148,98 @@ export default function HubClient() {
   }
 
   return (
-    <main className="shell wide">
-      <Nav />
-      <section className="hero hero-band">
-        <span className="eyebrow">Open to work</span>
-        <h1>Talent Hub</h1>
-        <p>
-          Kenyan professionals who've chosen to be found — browse by industry, or by the
-          specific services they offer. Every profile is written by the person behind it.
-        </p>
-      </section>
+    <Layout
+      height="auto"
+      contentWidth={1120}
+      content={
+        <LayoutContent padding={6} isScrollable={false}>
+          <VStack gap={6}>
+            <PageHeader
+              eyebrow="Open to work"
+              title="Talent Hub"
+              description="Kenyan professionals who've chosen to be found — browse by industry, or by the services they offer. Every profile is written by the person behind it."
+              actions={<Button label="Add yourself" variant="primary" onClick={() => router.push("/dashboard")} />}
+            />
 
-      <div className="doc-tabs">
-        <button className={view === "people" ? "on" : "btn-ghost"} onClick={() => setView("people")}>People</button>
-        <button className={view === "services" ? "on" : "btn-ghost"} onClick={() => setView("services")}>Services</button>
-      </div>
+            <TabList value={view} onChange={setView} hasDivider>
+              <Tab value="people" label="People" />
+              <Tab value="services" label="Services" />
+            </TabList>
 
-      {view === "people" && (
-        <>
-          {profiles && profiles.length > 0 && (
-            <div className="news-filter-row">
-              <button className={`news-filter-chip ${filter === "all" ? "on" : ""}`} onClick={() => setFilter("all")}>All</button>
-              {industriesPresent.map((i) => (
-                <button key={i} className={`news-filter-chip ${filter === i ? "on" : ""}`} onClick={() => setFilter(i)}>{i}</button>
-              ))}
-            </div>
-          )}
+            {view === "people" && (
+              <>
+                {profiles && profiles.length > 0 && (
+                  <Selector
+                    label="Industry"
+                    width={300}
+                    value={filter}
+                    onChange={setFilter}
+                    options={[{ value: "all", label: "All industries" }, ...industriesPresent.map((i) => ({ value: i, label: i }))]}
+                  />
+                )}
+                {filtered === null ? (
+                  <Center minHeight={200}><Spinner /></Center>
+                ) : profiles.length === 0 ? (
+                  <EmptyState
+                    icon={<Icon icon={UsersIcon} size="lg" />}
+                    title="No one has joined yet"
+                    description="Be the first — publish a short public profile from your dashboard."
+                    actions={<Button label="Join from your dashboard" variant="primary" onClick={() => router.push("/dashboard")} />}
+                  />
+                ) : filtered.length === 0 ? (
+                  <Text color="secondary">No one in this industry yet.</Text>
+                ) : (
+                  <Grid columns={{ minWidth: 300 }} gap={4} align="start">
+                    {filtered.map((p) => <ProfileCard key={p.id} p={p} />)}
+                  </Grid>
+                )}
+              </>
+            )}
 
-          {filtered === null ? (
-            <div className="loading"><span className="spinner" /> Loading profiles…</div>
-          ) : filtered.length === 0 && profiles.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "30px 0" }}>
-              <p className="step-hint">No one has joined the Talent Hub yet — be the first.</p>
-              <a className="btn-primary" style={{ textDecoration: "none", display: "inline-block", marginTop: 10 }} href="/dashboard">
-                Join from your dashboard
-              </a>
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="step-hint" style={{ padding: "30px 0" }}>No one in this industry yet.</p>
-          ) : (
-            <div className="hub-grid">
-              {filtered.map((p) => (
-                <div key={p.id} className="hub-profile-card">
-                  <div className="hub-profile-name">{p.display_name}</div>
-                  <div className="hub-profile-title">{p.title}</div>
-                  <div className="hub-profile-meta">
-                    {[p.industry, p.experience_level ? LEVEL_LABEL[p.experience_level] : null].filter(Boolean).join(" · ")}
-                  </div>
-                  {p.blurb && <div className="hub-profile-blurb">{p.blurb}</div>}
-                  {(p.skills || []).length > 0 && (
-                    <div className="hub-profile-skills">
-                      {p.skills.map((s) => <span className="chip" key={s}>{s}</span>)}
-                    </div>
-                  )}
-                  {(p.experience || []).length > 0 && (
-                    <div className="hub-profile-section">
-                      <span className="hub-profile-section-label">Experience</span>
-                      {p.experience.map((e, i) => (
-                        <div className="hub-profile-line" key={i}>
-                          <b>{e.role}</b>{e.company ? ` · ${e.company}` : ""}
-                          {e.dates ? <span className="hub-profile-dates"> — {e.dates}</span> : null}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {(p.education || []).length > 0 && (
-                    <div className="hub-profile-section">
-                      <span className="hub-profile-section-label">Education</span>
-                      {p.education.map((e, i) => (
-                        <div className="hub-profile-line" key={i}>
-                          <b>{e.degree}</b>{e.school ? ` · ${e.school}` : ""}
-                          {e.dates ? <span className="hub-profile-dates"> — {e.dates}</span> : null}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {view === "services" && (
-        <>
-          {services && services.length > 0 && (
-            <>
-              <div className="service-controls">
-                <input
-                  type="text"
-                  placeholder="Search services…"
-                  value={serviceQuery}
-                  onChange={(e) => setServiceQuery(e.target.value)}
-                  className="service-search"
-                />
-                <select value={serviceSort} onChange={(e) => setServiceSort(e.target.value)}>
-                  <option value="newest">Newest</option>
-                  <option value="price-low">Price: low to high</option>
-                  <option value="price-high">Price: high to low</option>
-                </select>
-              </div>
-              <div className="news-filter-row">
-                <button className={`news-filter-chip ${serviceCategory === "all" ? "on" : ""}`} onClick={() => setServiceCategory("all")}>All</button>
-                {categoriesPresent.map((c) => (
-                  <button key={c} className={`news-filter-chip ${serviceCategory === c ? "on" : ""}`} onClick={() => setServiceCategory(c)}>{c}</button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {filteredServices === null ? (
-            <div className="loading"><span className="spinner" /> Loading services…</div>
-          ) : filteredServices.length === 0 && services.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "30px 0" }}>
-              <p className="step-hint">No services listed yet — be the first to offer one.</p>
-              <a className="btn-primary" style={{ textDecoration: "none", display: "inline-block", marginTop: 10 }} href="/dashboard">
-                List a service from your dashboard
-              </a>
-            </div>
-          ) : filteredServices.length === 0 ? (
-            <p className="step-hint" style={{ padding: "30px 0" }}>No services match that search.</p>
-          ) : (
-            <div className="service-grid">
-              {filteredServices.map((s) => (
-                <div key={s.id} className="service-card">
-                  <span className="service-category-pill">{s.category}</span>
-                  <div className="service-title">{s.title}</div>
-                  <p className="service-desc">{s.description}</p>
-                  <div className="service-foot">
-                    <div>
-                      <div className="service-provider">{s.hub_profiles?.display_name || "TumaCV member"}</div>
-                      {s.delivery_days && <div className="service-delivery">{s.delivery_days}-day delivery</div>}
-                    </div>
-                    <div className="service-price">KES {s.price_kes.toLocaleString()}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </main>
+            {view === "services" && (
+              <>
+                {services && services.length > 0 && (
+                  <Grid columns={{ minWidth: 220 }} gap={3}>
+                    <TextInput label="Search" placeholder="Search services…" value={serviceQuery} onChange={setServiceQuery} startIcon="search" hasClear />
+                    <Selector
+                      label="Category"
+                      value={serviceCategory}
+                      onChange={setServiceCategory}
+                      options={[{ value: "all", label: "All categories" }, ...categoriesPresent.map((c) => ({ value: c, label: c }))]}
+                    />
+                    <Selector
+                      label="Sort by"
+                      value={serviceSort}
+                      onChange={setServiceSort}
+                      options={[
+                        { value: "newest", label: "Newest" },
+                        { value: "price-low", label: "Price: low to high" },
+                        { value: "price-high", label: "Price: high to low" },
+                      ]}
+                    />
+                  </Grid>
+                )}
+                {filteredServices === null ? (
+                  <Center minHeight={200}><Spinner /></Center>
+                ) : services.length === 0 ? (
+                  <EmptyState
+                    icon={<Icon icon={BriefcaseIcon} size="lg" />}
+                    title="No services listed yet"
+                    description="Offer a CV rewrite, a design job, tutoring — list it from your dashboard."
+                    actions={<Button label="List a service" variant="primary" onClick={() => router.push("/dashboard")} />}
+                  />
+                ) : filteredServices.length === 0 ? (
+                  <Text color="secondary">No services match that search.</Text>
+                ) : (
+                  <Grid columns={{ minWidth: 280 }} gap={4}>
+                    {filteredServices.map((s) => <ServiceCard key={s.id} s={s} />)}
+                  </Grid>
+                )}
+              </>
+            )}
+          </VStack>
+        </LayoutContent>
+      }
+    />
   );
 }

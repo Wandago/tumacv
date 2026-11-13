@@ -1,7 +1,23 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Nav from "../../components/Nav";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Card } from "@astryxdesign/core/Card";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Button } from "@astryxdesign/core/Button";
+import { Selector } from "@astryxdesign/core/Selector";
+import { SelectableCard } from "@astryxdesign/core/SelectableCard";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { TextArea } from "@astryxdesign/core/TextArea";
+import { FileInput } from "@astryxdesign/core/FileInput";
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Token } from "@astryxdesign/core/Token";
+import { Center } from "@astryxdesign/core/Center";
+import { Spinner } from "@astryxdesign/core/Spinner";
+import { Divider } from "@astryxdesign/core/Divider";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { extractPdfText } from "../../lib/pdfText";
 import { extractImagesToText } from "../../lib/imageExtract";
@@ -41,8 +57,6 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [saved, setSaved] = useState(false);
-  const fileInputRef = useRef(null);
-  const photoInputRef = useRef(null);
 
   useEffect(() => {
     const sb = supabaseBrowser();
@@ -71,9 +85,7 @@ export default function Onboarding() {
     });
   }, [router]);
 
-  async function handlePdfUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function handlePdf(file) {
     setPdfErr("");
     if (file.type !== "application/pdf") {
       setPdfErr("Please upload a PDF file.");
@@ -82,23 +94,19 @@ export default function Onboarding() {
     setPdfBusy(true);
     try {
       const text = await extractPdfText(file);
-      if (text.length < 80) setPdfErr("Couldn't read much text from that PDF — try pasting instead.");
+      if (text.length < 80) setPdfErr("Couldn't read much text from that PDF — try the photo option, or paste instead.");
       else setProfileText(text);
     } catch {
       setPdfErr("Couldn't read that PDF. Try re-saving it, or paste your details instead.");
     } finally {
       setPdfBusy(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
-  async function handlePhotoUpload(e) {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+  async function handlePhotos(files) {
     setPhotoErr("");
     if (files.length > 4) {
       setPhotoErr("Please choose up to 4 photos at a time.");
-      if (photoInputRef.current) photoInputRef.current.value = "";
       return;
     }
     setPhotoBusy(true);
@@ -110,7 +118,6 @@ export default function Onboarding() {
       setPhotoErr(err.message || "Couldn't read those photos. Try again, or type your details instead.");
     } finally {
       setPhotoBusy(false);
-      if (photoInputRef.current) photoInputRef.current.value = "";
     }
   }
 
@@ -188,139 +195,148 @@ export default function Onboarding() {
     }
   }
 
-  if (!ready) return null;
+  if (!ready) {
+    return (
+      <Center minHeight="60vh">
+        <Spinner size="lg" />
+      </Center>
+    );
+  }
 
   return (
-    <main className="shell">
-      <Nav />
-      <section className="hero hero-band">
-        {!isEditing && <p className="step-indicator">Step 2 of 2</p>}
-        <h1>{isEditing ? "Your profile" : "A little about you"}</h1>
-        <p className="step-hint">
-          {isEditing
-            ? "Update this any time — new job, new skills, new CV. Every generated application uses what's saved here."
-            : "Optional, and about a minute. It's what lets the first CV you generate already sound like your field instead of generic."}
-        </p>
-      </section>
+    <Layout
+      height="auto"
+      contentWidth={720}
+      content={
+        <LayoutContent padding={6} isScrollable={false}>
+          <VStack gap={6}>
+            <VStack gap={2}>
+              {!isEditing && (
+                <HStack>
+                  <Token label="Step 2 of 2" size="sm" color="green" />
+                </HStack>
+              )}
+              <Heading level={1}>{isEditing ? "Your profile" : "A little about you"}</Heading>
+              <Text color="secondary">
+                {isEditing
+                  ? "Update this any time — new job, new skills, new CV. Every application you generate uses what's saved here."
+                  : "Optional, and about a minute. It's what lets your first CV already sound like your field instead of generic."}
+              </Text>
+            </VStack>
 
-      <div className="auth-card" style={{ maxWidth: 520 }}>
-        <label className="field-label" htmlFor="industry">Industry</label>
-        <select id="industry" value={industry} onChange={(e) => setIndustry(e.target.value)}>
-          <option value="">Select…</option>
-          {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
-        </select>
+            <Card padding={6}>
+              <VStack gap={5}>
+                <Selector
+                  label="Industry"
+                  placeholder="Select…"
+                  hasSearch
+                  value={industry}
+                  onChange={setIndustry}
+                  options={INDUSTRIES.map((i) => ({ value: i, label: i }))}
+                />
 
-        <label className="field-label">Experience level</label>
-        <div className="level-grid">
-          {LEVELS.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              className={`level-card ${level === l.id ? "on" : ""}`}
-              onClick={() => setLevel(l.id)}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
+                <VStack gap={2}>
+                  <Text weight="medium">Experience level</Text>
+                  <Grid columns={{ minWidth: 200 }} gap={2}>
+                    {LEVELS.map((l) => (
+                      <SelectableCard key={l.id} label={l.label} isSelected={level === l.id} onChange={() => setLevel(l.id)} padding={3}>
+                        <Text>{l.label}</Text>
+                      </SelectableCard>
+                    ))}
+                  </Grid>
+                </VStack>
 
-        <label className="field-label" htmlFor="phone">Phone number (optional)</label>
-        <input
-          id="phone"
-          type="tel"
-          placeholder="07XX XXX XXX"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          style={{ maxWidth: 220 }}
-        />
-        <p className="field-note" style={{ marginBottom: 10 }}>
-          Only used if you opt in to WhatsApp/SMS tips below — never shared, never required.
-        </p>
-        <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, fontSize: 13, color: "var(--soil)", cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={sendUpdates}
-            onChange={(e) => setSendUpdates(e.target.checked)}
-            style={{ width: "auto", marginTop: 2, accentColor: "var(--kijani)" }}
-          />
-          <span>Send me occasional tips, credit reminders and new-feature updates by email{phone.trim() ? ", WhatsApp or SMS" : ""}. You can turn this off any time here.</span>
-        </label>
+                {!isEditing && (
+                  <VStack gap={2}>
+                    <Text weight="medium">How did you hear about TumaCV?</Text>
+                    <Grid columns={{ minWidth: 150 }} gap={2}>
+                      {REFERRAL_SOURCES.map((r) => (
+                        <SelectableCard key={r.id} label={r.label} isSelected={referral === r.id} onChange={() => setReferral(r.id)} padding={3}>
+                          <Text>{r.emoji} {r.label}</Text>
+                        </SelectableCard>
+                      ))}
+                    </Grid>
+                  </VStack>
+                )}
 
-        {!isEditing && (
-          <>
-            <label className="field-label">How did you hear about TumaCV?</label>
-            <div className="referral-grid">
-              {REFERRAL_SOURCES.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  className={`referral-card ${referral === r.id ? "on" : ""}`}
-                  onClick={() => setReferral(r.id)}
-                >
-                  <span className="referral-emoji">{r.emoji}</span>
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+                <Divider />
 
-        <label className="field-label">Your CV or LinkedIn profile</label>
-        <div className="upload-row">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/pdf"
-            style={{ display: "none" }}
-            onChange={handlePdfUpload}
-          />
-          <button type="button" className="btn-ghost" onClick={() => fileInputRef.current?.click()} disabled={pdfBusy}>
-            {pdfBusy ? "Reading PDF…" : "📄 Upload PDF"}
-          </button>
-          <input
-            ref={photoInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            style={{ display: "none" }}
-            onChange={handlePhotoUpload}
-          />
-          <button type="button" className="btn-ghost" onClick={() => photoInputRef.current?.click()} disabled={photoBusy}>
-            {photoBusy ? "Reading photo…" : "📷 Or upload a photo"}
-          </button>
-        </div>
-        {pdfErr && <p className="error">{pdfErr}</p>}
-        {photoErr && <p className="error">{photoErr}</p>}
-        <p className="field-note" style={{ marginBottom: 10 }}>
-          On iPhone, can't find your saved PDF? Try the photo option instead — a picture of a printed
-          CV or a few LinkedIn screenshots works well, straight from Camera or Photos.
-        </p>
-        <LinkedInGuide />
-        <textarea
-          style={{ minHeight: 160 }}
-          placeholder="Paste your CV or LinkedIn export text here…"
-          value={profileText}
-          onChange={(e) => setProfileText(e.target.value)}
-        />
-        {looksLikeBareLinkedInUrl(profileText) && (
-          <p className="error">
-            That's a LinkedIn profile link, not your profile content — LinkedIn doesn't let other
-            sites read it directly. Export it as a PDF instead (steps above) and upload that.
-          </p>
-        )}
+                <TextInput
+                  label="Phone number"
+                  isOptional
+                  description="Only used if you opt in to WhatsApp/SMS tips below — never shared."
+                  placeholder="07XX XXX XXX"
+                  value={phone}
+                  onChange={setPhone}
+                  width={260}
+                />
+                <CheckboxInput
+                  label={`Send me occasional tips, credit reminders and new features by email${phone.trim() ? ", WhatsApp or SMS" : ""}`}
+                  description="You can turn this off here any time."
+                  value={sendUpdates}
+                  onChange={setSendUpdates}
+                />
 
-        {err && <p className="error">{err}</p>}
-        {saved && <p className="success">Saved.</p>}
+                <Divider />
 
-        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={skipOrCancel} disabled={busy}>
-            {isEditing ? "Cancel" : "Skip for now"}
-          </button>
-          <button className="btn-primary" style={{ flex: 2 }} onClick={save} disabled={busy}>
-            {busy ? "Saving…" : isEditing ? "Save changes" : "Save and continue"}
-          </button>
-        </div>
-      </div>
-    </main>
+                <VStack gap={3}>
+                  <VStack gap={1}>
+                    <Text weight="medium">Your CV or LinkedIn profile</Text>
+                    <Text type="supporting" color="secondary">
+                      Upload a PDF or photos and we'll read them, or paste the text. On iPhone the photo option is
+                      usually easiest.
+                    </Text>
+                  </VStack>
+                  <Grid columns={{ minWidth: 240 }} gap={3}>
+                    <FileInput
+                      label="PDF"
+                      accept="application/pdf"
+                      value={null}
+                      onChange={(f) => f && handlePdf(Array.isArray(f) ? f[0] : f)}
+                      isLoading={pdfBusy}
+                      placeholder="Choose a PDF"
+                      status={pdfErr ? { type: "error", message: pdfErr } : undefined}
+                    />
+                    <FileInput
+                      label="Photos (up to 4)"
+                      accept="image/*"
+                      isMultiple
+                      maxFiles={4}
+                      value={null}
+                      onChange={(f) => f && handlePhotos(Array.isArray(f) ? f : [f])}
+                      isLoading={photoBusy}
+                      placeholder="Choose photos"
+                      status={photoErr ? { type: "error", message: photoErr } : undefined}
+                    />
+                  </Grid>
+                  <LinkedInGuide />
+                  <TextArea
+                    label="CV text"
+                    isLabelHidden
+                    rows={8}
+                    placeholder="Paste your CV or LinkedIn export text here…"
+                    value={profileText}
+                    onChange={setProfileText}
+                    status={
+                      looksLikeBareLinkedInUrl(profileText)
+                        ? { type: "error", message: "That's a LinkedIn link, not your profile content — save it as a PDF (steps above) and upload that." }
+                        : undefined
+                    }
+                  />
+                </VStack>
+
+                {err && <Banner status="error" title={err} />}
+                {saved && <Banner status="success" title="Saved." />}
+
+                <HStack justify="end" gap={2}>
+                  <Button label={isEditing ? "Cancel" : "Skip for now"} variant="ghost" isDisabled={busy} onClick={skipOrCancel} />
+                  <Button label={isEditing ? "Save changes" : "Save and continue"} variant="primary" isLoading={busy} onClick={save} />
+                </HStack>
+              </VStack>
+            </Card>
+          </VStack>
+        </LayoutContent>
+      }
+    />
   );
 }

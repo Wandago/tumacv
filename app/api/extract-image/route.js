@@ -56,8 +56,10 @@ export async function POST(req) {
           ],
         },
       ],
-      generationConfig: { maxOutputTokens: 3000 },
-    });
+      // A full multi-page CV transcribes to well over 3000 tokens; the old
+      // cap cut long CVs off partway, so the profile came through incomplete.
+      generationConfig: { maxOutputTokens: 8192 },
+    }, { timeoutMs: 40_000 });
 
     if (!res.ok) {
       if (res.status === 429) {

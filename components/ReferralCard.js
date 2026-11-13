@@ -1,9 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Card } from "@astryxdesign/core/Card";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Icon } from "@astryxdesign/core/Icon";
 import { supabaseBrowser } from "../lib/supabaseClient";
 import { referralLink } from "../lib/referral";
 import { REFERRAL_CREDITS } from "../lib/plans";
 import ShareButtons from "./ShareButtons";
+import { GiftIcon } from "../lib/icons";
 
 export default function ReferralCard({ user }) {
   const [count, setCount] = useState(null);
@@ -31,27 +37,32 @@ export default function ReferralCard({ user }) {
   const message = `Get ${REFERRAL_CREDITS} free bonus applications on TumaCV — tailored CVs + cover letters in minutes:`;
 
   return (
-    <section className="hub-card-section">
-      <div className="step-head"><span className="step-no">GROW</span><h2>Invite friends, earn credits</h2></div>
-      <div className="hub-optin-prompt">
-        <p className="step-hint">
-          Share your link. Each friend who signs up gets {REFERRAL_CREDITS} bonus applications on top of
-          their free ones, and you get {REFERRAL_CREDITS} more too — no limit on how many times.
-        </p>
-        <p className="field-note" style={{ wordBreak: "break-all", marginBottom: 10 }}>{link}</p>
+    <Card padding={5}>
+      <VStack gap={4}>
+        <HStack gap={3} align="start">
+          <Icon icon={GiftIcon} color="accent" size="lg" />
+          <StackItem size="fill">
+            <VStack gap={1}>
+              <Heading level={3}>Invite friends, earn applications</Heading>
+              <Text color="secondary">
+                Each friend who signs up with your link gets {REFERRAL_CREDITS} bonus applications on top of their free
+                ones, and you get {REFERRAL_CREDITS} more too. No limit.
+              </Text>
+            </VStack>
+          </StackItem>
+        </HStack>
+        <TextInput label="Your link" value={link} onChange={() => {}} isReadOnly />
         <ShareButtons url={link} message={message} />
-        {statsErr ? (
-          <p className="field-note" style={{ marginTop: 10 }}>
-            Couldn't load your referral count just now — your link still works.
-          </p>
-        ) : count !== null ? (
-          <p className="field-note" style={{ marginTop: 10 }}>
-            {count === 0
-              ? "No referrals yet — share your link to start earning."
-              : `${count} friend${count === 1 ? "" : "s"} joined through your link so far.`}
-          </p>
-        ) : null}
-      </div>
-    </section>
+        <Text type="supporting" color="secondary">
+          {statsErr
+            ? "Couldn't load your referral count just now — your link still works."
+            : count === null
+            ? ""
+            : count === 0
+            ? "No referrals yet — share your link to start earning."
+            : `${count} friend${count === 1 ? "" : "s"} joined through your link so far.`}
+        </Text>
+      </VStack>
+    </Card>
   );
 }

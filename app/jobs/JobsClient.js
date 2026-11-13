@@ -1,23 +1,33 @@
 "use client";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import Nav from "../../components/Nav";
+import { useRouter } from "next/navigation";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { Card } from "@astryxdesign/core/Card";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Button } from "@astryxdesign/core/Button";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { TextArea } from "@astryxdesign/core/TextArea";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Collapsible, CollapsibleGroup } from "@astryxdesign/core/Collapsible";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Center } from "@astryxdesign/core/Center";
+import { Spinner } from "@astryxdesign/core/Spinner";
+import { Icon } from "@astryxdesign/core/Icon";
+import PageHeader from "../../components/PageHeader";
+import ArticleBody from "../../components/ArticleBody";
+import { BriefcaseIcon, SparklesIcon } from "../../lib/icons";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 
-const staggerContainer = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
-const staggerItem = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
-};
-
 export default function JobsClient() {
+  const router = useRouter();
   const [jobs, setJobs] = useState(null);
   const [user, setUser] = useState(null);
   const [posting, setPosting] = useState(false);
   const [form, setForm] = useState({ title: "", company: "", location: "", job_type: "Full-time", description: "", how_to_apply: "" });
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(null);
 
   useEffect(() => {
     const sb = supabaseBrowser();
@@ -52,101 +62,80 @@ export default function JobsClient() {
   }
 
   return (
-    <main className="shell wide">
-      <Nav />
-      <section className="hero hero-band hero-band-compact">
-        <div className="results-head">
-          <h2>Jobs board</h2>
-          {user ? (
-            <button className="btn-primary" onClick={() => setPosting(!posting)}>
-              {posting ? "Close" : "Post a job — free"}
-            </button>
-          ) : (
-            <a className="btn-primary" style={{ textDecoration: "none" }} href="/login">Sign in to post a job — free</a>
-          )}
-        </div>
-        <p className="step-hint">
-          Hiring? Post here for free and reach job seekers who apply with properly tailored CVs.
-          Job seekers: tap any job to read it, then generate a CV matched to it in one click.
-        </p>
-      </section>
+    <Layout
+      height="auto"
+      contentWidth={900}
+      content={
+        <LayoutContent padding={6} isScrollable={false}>
+          <VStack gap={6}>
+            <PageHeader
+              eyebrow="Jobs board"
+              title="Jobs in Kenya"
+              description="Hiring? Post here for free. Job seekers: open any job, then generate a CV matched to it in one click."
+              actions={
+                user ? (
+                  <Button label={posting ? "Close" : "Post a job — free"} variant={posting ? "ghost" : "primary"} onClick={() => setPosting(!posting)} />
+                ) : (
+                  <Button label="Sign in to post a job — free" variant="primary" onClick={() => router.push("/login")} />
+                )
+              }
+            />
 
-      {posting && (
-        <div className="post-card">
-          <div className="two-col">
-            <div>
-              <label className="field-label">Job title</label>
-              <input type="text" maxLength={150} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Sales Executive" />
-            </div>
-            <div>
-              <label className="field-label">Company</label>
-              <input type="text" maxLength={150} value={form.company} onChange={(e) => set("company", e.target.value)} placeholder="e.g. Acme Ltd" />
-            </div>
-            <div>
-              <label className="field-label">Location</label>
-              <input type="text" maxLength={150} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="e.g. Nairobi / Remote" />
-            </div>
-            <div>
-              <label className="field-label">Type</label>
-              <input type="text" maxLength={50} value={form.job_type} onChange={(e) => set("job_type", e.target.value)} placeholder="Full-time / Part-time / Gig" />
-            </div>
-          </div>
-          <label className="field-label">Description & requirements</label>
-          <textarea maxLength={8000} value={form.description} onChange={(e) => set("description", e.target.value)}
-            placeholder="Responsibilities, requirements, salary range if you can share it…" />
-          <label className="field-label">How to apply</label>
-          <input type="text" maxLength={500} value={form.how_to_apply} onChange={(e) => set("how_to_apply", e.target.value)}
-            placeholder="Email, phone, or application link" />
-          {err && <p className="error">{err}</p>}
-          <button className="btn-primary" style={{ marginTop: 12 }} onClick={post} disabled={busy}>
-            {busy ? "Posting…" : "Publish job"}
-          </button>
-        </div>
-      )}
+            {posting && (
+              <Card padding={6}>
+                <VStack gap={4}>
+                  <Grid columns={{ minWidth: 240 }} gap={3}>
+                    <TextInput label="Job title" value={form.title} onChange={(v) => set("title", v.slice(0, 150))} placeholder="e.g. Sales Executive" />
+                    <TextInput label="Company" value={form.company} onChange={(v) => set("company", v.slice(0, 150))} placeholder="e.g. Acme Ltd" />
+                    <TextInput label="Location" value={form.location} onChange={(v) => set("location", v.slice(0, 150))} placeholder="e.g. Nairobi / Remote" />
+                    <TextInput label="Type" value={form.job_type} onChange={(v) => set("job_type", v.slice(0, 50))} placeholder="Full-time / Part-time / Gig" />
+                  </Grid>
+                  <TextArea label="Description & requirements" rows={8} maxLength={8000} value={form.description} onChange={(v) => set("description", v)} placeholder="Responsibilities, requirements, salary range if you can share it…" />
+                  <TextInput label="How to apply" value={form.how_to_apply} onChange={(v) => set("how_to_apply", v.slice(0, 500))} placeholder="Email, phone, or application link" />
+                  {err && <Banner status="error" title={err} />}
+                  <HStack>
+                    <Button label="Publish job" variant="primary" isLoading={busy} onClick={post} />
+                  </HStack>
+                </VStack>
+              </Card>
+            )}
 
-      {jobs === null ? (
-        <div className="loading"><span className="spinner" /> Loading jobs…</div>
-      ) : jobs.length === 0 ? (
-        <p className="step-hint" style={{ padding: "30px 0" }}>
-          No jobs posted yet — be the first. Posting is free.
-        </p>
-      ) : (
-        <motion.div className="job-list" variants={staggerContainer} initial="hidden" animate="show">
-          {jobs.map((j) => (
-            <motion.div key={j.id} variants={staggerItem} className={`job-card ${open === j.id ? "open" : ""}`}>
-              <button className="job-head" onClick={() => setOpen(open === j.id ? null : j.id)}>
-                <div>
-                  <div className="job-title">{j.title}</div>
-                  <div className="job-meta">
-                    {j.company}{j.location ? ` · ${j.location}` : ""}{j.job_type ? ` · ${j.job_type}` : ""} ·{" "}
-                    {new Date(j.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
-                  </div>
-                </div>
-                <span className="job-chev">{open === j.id ? "−" : "+"}</span>
-              </button>
-              <AnimatePresence initial={false}>
-                {open === j.id && (
-                  <motion.div
-                    className="job-body"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                    style={{ overflow: "hidden" }}
-                  >
-                    <p style={{ whiteSpace: "pre-wrap" }}>{j.description}</p>
-                    <p className="job-apply"><b>How to apply:</b> {j.how_to_apply}</p>
-                    <a className="btn-primary" style={{ textDecoration: "none", display: "inline-block", marginTop: 10 }}
-                      href={`/?jobid=${j.id}`}>
-                      Tailor my CV for this job
-                    </a>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
-    </main>
+            {jobs === null ? (
+              <Center minHeight={200}><Spinner /></Center>
+            ) : jobs.length === 0 ? (
+              <EmptyState icon={<Icon icon={BriefcaseIcon} size="lg" />} title="No jobs posted yet" description="Be the first — posting is free." />
+            ) : (
+              <Card padding={2}>
+                <CollapsibleGroup hasDividers>
+                  {jobs.map((j) => (
+                    <Collapsible
+                      key={j.id}
+                      value={j.id}
+                      trigger={
+                        <VStack gap={0}>
+                          <Text weight="semibold">{j.title}</Text>
+                          <Text type="supporting" color="secondary">
+                            {j.company}{j.location ? ` · ${j.location}` : ""}{j.job_type ? ` · ${j.job_type}` : ""} ·{" "}
+                            {new Date(j.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
+                          </Text>
+                        </VStack>
+                      }
+                    >
+                      <VStack gap={4}>
+                        <ArticleBody content={j.description} />
+                        <Text><Text weight="semibold">How to apply:</Text> {j.how_to_apply}</Text>
+                        <HStack>
+                          <Button label="Tailor my CV for this job" variant="primary" icon={<Icon icon={SparklesIcon} />} onClick={() => router.push(`/?jobid=${j.id}`)} />
+                        </HStack>
+                      </VStack>
+                    </Collapsible>
+                  ))}
+                </CollapsibleGroup>
+              </Card>
+            )}
+          </VStack>
+        </LayoutContent>
+      }
+    />
   );
 }

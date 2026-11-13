@@ -1,13 +1,23 @@
+"use client";
+import { Collapsible } from "@astryxdesign/core/Collapsible";
+import { List, ListItem } from "@astryxdesign/core/List";
+import { Text } from "@astryxdesign/core/Text";
+
+const STEPS = [
+  "On a computer (not the mobile app), open your LinkedIn profile.",
+  "Click the More button, just below your profile photo.",
+  "Choose Save to PDF from the dropdown.",
+  "Upload the downloaded PDF here.",
+];
+
 export default function LinkedInGuide() {
   return (
-    <div className="howto-box">
-      <div className="howto-title">How to save your LinkedIn profile as a PDF</div>
-      <ol className="howto-list">
-        <li>On a computer (not the mobile app), open your LinkedIn profile.</li>
-        <li>Click the <b>More</b> button, just below your profile photo.</li>
-        <li>Select <b>Save to PDF</b> from the dropdown.</li>
-        <li>Upload the downloaded PDF above.</li>
-      </ol>
-    </div>
+    <Collapsible defaultIsOpen={false} trigger={<Text weight="semibold">How to save your LinkedIn profile as a PDF</Text>}>
+      <List listStyle="decimal" density="compact">
+        {STEPS.map((s) => (
+          <ListItem key={s} label={s} />
+        ))}
+      </List>
+    </Collapsible>
   );
 }

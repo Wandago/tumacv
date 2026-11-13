@@ -1,5 +1,8 @@
+import "./layers.css";
 import "./globals.css";
 import ReferralCapture from "../components/ReferralCapture";
+import AppProviders from "../components/AppProviders";
+import AppFrame from "../components/AppFrame";
 
 export const metadata = {
   title: "TumaCV — Tailored CV + cover letter in minutes",
@@ -7,6 +10,8 @@ export const metadata = {
     "Paste a job description, get a CV and cover letter tailored to it. Built for Kenyan job seekers. Pay per application via M-Pesa.",
 };
 
+// Applies the saved light/dark choice before React loads, so the page never
+// flashes the wrong scheme. Values match components/AppProviders.js.
 const themeInit = `
 (function() {
   try {
@@ -33,14 +38,9 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ReferralCapture />
-        {children}
-        <footer style={{
-          textAlign: "center", padding: "20px 18px 30px", fontSize: 11.5,
-          color: "var(--soil)", fontFamily: "var(--mono)",
-        }}>
-          <a href="/privacy" style={{ color: "inherit", marginRight: 14 }}>Privacy</a>
-          <a href="/terms" style={{ color: "inherit" }}>Terms</a>
-        </footer>
+        <AppProviders>
+          <AppFrame>{children}</AppFrame>
+        </AppProviders>
       </body>
     </html>
   );

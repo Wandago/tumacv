@@ -1,0 +1,8 @@
+/* Cascade layer order — must load before any other stylesheet. With
+   webpack (Next.js) an inline @layer statement in globals.css would be
+   hoisted below its @imports, so the order lives in its own file that
+   app/layout.js imports first.
+
+   Later layers win regardless of specificity:
+   reset < astryx-base < astryx-theme < app */
+@layer reset, astryx-base, astryx-theme, app;

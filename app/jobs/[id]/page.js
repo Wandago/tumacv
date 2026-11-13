@@ -1,6 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-import Link from "next/link";
-import Nav from "../../../components/Nav";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { VStack } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Link } from "@astryxdesign/core/Link";
+import { Card } from "@astryxdesign/core/Card";
+import ArticleBody from "../../../components/ArticleBody";
 import { safeJsonLd } from "../../../lib/jsonLd";
 
 function supabasePublic() {
@@ -30,13 +34,18 @@ export default async function JobPage({ params }) {
 
   if (!job) {
     return (
-      <main className="shell">
-        <Nav />
-        <div className="step">
-          <h1>Job not found</h1>
-          <p className="step-hint">It may have been filled or removed. <Link href="/jobs">Browse all jobs →</Link></p>
-        </div>
-      </main>
+      <Layout
+        height="auto"
+        contentWidth={680}
+        content={
+          <LayoutContent padding={6} isScrollable={false}>
+            <VStack gap={2}>
+              <Heading level={1}>Job not found</Heading>
+              <Text color="secondary">It may have been filled or removed. <Link href="/jobs">Browse all jobs →</Link></Text>
+            </VStack>
+          </LayoutContent>
+        }
+      />
     );
   }
 
@@ -57,27 +66,32 @@ export default async function JobPage({ params }) {
   };
 
   return (
-    <main className="shell">
-      <Nav />
-      {/* eslint-disable-next-line react/no-danger */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
-      <section className="hero hero-band hero-band-compact">
-        <div className="results-head">
-          <Link href="/jobs" className="btn-ghost" style={{ textDecoration: "none" }}>← All jobs</Link>
-        </div>
-        <h1 className="news-reader-title">{job.title}</h1>
-        <div className="job-meta">
-          {job.company}{job.location ? ` · ${job.location}` : ""}{job.job_type ? ` · ${job.job_type}` : ""} ·{" "}
-          {new Date(job.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-        </div>
-      </section>
-      <div className="step">
-        <p style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>{job.description}</p>
-        <p className="job-apply" style={{ marginTop: 16 }}><b>How to apply:</b> {job.how_to_apply}</p>
-        <Link href={`/?jobid=${job.id}`} className="btn-primary" style={{ textDecoration: "none", display: "inline-block", marginTop: 16 }}>
-          Tailor my CV for this job
-        </Link>
-      </div>
-    </main>
+    <Layout
+      height="auto"
+      contentWidth={720}
+      content={
+        <LayoutContent padding={6} isScrollable={false}>
+          {/* eslint-disable-next-line react/no-danger */}
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
+          <VStack gap={6}>
+            <Link href="/jobs">← All jobs</Link>
+            <VStack gap={2}>
+              <Heading level={1} type="display-3" textWrap="balance">{job.title}</Heading>
+              <Text color="secondary">
+                {job.company}{job.location ? ` · ${job.location}` : ""}{job.job_type ? ` · ${job.job_type}` : ""} ·{" "}
+                {new Date(job.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+              </Text>
+            </VStack>
+            <ArticleBody content={job.description} />
+            <Card variant="muted" padding={5}>
+              <VStack gap={2}>
+                <Text><Text weight="semibold">How to apply:</Text> {job.how_to_apply}</Text>
+                <Link href={`/?jobid=${job.id}`}>Tailor my CV for this job →</Link>
+              </VStack>
+            </Card>
+          </VStack>
+        </LayoutContent>
+      }
+    />
   );
 }
