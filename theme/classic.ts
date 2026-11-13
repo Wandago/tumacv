@@ -1,7 +1,7 @@
 /**
  * TumaCV classic theme — the original green look, kept for the signed-in
  * dashboard and the admin panel (app/dashboard/layout.js, app/admin/layout.js),
- * which stay exactly as they were. Everything client-facing uses the Sunset
+ * which stay exactly as they were. Everything client-facing uses the Kijani
  * Pop theme in theme/tumacv.ts.
  *
  * This is the editable source. After changing it, rebuild the CSS + JS the

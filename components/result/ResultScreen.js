@@ -114,7 +114,7 @@ export default function ResultScreen({ result, template, setTemplate, onBack, ba
             <CvSheet>{doc}</CvSheet>
             <CvSheet.PrintCopy>{doc}</CvSheet.PrintCopy>
 
-            <Tile tone="blush" padding={8} className="no-print">
+            <Tile tone="mint" padding={8} className="no-print">
               <VStack gap={4} hAlign="center">
                 <Text color="secondary" justify="center">
                   Saved to your <Link href="/dashboard">dashboard</Link>

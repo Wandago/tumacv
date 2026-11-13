@@ -1,5 +1,5 @@
 // TumaCV's illustration set: flat, chunky objects with one shade side and a
-// soft ground shadow, in the Sunset Pop palette (theme/tumacv.ts), drawn to
+// soft ground shadow, in the Kijani Pop palette (theme/tumacv.ts), drawn to
 // sit on paper or on the colour tiles (components/brand/Tile.js).
 // Inline SVG so they cost no requests and stay crisp at any size. The colours
 // are illustration paint, not UI colour — they're the same in light and dark
@@ -8,23 +8,23 @@
 // idle bob (off for people who prefer reduced motion — app/app.css).
 
 const P = {
-  ink: "#15111F",
+  ink: "#0E1A13",
   paper: "#ffffff",
-  paperShade: "#f3e9ef",
-  line: "#e6d7df",
+  paperShade: "#e6eee4",
+  line: "#d3ded4",
   lime: "#FBD530", // sunshine — ticks and highlights
   limeDeep: "#E0B400",
-  purple: "#DA008F", // magenta
-  purpleDeep: "#A8006E",
-  lilac: "#FFC2E3",
+  purple: "#0A7F3F", // kijani green
+  purpleDeep: "#07612F",
+  lilac: "#B4EE5E", // lime
   yellow: "#FBD530",
   yellowDeep: "#E0B400",
-  coral: "#F84B4B",
-  coralDeep: "#C93030",
-  blue: "#6B1D7B", // plum
-  sky: "#FFD9EC",
-  pink: "#FFE1F1",
-  pinkDeep: "#FE860F", // tangerine
+  coral: "#FF7A59",
+  coralDeep: "#E0502E",
+  blue: "#0F3D2A", // forest
+  sky: "#D9F4E3", // mint
+  pink: "#F1F8D8",
+  pinkDeep: "#B4EE5E", // lime
   skin: "#8a5a3c",
 };
 

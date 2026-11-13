@@ -311,7 +311,7 @@ export default function LoginClient() {
       content={
         <LayoutContent padding={6} isScrollable={false}>
           <Grid columns={{ minWidth: 380 }} gap={8} align="stretch">
-            <Tile tone="magenta" padding={10} className="hide-on-phones">
+            <Tile tone="kijani" padding={10} className="hide-on-phones">
               <VStack gap={6} height="100%">
                 <HStack gap={2} align="center">
                   <BrandMark size={36} />
@@ -340,7 +340,7 @@ export default function LoginClient() {
       <VStack gap={5} width="100%" maxWidth={440}>
         <VStack gap={2} hAlign="center">
           <BrandMark size={40} />
-          {mode === "signup" && <Token label="Step 1 of 2" size="sm" color="pink" />}
+          {mode === "signup" && <Token label="Step 1 of 2" size="sm" color="green" />}
           <Heading level={1} type="display-3" justify="center">{title}</Heading>
           <Text color="secondary" justify="center" textWrap="balance">{subtitle}</Text>
         </VStack>

@@ -82,7 +82,7 @@ const FAQS = [
 
 const STEPS = [
   {
-    tone: "magenta",
+    tone: "kijani",
     Illustration: JobSearchIllustration,
     title: "Paste a job, or pick one",
     body: "A link from BrighterMonday, Fuzu, MyJobMag or a careers page — or tap any listing on our live jobs page.",
@@ -94,7 +94,7 @@ const STEPS = [
     body: "Keywords, ordering and emphasis rewritten for that job, from your real experience only. Plus a cover letter to match.",
   },
   {
-    tone: "plum",
+    tone: "forest",
     Illustration: PaperPlaneIllustration,
     title: "Check the fit. Send it.",
     body: "See your match score and what's missing, save the PDF, and apply — your tracker remembers every application.",
@@ -166,7 +166,7 @@ export default function Landing({ publicStats }) {
             <Grid columns={{ minWidth: 360 }} gap={10} align="center">
               <VStack gap={6} paddingBlock={6}>
                 <HStack>
-                  <Token label="New · One-tap apply to live jobs" color="pink" />
+                  <Token label="New · One-tap apply to live jobs" color="green" />
                 </HStack>
                 <Heading level={1} type="display-1" textWrap="balance">
                   One job. One <Accent>tailored</Accent> CV. One tap.
@@ -192,7 +192,7 @@ export default function Landing({ publicStats }) {
               </VStack>
 
               <VStack gap={3}>
-                <Tile tone="magenta" padding={6}>
+                <Tile tone="kijani" padding={6}>
                   <VStack gap={4}>
                     <HStack justify="between" align="center" gap={2} wrap="wrap">
                       <Text weight="semibold">Sales Executive · Unilever Kenya</Text>
@@ -215,7 +215,7 @@ export default function Landing({ publicStats }) {
                       <TargetIllustration size={64} hideOnPhones />
                     </HStack>
                   </Tile>
-                  <Tile tone="plum" padding={5}>
+                  <Tile tone="forest" padding={5}>
                     <HStack justify="between" align="center" gap={2}>
                       <VStack gap={0}>
                         <Text color="secondary" weight="semibold">Cover letter</Text>
@@ -305,7 +305,7 @@ export default function Landing({ publicStats }) {
 
             {/* CV designs */}
             <Reveal>
-              <Tile tone="lilac" padding={10}>
+              <Tile tone="sand" padding={10}>
                 <VStack gap={8}>
                   <SectionHeading eyebrow="Real output, not a mockup" sub="Every design below is rendered live with example data — the same component every real CV goes through. Switch any time; the words stay the same.">
                     {TEMPLATES.length} fresh designs. <Accent>All yours.</Accent>
@@ -360,7 +360,7 @@ export default function Landing({ publicStats }) {
 
             {/* Close */}
             <Reveal>
-              <Tile tone="magenta" padding={10}>
+              <Tile tone="kijani" padding={10}>
                 <VStack gap={5} hAlign="center">
                   <WaveIllustration size={160} float />
                   <Heading level={2} type="display-1" justify="center" textWrap="balance">

@@ -34,7 +34,7 @@ export default function FitPanel({ fit }) {
         {score !== null && <ProgressBar label="Match" isLabelHidden value={score} variant="accent" />}
         <HStack gap={2} wrap="wrap">
           {matched.map((k) => (
-            <Token key={`m-${k}`} label={k} color="purple" size="sm" />
+            <Token key={`m-${k}`} label={k} color="green" size="sm" />
           ))}
           {missing.map((k) => (
             <Token key={`x-${k}`} label={`Missing: ${k}`} color="red" size="sm" />

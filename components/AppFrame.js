@@ -173,7 +173,7 @@ export default function AppFrame({ children }) {
   const isActive = (href) => pathname === href || pathname.startsWith(href + "/");
 
   // The signed-in dashboard and admin stay exactly as they were: original
-  // theme, logo and footer. Everything else is Sunset Pop.
+  // theme, logo and footer. Everything else is Kijani Pop.
   const classic = /^\/(dashboard|admin)(\/|$)/.test(pathname);
 
   const topNav = (

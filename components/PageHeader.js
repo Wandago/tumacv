@@ -4,7 +4,7 @@ import Tile from "./brand/Tile";
 
 // The title block at the top of content pages: optional eyebrow, the page
 // heading, a supporting line, and optional actions. With a `tone` it sits on
-// a Sunset Pop colour tile with an illustration beside it (hub, news,
+// a Kijani Pop colour tile with an illustration beside it (hub, news,
 // support); without one it stays quiet on the page (legal pages).
 export default function PageHeader({ eyebrow, title, description, actions, isCentered = false, tone, illustration }) {
   const align = isCentered ? "center" : "start";

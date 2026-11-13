@@ -43,7 +43,7 @@ const FAQ = [
   },
 ];
 
-const PLAN_TONES = { basic: "peach", plus: "magenta", pro: "plum" };
+const PLAN_TONES = { basic: "lime", plus: "kijani", pro: "forest" };
 
 export default function PricingClient() {
   const router = useRouter();
@@ -129,7 +129,7 @@ export default function PricingClient() {
             ) : null}
 
             <Grid columns={{ minWidth: 220 }} gap={4}>
-              <Tile tone="blush" padding={8} minHeight={320}>
+              <Tile tone="mint" padding={8} minHeight={320}>
                 <VStack gap={3} height="100%">
                   <HStack justify="between" align="center">
                     <Heading level={3}>Free</Heading>
@@ -142,7 +142,7 @@ export default function PricingClient() {
                 </VStack>
               </Tile>
               {Object.values(PLANS).map((p) => (
-                <Tile key={p.id} tone={PLAN_TONES[p.id] || "butter"} padding={8} minHeight={320} interactive>
+                <Tile key={p.id} tone={PLAN_TONES[p.id] || "cream"} padding={8} minHeight={320} interactive>
                   <VStack gap={3} height="100%">
                     <HStack justify="between" align="center">
                       <Heading level={3}>{p.name}</Heading>

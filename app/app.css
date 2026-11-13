@@ -16,7 +16,7 @@
   html[data-theme="light"] [data-astryx-theme]:not([data-theme]) { color-scheme: light; }
 
   /* ---------------------------------------------------------------------------
-     Sunset Pop brand details (components/brand) that component props can't
+     Kijani Pop brand details (components/brand) that component props can't
      express. Colours come from theme tokens; durations from motion tokens.
      --------------------------------------------------------------------------- */
 
@@ -35,7 +35,7 @@
     color: var(--color-text-accent);
   }
 
-  /* Display headlines sit tighter than body text — on Sunset Pop pages only,
+  /* Display headlines sit tighter than body text — on Kijani Pop pages only,
      not inside the classic dashboard/admin theme. */
   @scope ([data-astryx-theme="tumacv"]) to ([data-astryx-theme="tumacv-classic"]) {
     h1, h2 { letter-spacing: -0.022em; }

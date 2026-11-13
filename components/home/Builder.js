@@ -46,7 +46,7 @@ function lengthStatus(text, what) {
 const STEPS = {
   job: {
     index: 0,
-    tone: "magenta",
+    tone: "kijani",
     Illustration: JobSearchIllustration,
     title: (
       <>
@@ -57,7 +57,7 @@ const STEPS = {
   },
   you: {
     index: 1,
-    tone: "tangerine",
+    tone: "lime",
     Illustration: CvIllustration,
     title: (
       <>
@@ -68,7 +68,7 @@ const STEPS = {
   },
   style: {
     index: 2,
-    tone: "plum",
+    tone: "forest",
     Illustration: SwatchIllustration,
     title: (
       <>

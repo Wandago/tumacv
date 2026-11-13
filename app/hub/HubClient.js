@@ -83,7 +83,7 @@ function ServiceCard({ s }) {
     <Card padding={5}>
       <VStack gap={3} height="100%">
         <HStack>
-          <Token label={s.category} size="sm" color="pink" />
+          <Token label={s.category} size="sm" color="green" />
         </HStack>
         <Heading level={3}>{s.title}</Heading>
         <Text color="secondary" maxLines={4}>{s.description}</Text>
@@ -160,7 +160,7 @@ export default function HubClient() {
               title="Talent Hub"
               description="Kenyan professionals who've chosen to be found — browse by industry, or by the services they offer. Every profile is written by the person behind it."
               actions={<Button label="Add yourself" variant="primary" onClick={() => router.push("/dashboard")} />}
-              tone="lilac"
+              tone="sand"
               illustration={<WaveIllustration size={200} hideOnPhones float />}
             />
 

@@ -1,6 +1,6 @@
 import "./layers.css";
 import "./globals.css";
-// Sunset Pop typefaces (theme/tumacv.ts), self-hosted. Each stylesheet lists
+// Kijani Pop typefaces (theme/tumacv.ts), self-hosted. Each stylesheet lists
 // several subsets with unicode-range, so browsers download only latin:
 // Bricolage Grotesque (headlines, 41 KB), Plus Jakarta Sans (body, 27 KB),
 // Instrument Serif italic (accent words, 22 KB).
@@ -40,7 +40,7 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="light dark" />
-        <meta name="theme-color" content="#FCF8F4" />
+        <meta name="theme-color" content="#F8F7F1" />
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
       <body>

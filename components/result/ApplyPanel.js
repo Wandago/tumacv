@@ -64,7 +64,7 @@ export default function ApplyPanel({ result, isFresh, onSavePdf }) {
   const step = !job ? 0 : status && status !== "tailored" ? 2 : saved ? 1 : 0;
 
   return (
-    <Tile tone="plum" padding={8} className="no-print">
+    <Tile tone="forest" padding={8} className="no-print">
       <VStack gap={4}>
         <HStack gap={3} align="start" justify="between">
           <VStack gap={3}>
