@@ -1,11 +1,18 @@
+import { Card } from "@astryxdesign/core/Card";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Skeleton } from "@astryxdesign/core/Skeleton";
+
 // Small area+line sparkline card. `series` is [{ date, value }].
-export default function TrendChart({ title, series, format = (n) => n, loading, className = "" }) {
+export default function TrendChart({ title, series, format = (n) => n, loading }) {
   if (!series || loading) {
     return (
-      <div className={`dash-card trend-card ${className}`}>
-        <h3>{title}</h3>
-        <div className="loading" style={{ padding: "16px 0" }}><span className="spinner" /></div>
-      </div>
+      <Card padding={5}>
+        <VStack gap={3}>
+          <Heading level={3}>{title}</Heading>
+          <Skeleton height={64} />
+        </VStack>
+      </Card>
     );
   }
   const values = series.map((d) => d.value);
@@ -17,20 +24,28 @@ export default function TrendChart({ title, series, format = (n) => n, loading, 
   const areaPoints = `0,${h} ${points} ${w},${h}`;
   const total = values.reduce((a, b) => a + b, 0);
   const fmtDate = (d) => new Date(d).toLocaleDateString("en-KE", { day: "numeric", month: "short" });
+
   return (
-    <div className={`dash-card trend-card ${className}`}>
-      <div className="trend-head">
-        <h3>{title}</h3>
-        <span className="trend-total">{format(total)}</span>
-      </div>
-      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="trend-svg">
-        <polygon points={areaPoints} className="trend-area" />
-        <polyline points={points} className="trend-line" />
-      </svg>
-      <div className="trend-foot">
-        <span>{series[0] ? fmtDate(series[0].date) : ""}</span>
-        <span>{series[series.length - 1] ? fmtDate(series[series.length - 1].date) : ""}</span>
-      </div>
-    </div>
+    <Card padding={5}>
+      <VStack gap={3}>
+        <HStack justify="between" align="center">
+          <Heading level={3}>{title}</Heading>
+          <Text size="xl" weight="bold" hasTabularNumbers>{format(total)}</Text>
+        </HStack>
+        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" width="100%" height="72" aria-hidden="true">
+          <polygon points={areaPoints} style={{ fill: "var(--color-accent-muted)" }} />
+          <polyline
+            points={points}
+            fill="none"
+            vectorEffect="non-scaling-stroke"
+            style={{ stroke: "var(--color-accent)", strokeWidth: 2 }}
+          />
+        </svg>
+        <HStack justify="between">
+          <Text type="supporting" color="secondary">{series[0] ? fmtDate(series[0].date) : ""}</Text>
+          <Text type="supporting" color="secondary">{series[series.length - 1] ? fmtDate(series[series.length - 1].date) : ""}</Text>
+        </HStack>
+      </VStack>
+    </Card>
   );
 }

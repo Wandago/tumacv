@@ -1,6 +1,7 @@
 "use client";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import Script from "next/script";
+import { Text } from "@astryxdesign/core/Text";
 
 // Cloudflare Turnstile — free, generally invisible for real users (no image
 // puzzles for most visitors), and natively supported by Supabase's own
@@ -53,12 +54,13 @@ const Turnstile = forwardRef(function Turnstile({ onToken }, ref) {
         strategy="afterInteractive"
         onLoad={() => setScriptReady(true)}
       />
-      <div ref={boxRef} style={{ margin: "12px 0" }} />
+      {/* Mount point Cloudflare renders its widget iframe into. */}
+      <span ref={boxRef} />
       {blocked && (
-        <p className="field-note" style={{ marginBottom: 8 }}>
+        <Text type="supporting" color="secondary">
           Security check didn't load — this happens with some privacy browsers or ad blockers.
           You can still continue; if signup is rejected, try disabling them for this site.
-        </p>
+        </Text>
       )}
     </>
   );

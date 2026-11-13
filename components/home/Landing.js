@@ -180,7 +180,7 @@ export default function Landing({ publicStats }) {
               </Card>
             </Grid>
 
-            <Grid columns={{ minWidth: 200 }} gap={4}>
+            <Grid columns={{ minWidth: 220 }} gap={4}>
               {stats.map((s) => (
                 <Card key={s.label} padding={5} variant={s.label === "Applications tailored" ? "green" : "default"}>
                   <VStack gap={1}>
@@ -271,7 +271,7 @@ export default function Landing({ publicStats }) {
                   Tailor it to the job in about a minute — {FREE_SIGNUP_CREDITS} free applications when you sign up, no card required.
                 </Text>
                 <Button label="Start free" variant="primary" size="lg" endContent={<Icon icon={ArrowRightIcon} />} onClick={() => router.push("/login?mode=signup")} />
-                <Text type="supporting" color="secondary">
+                <Text color="secondary">
                   Already have an account? <Link href="/login">Sign in</Link>
                 </Text>
               </VStack>

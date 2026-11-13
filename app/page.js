@@ -229,7 +229,7 @@ export default function Home() {
         result={result}
         template={template}
         setTemplate={setTemplate}
-        onEdit={() => setResult(null)}
+        onBack={() => setResult(null)}
         onNew={newApplication}
       />
     );

@@ -1,6 +1,24 @@
 "use client";
 import { useEffect, useState } from "react";
-import Nav from "../../components/Nav";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Card } from "@astryxdesign/core/Card";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Button } from "@astryxdesign/core/Button";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { TextArea } from "@astryxdesign/core/TextArea";
+import { SelectableCard } from "@astryxdesign/core/SelectableCard";
+import { Banner } from "@astryxdesign/core/Banner";
+import { List, ListItem } from "@astryxdesign/core/List";
+import { Badge } from "@astryxdesign/core/Badge";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Center } from "@astryxdesign/core/Center";
+import { Spinner } from "@astryxdesign/core/Spinner";
+import { Icon } from "@astryxdesign/core/Icon";
+import { Link } from "@astryxdesign/core/Link";
+import PageHeader from "../../components/PageHeader";
+import { ArrowLeftIcon, LifeBuoyIcon, PlusIcon } from "../../lib/icons";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 
 const TYPES = [
@@ -127,162 +145,181 @@ export default function SupportClient() {
     }
   }
 
-  if (user === undefined) return null;
+  if (user === undefined) {
+    return (
+      <Center minHeight="60vh">
+        <Spinner size="lg" />
+      </Center>
+    );
+  }
+
+  const page = (children) => (
+    <Layout height="auto" contentWidth={760} content={<LayoutContent padding={6} isScrollable={false}><VStack gap={6}>{children}</VStack></LayoutContent>} />
+  );
+  const form = (emailLocked) => (
+    <NewTicketForm
+      type={type} setType={setType} subject={subject} setSubject={setSubject}
+      email={email} setEmail={setEmail} emailLocked={emailLocked}
+      message={message} setMessage={setMessage}
+      err={err} busy={busy} onSubmit={submitNewTicket}
+    />
+  );
 
   // ---- logged-out: form only ----
   if (!user) {
-    return (
-      <main className="shell">
-        <Nav />
-        <section className="hero hero-band">
-          <span className="eyebrow">A real person replies</span>
-          <h1>Help & feedback</h1>
-          <p>Hit a bug, stuck on a payment, or have an idea? We read every message and reply to all of them.</p>
-        </section>
-        <div className="step">
+    return page(
+      <>
+        <PageHeader
+          eyebrow="A real person replies"
+          title="Help & feedback"
+          description="Hit a bug, stuck on a payment, or have an idea? We read every message and reply to all of them."
+        />
+        <Card padding={6}>
           {selected?.justSentAnon ? (
-            <>
-              <h2 style={{ marginBottom: 8 }}>Got it — thank you.</h2>
-              <p className="step-hint" style={{ marginBottom: 14 }}>
-                We'll follow up at {email} once we've looked into it.{" "}
-                <a href="/login">Sign in or create an account</a> to see replies and your full ticket history here next time.
-              </p>
-              <button className="btn-ghost" onClick={() => setSelected(null)}>Send another message</button>
-            </>
+            <VStack gap={3}>
+              <Heading level={2}>Got it — thank you.</Heading>
+              <Text color="secondary">
+                We'll follow up at {email} once we've looked into it. <Link href="/login">Sign in or create an account</Link> to
+                see replies and your ticket history here next time.
+              </Text>
+              <HStack>
+                <Button label="Send another message" onClick={() => setSelected(null)} />
+              </HStack>
+            </VStack>
           ) : (
-            <NewTicketForm
-              type={type} setType={setType} subject={subject} setSubject={setSubject}
-              email={email} setEmail={setEmail} emailLocked={false}
-              message={message} setMessage={setMessage}
-              err={err} busy={busy} onSubmit={submitNewTicket}
-            />
+            form(false)
           )}
-        </div>
-      </main>
+        </Card>
+      </>
     );
   }
 
   // ---- logged-in: viewing one ticket's thread ----
   if (selected && !selected.justSentAnon) {
-    return (
-      <main className="shell">
-        <Nav />
-        <section className="hero hero-band hero-band-compact">
-          <div className="results-head">
-            <h2>{selected.subject}</h2>
-            <button className="btn-ghost" onClick={() => setSelected(null)}>← All tickets</button>
-          </div>
-        </section>
-        <div className="ticket-meta-row">
-          <span className="credits-pill">{selected.type}</span>
-          <span className={`credits-pill ${selected.status === "open" ? "" : "danger-pill"}`}>{selected.status}</span>
-        </div>
+    return page(
+      <>
+        <VStack gap={3}>
+          <HStack>
+            <Button label="All tickets" variant="ghost" icon={<Icon icon={ArrowLeftIcon} />} onClick={() => setSelected(null)} />
+          </HStack>
+          <Heading level={1}>{selected.subject}</Heading>
+          <HStack gap={2}>
+            <Badge label={selected.type} />
+            <Badge label={selected.status} variant={selected.status === "open" ? "success" : "neutral"} />
+          </HStack>
+        </VStack>
 
-        <div className="ticket-thread">
+        <VStack gap={3}>
           {selected.support_ticket_messages.map((m) => (
-            <div key={m.id} className={`ticket-bubble ${m.sender}`}>
-              <div className="ticket-bubble-meta">{m.sender === "admin" ? "TumaCV support" : "You"} · {new Date(m.created_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
-              <div className="ticket-bubble-text">{m.message}</div>
-            </div>
+            <HStack key={m.id} justify={m.sender === "admin" ? "start" : "end"}>
+              <Card padding={4} variant={m.sender === "admin" ? "green" : "default"} maxWidth="85%">
+                <VStack gap={1}>
+                  <Text type="supporting" color="secondary">
+                    {m.sender === "admin" ? "TumaCV support" : "You"} ·{" "}
+                    {new Date(m.created_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </Text>
+                  <Text textWrap="pretty">{m.message}</Text>
+                </VStack>
+              </Card>
+            </HStack>
           ))}
-        </div>
+        </VStack>
 
-        <div className="ticket-reply-box">
-          <textarea
-            placeholder="Write a reply…"
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            style={{ minHeight: 80 }}
-          />
-          <button className="btn-primary" onClick={sendReply} disabled={replyBusy || replyText.trim().length < 2}>
-            {replyBusy ? "Sending…" : "Send reply"}
-          </button>
-        </div>
-      </main>
+        <Card padding={4}>
+          <VStack gap={3}>
+            <TextArea label="Reply" isLabelHidden rows={3} placeholder="Write a reply…" value={replyText} onChange={setReplyText} />
+            <HStack justify="end">
+              <Button label="Send reply" variant="primary" isLoading={replyBusy} isDisabled={replyText.trim().length < 2} onClick={sendReply} />
+            </HStack>
+          </VStack>
+        </Card>
+      </>
     );
   }
 
   // ---- logged-in: ticket list + new ticket form ----
-  return (
-    <main className="shell">
-      <Nav />
-      <section className="hero hero-band hero-band-compact">
-        <div className="results-head">
-          <h2>Help & feedback</h2>
-          <button className="btn-primary" onClick={() => setShowNewForm(!showNewForm)}>
-            {showNewForm ? "Close" : "+ New ticket"}
-          </button>
-        </div>
-      </section>
+  return page(
+    <>
+      <HStack justify="between" align="center" wrap="wrap" gap={3}>
+        <PageHeader title="Help & feedback" description="Your conversations with the TumaCV team." />
+        <Button
+          label={showNewForm ? "Close" : "New ticket"}
+          variant={showNewForm ? "ghost" : "primary"}
+          icon={showNewForm ? <Icon icon="close" /> : <Icon icon={PlusIcon} />}
+          onClick={() => setShowNewForm(!showNewForm)}
+        />
+      </HStack>
 
-      {showNewForm && (
-        <div className="step">
-          <NewTicketForm
-            type={type} setType={setType} subject={subject} setSubject={setSubject}
-            email={email} setEmail={setEmail} emailLocked={true}
-            message={message} setMessage={setMessage}
-            err={err} busy={busy} onSubmit={submitNewTicket}
-          />
-        </div>
-      )}
+      {showNewForm && <Card padding={6}>{form(true)}</Card>}
 
       {tickets === null ? (
-        <div className="loading"><span className="spinner" /> Loading your tickets…</div>
+        <Center minHeight={160}><Spinner /></Center>
       ) : tickets.length === 0 ? (
-        <p className="step-hint" style={{ padding: "20px 0" }}>No tickets yet — tap "New ticket" if you need help with anything.</p>
+        !showNewForm && (
+          <Card padding={2}>
+            <EmptyState
+              icon={<Icon icon={LifeBuoyIcon} size="lg" />}
+              title="No tickets yet"
+              description="Tap “New ticket” if you need help with anything — a real person replies."
+            />
+          </Card>
+        )
       ) : (
-        <div className="history-list">
-          {tickets.map((t) => {
-            const last = t.support_ticket_messages[t.support_ticket_messages.length - 1];
-            return (
-              <button key={t.id} className="history-item" onClick={() => openTicket(t)}>
-                <div>
-                  <span className="hi-title">{t.subject}</span>
-                  <div className="field-note" style={{ marginTop: 2 }}>
-                    {last ? `${last.sender === "admin" ? "Support: " : "You: "}${last.message.slice(0, 70)}${last.message.length > 70 ? "…" : ""}` : ""}
-                  </div>
-                </div>
-                <span className={`credits-pill ${t.status !== "open" ? "danger-pill" : ""}`}>{t.status}</span>
-              </button>
-            );
-          })}
-        </div>
+        <Card padding={0}>
+          <List hasDividers>
+            {tickets.map((t) => {
+              const last = t.support_ticket_messages[t.support_ticket_messages.length - 1];
+              return (
+                <ListItem
+                  key={t.id}
+                  label={t.subject}
+                  description={last ? `${last.sender === "admin" ? "Support: " : "You: "}${last.message.slice(0, 80)}${last.message.length > 80 ? "…" : ""}` : ""}
+                  endContent={<Badge label={t.status} variant={t.status === "open" ? "success" : "neutral"} />}
+                  onClick={() => openTicket(t)}
+                />
+              );
+            })}
+          </List>
+        </Card>
       )}
-    </main>
+    </>
   );
 }
 
 function NewTicketForm({ type, setType, subject, setSubject, email, setEmail, emailLocked, message, setMessage, err, busy, onSubmit }) {
   return (
-    <>
-      <label className="field-label">What's this about?</label>
-      <div className="level-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-        {TYPES.map((t) => (
-          <button key={t.id} type="button" className={`level-card ${type === t.id ? "on" : ""}`} onClick={() => setType(t.id)}>
-            {t.emoji} {t.label}
-          </button>
-        ))}
-      </div>
-
-      <label className="field-label">Subject (optional)</label>
-      <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="A short summary" />
-
-      <label className="field-label">Your email</label>
-      <input type="text" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" disabled={emailLocked} />
-      {emailLocked && <p className="field-note">Using your account email.</p>}
-
-      <label className="field-label">Tell us what's going on</label>
-      <textarea
-        style={{ minHeight: 140 }}
+    <VStack gap={4}>
+      <VStack gap={2}>
+        <Text weight="medium">What's this about?</Text>
+        <Grid columns={{ minWidth: 170 }} gap={2}>
+          {TYPES.map((t) => (
+            <SelectableCard key={t.id} label={t.label} isSelected={type === t.id} onChange={() => setType(t.id)} padding={3}>
+              <Text>{t.emoji} {t.label}</Text>
+            </SelectableCard>
+          ))}
+        </Grid>
+      </VStack>
+      <TextInput label="Subject" isOptional value={subject} onChange={setSubject} placeholder="A short summary" />
+      <TextInput
+        type="email"
+        label="Your email"
+        value={email}
+        onChange={setEmail}
+        placeholder="you@example.com"
+        isReadOnly={emailLocked}
+        description={emailLocked ? "Using your account email." : "So we can reply to you."}
+      />
+      <TextArea
+        label="Tell us what's going on"
+        rows={6}
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={setMessage}
         placeholder={type === "bug" ? "What happened? What did you expect instead?" : type === "suggestion" ? "What would make TumaCV better for you?" : "What's on your mind?"}
       />
-
-      {err && <p className="error">{err}</p>}
-      <button className="btn-primary" style={{ marginTop: 12 }} onClick={onSubmit} disabled={busy}>
-        {busy ? "Sending…" : "Send message"}
-      </button>
-    </>
+      {err && <Banner status="error" title={err} />}
+      <HStack>
+        <Button label="Send message" variant="primary" isLoading={busy} onClick={onSubmit} />
+      </HStack>
+    </VStack>
   );
 }

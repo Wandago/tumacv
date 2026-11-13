@@ -1,43 +1,52 @@
+import { Card } from "@astryxdesign/core/Card";
+import { VStack, HStack, StackItem } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Grid } from "@astryxdesign/core/Grid";
 import DonutChart, { segmentColor } from "./DonutChart";
 
-// Donut + legend breakdown, the dashboard's headline "what am I made of" card.
-// `segments` are [{ label, value }]; `stats` are optional [{ label, value }]
-// line items shown underneath (totals, rates — whatever the page cares about).
+// Donut + legend breakdown card. `segments` are [{ label, value }]; `stats`
+// are optional [{ label, value }] figures shown underneath.
 export default function OverviewCard({ title, segments, centerValue, centerLabel, stats, empty }) {
   const total = segments.reduce((a, s) => a + s.value, 0);
 
   return (
-    <div className="dash-card overview-card">
-      <h3>{title}</h3>
-      {total === 0 ? (
-        <p className="field-note">{empty || "No data yet."}</p>
-      ) : (
-        <div className="overview-body">
-          <DonutChart segments={segments} value={centerValue} label={centerLabel} size={124} stroke={16} />
-          <div className="overview-legend">
-            {segments.map((s, i) => (
-              <div className="overview-legend-row" key={s.label}>
-                <span className="overview-swatch" style={{ background: segmentColor(i) }} />
-                <span className="overview-legend-label">{s.label}</span>
-                <span className="overview-legend-value">
-                  {s.value}
-                  <span className="overview-legend-pct">{Math.round((s.value / total) * 100)}%</span>
-                </span>
-              </div>
+    <Card padding={5}>
+      <VStack gap={4}>
+        <Heading level={3}>{title}</Heading>
+        {total === 0 ? (
+          <Text color="secondary">{empty || "No data yet."}</Text>
+        ) : (
+          <HStack gap={5} align="center" wrap="wrap">
+            <DonutChart segments={segments} value={centerValue} label={centerLabel} size={124} stroke={16} />
+            <StackItem size="fill">
+              <VStack gap={2}>
+                {segments.map((s, i) => (
+                  <HStack key={s.label} gap={2} align="center" justify="between">
+                    <HStack gap={2} align="center">
+                      {/* The dot's colour must match its arc, so it's set directly. */}
+                      <svg width="10" height="10" aria-hidden="true"><circle cx="5" cy="5" r="5" style={{ fill: segmentColor(i) }} /></svg>
+                      <Text>{s.label.charAt(0).toUpperCase() + s.label.slice(1)}</Text>
+                    </HStack>
+                    <Text color="secondary" hasTabularNumbers>
+                      {s.value} · {Math.round((s.value / total) * 100)}%
+                    </Text>
+                  </HStack>
+                ))}
+              </VStack>
+            </StackItem>
+          </HStack>
+        )}
+        {stats?.length > 0 && (
+          <Grid columns={{ minWidth: 90 }} gap={3}>
+            {stats.map((s) => (
+              <VStack key={s.label} gap={0}>
+                <Text size="lg" weight="bold" hasTabularNumbers>{s.value}</Text>
+                <Text type="supporting" color="secondary">{s.label}</Text>
+              </VStack>
             ))}
-          </div>
-        </div>
-      )}
-      {stats?.length > 0 && (
-        <div className="overview-stats">
-          {stats.map((s) => (
-            <div className="overview-stat" key={s.label}>
-              <span className="overview-stat-value">{s.value}</span>
-              <span className="overview-stat-label">{s.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+          </Grid>
+        )}
+      </VStack>
+    </Card>
   );
 }

@@ -1,8 +1,21 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Nav from "../../components/Nav";
+import { Center } from "@astryxdesign/core/Center";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Card } from "@astryxdesign/core/Card";
+import { Button } from "@astryxdesign/core/Button";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Divider } from "@astryxdesign/core/Divider";
+import { Link } from "@astryxdesign/core/Link";
+import { ProgressBar } from "@astryxdesign/core/ProgressBar";
+import { Token } from "@astryxdesign/core/Token";
+import { Icon } from "@astryxdesign/core/Icon";
 import Turnstile from "../../components/Turnstile";
+import { BrandMark, MailIcon } from "../../lib/icons";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 import { FREE_SIGNUP_CREDITS } from "../../lib/plans";
 
@@ -37,31 +50,6 @@ function strength(pw) {
   return { score, label: labels[score] };
 }
 
-function PasswordInput({ id, value, onChange, placeholder, autoComplete, onEnter }) {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="relative">
-      <input
-        id={id}
-        type={show ? "text" : "password"}
-        autoComplete={autoComplete}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className={fieldClass + " !pr-16"}
-        onKeyDown={(e) => e.key === "Enter" && onEnter && onEnter()}
-      />
-      <button
-        type="button"
-        onClick={() => setShow(!show)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 !border-0 !bg-transparent !p-0 !text-xs !font-semibold !text-[var(--kijani-dark)] underline underline-offset-2"
-      >
-        {show ? "Hide" : "Show"}
-      </button>
-    </div>
-  );
-}
-
 // Google only appears once it's actually configured in Supabase. Same
 // pattern as NEXT_PUBLIC_TURNSTILE_SITE_KEY: shipping the button before the
 // provider is enabled would give everyone a control that bounces them to an
@@ -77,46 +65,10 @@ const GoogleMark = () => (
   </svg>
 );
 
-// Tailwind utilities for <input>/<textarea> and <button> need `!important`
-// (the `!` prefix) here: globals.css styles those elements with unscoped
-// selectors like `input[type="text"], textarea` and `input:focus`, whose
-// specificity beats a plain utility class regardless of source order.
-const fieldClass =
-  "!w-full !rounded-xl !border !border-[var(--stone)] !bg-[var(--surface-2)] !px-3.5 !py-3 !text-[15px] !text-[var(--ink)] outline-none transition-colors placeholder:!text-[var(--soil)] focus:!border-[var(--kijani)] focus:!shadow-[0_0_0_4px_color-mix(in_srgb,var(--kijani)_22%,transparent)]";
-
-const primaryBtnClass =
-  "flex w-full items-center justify-center gap-2 !rounded-xl !border-0 !bg-[linear-gradient(135deg,var(--kijani),var(--kijani-dark))] !px-4 !py-3.5 !text-[15px] !font-semibold !text-white shadow-[0_10px_25px_-8px_color-mix(in_srgb,var(--kijani)_55%,transparent)] transition hover:brightness-110 disabled:!bg-[var(--surface-2)] disabled:!text-[var(--soil)] disabled:shadow-none";
-
-const secondaryBtnClass =
-  "flex w-full items-center justify-center gap-2.5 !rounded-xl !border !border-[var(--stone)] !bg-[var(--sheet)] !px-4 !py-3 !text-sm !font-semibold !text-[var(--ink)] shadow-sm transition hover:!bg-[var(--surface-2)] disabled:!opacity-55";
-
-const labelClass = "mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-[var(--soil)]";
-
-const linkClass = "font-semibold text-[var(--kijani-dark)] underline underline-offset-2";
-
 export default function LoginClient() {
   const router = useRouter();
   const [mode, setMode] = useState("signin");
   const [rememberMe, setRememberMe] = useState(false);
-  const [socialLoading, setSocialLoading] = useState(true);
-  const [googleEnabled, setGoogleEnabled] = useState(false);
-  const [appleEnabled, setAppleEnabled] = useState(false);
-  const [githubEnabled, setGithubEnabled] = useState(false);
-
-  // Load environment variables and check social provider availability
-  useEffect(() => {
-    const checkProviders = async () => {
-      // Simulate checking provider configuration from environment
-      setGoogleEnabled(!!process.env.NEXT_PUBLIC_GOOGLE_AUTH && process.env.NEXT_PUBLIC_GOOGLE_AUTH === "1");
-      // For now, we'll keep these as placeholders - they'd be set based on actual configuration
-      setAppleEnabled(false);
-      setGithubEnabled(false);
-      setSocialLoading(false);
-    };
-
-    checkProviders();
-  }, []);
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("mode") === "signup") setMode("signup");
@@ -324,242 +276,167 @@ export default function LoginClient() {
 
   const usesPassword = mode === "signin" || mode === "signup";
 
+  const strengthInfo = strength(password);
+  const strengthVariant = strengthInfo.score <= 1 ? "error" : strengthInfo.score === 2 ? "warning" : "success";
+
+  const title = {
+    signin: "Welcome back",
+    signup: "Create your account",
+    forgot: "Reset your password",
+    magic: "Sign in without a password",
+  }[mode];
+  const subtitle = {
+    signin: "Your applications, credits and history are where you left them.",
+    signup: `${FREE_SIGNUP_CREDITS} free applications to start — no card, no subscription.`,
+    forgot: "Enter your email and we'll send you a link to set a new password.",
+    magic: "We'll email you a link that signs you straight in. No password needed, new account or old.",
+  }[mode];
+  const submitLabel = {
+    signin: "Sign in",
+    signup: `Create account — ${FREE_SIGNUP_CREDITS} free applications`,
+    magic: "Send me the link",
+    forgot: "Send reset link",
+  }[mode];
+
   return (
-    <main className="mx-auto w-full max-w-md pb-24 sm:max-w-lg">
-      <Nav />
+    <Center paddingBlock={8} paddingInline={4}>
+      <VStack gap={5} width="100%" maxWidth={440}>
+        <VStack gap={2} hAlign="center">
+          <BrandMark size={40} />
+          {mode === "signup" && <Token label="Step 1 of 2" size="sm" color="green" />}
+          <Heading level={1} justify="center">{title}</Heading>
+          <Text color="secondary" justify="center" textWrap="balance">{subtitle}</Text>
+        </VStack>
 
-      <section className="relative mx-4 mt-6 overflow-hidden rounded-3xl bg-[linear-gradient(135deg,var(--kijani),var(--kijani-dark))] px-6 py-10 text-center shadow-[0_20px_50px_-15px_color-mix(in_srgb,var(--kijani)_45%,transparent)] sm:mx-0 sm:px-10">
-        <div aria-hidden className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-14 -left-10 h-40 w-40 rounded-full bg-black/10 blur-2xl" />
-
-        {mode === "signup" && (
-          <p className="relative mb-2 text-xs font-semibold uppercase tracking-wide text-white/80">Step 1 of 2</p>
-        )}
-        <h1 className="relative text-[26px] font-extrabold tracking-tight text-white sm:text-[30px]">
-          {mode === "signin" && "Welcome back"}
-          {mode === "signup" && "Create your account"}
-          {mode === "forgot" && "Reset your password"}
-          {mode === "magic" && "Sign in without a password"}
-        </h1>
-        <p className="relative mx-auto mt-3 max-w-[42ch] text-[14.5px] leading-relaxed text-white/85">
-          {mode === "signin" && "Your applications, credits and history are where you left them."}
-          {mode === "signup" &&
-            `${FREE_SIGNUP_CREDITS} free applications to start — no card, no subscription.`}
-          {mode === "forgot" && "Enter your email and we'll send you a link to set a new password."}
-          {mode === "magic" && "We'll email you a link that signs you straight in. No password needed, new account or old."}
-        </p>
-      </section>
-
-      <div className="relative z-10 mx-4 -mt-6 rounded-3xl border border-[var(--stone)] bg-[var(--sheet)] p-6 shadow-[var(--shadow-3)] sm:mx-0 sm:p-8">
-        {mode !== "forgot" && (
-          <>
-            <div className="mb-5">
-              <h3 className="mb-3 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--soil)]">Sign in with</h3>
-              <div className="flex flex-col gap-2.5">
-                {!socialLoading && (
-                  <>
-                    {googleEnabled && (
-                      <button
-                        type="button"
-                        className={secondaryBtnClass}
-                        onClick={signInWithGoogle}
-                        disabled={busy || oauthBusy}
-                      >
-                        <GoogleMark />
-                        {oauthBusy ? "Opening Google…" : "Continue with Google"}
-                      </button>
-                    )}
-                    {!googleEnabled && !appleEnabled && !githubEnabled && (
-                      <button type="button" className={secondaryBtnClass + " !opacity-50"} disabled>
-                        Social login (not configured)
-                      </button>
-                    )}
-                  </>
-                )}
-                {socialLoading && (
-                  <button type="button" className={secondaryBtnClass + " !opacity-70"} disabled>
-                    Loading social options…
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {mode !== "magic" && (
-              <button
-                type="button"
-                className={secondaryBtnClass + " mb-4"}
-                onClick={() => switchMode("magic")}
-                disabled={busy || oauthBusy}
-              >
-                Email me a sign-in link
-              </button>
-            )}
-            <p className="mb-5 text-center text-[11.5px] leading-relaxed text-[var(--soil)]">
-              By continuing you agree to our{" "}
-              <a href="/privacy" target="_blank" className={linkClass}>Privacy Policy</a> and{" "}
-              <a href="/terms" target="_blank" className={linkClass}>Terms of Use</a>.
-            </p>
-            {usesPassword && (
-              <div className="relative mb-5 flex items-center justify-center">
-                <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[var(--stone)]" />
-                <span className="relative bg-[var(--sheet)] px-3 text-[11px] font-medium uppercase tracking-wide text-[var(--soil)]">
-                  or use a password
-                </span>
-              </div>
-            )}
-          </>
-        )}
-
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className={labelClass} htmlFor="email">Email</label>
-            <input id="email" type="text" inputMode="email" autoComplete="email" value={email}
-              onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className={fieldClass} />
-          </div>
-
-          {usesPassword && (
-            <div>
-              <label className={labelClass} htmlFor="password">Password</label>
-              <PasswordInput
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                onEnter={mode === "signin" ? submit : undefined}
-              />
-            </div>
-          )}
-
-          {mode === "signin" && (
-            <label className="-mt-1 flex cursor-pointer items-center gap-2 text-[12.5px] text-[var(--soil)]">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 accent-[var(--kijani)]"
-              />
-              <span>Remember me on this device</span>
-            </label>
-          )}
-
-          {mode === "signup" && password.length > 0 && (
-            <div className="-mt-2 flex items-center gap-2.5">
-              <div className="flex flex-1 gap-1">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <span
-                    key={i}
-                    className={
-                      "h-1 flex-1 rounded-full " +
-                      (i < strength(password).score
-                        ? strength(password).score <= 1
-                          ? "bg-[var(--moto)]"
-                          : strength(password).score === 2
-                          ? "bg-[#ff9f0a]"
-                          : "bg-[var(--kijani)]"
-                        : "bg-[var(--stone)]")
-                    }
+        <Card padding={6} elevation="low">
+          <VStack
+            as="form"
+            gap={4}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (canSubmit && !busy) submit();
+            }}
+          >
+            {mode !== "forgot" && (
+              <>
+                {GOOGLE_ENABLED && (
+                  <Button
+                    label={oauthBusy ? "Opening Google…" : "Continue with Google"}
+                    icon={<GoogleMark />}
+                    width="100%"
+                    size="lg"
+                    isDisabled={busy || oauthBusy}
+                    onClick={signInWithGoogle}
                   />
-                ))}
-              </div>
-              <span className="whitespace-nowrap text-[11px] text-[var(--soil)]">{strength(password).label}</span>
-            </div>
-          )}
-
-          {mode === "signup" && (
-            <div>
-              <label className={labelClass} htmlFor="confirm">Confirm password</label>
-              <PasswordInput
-                id="confirm"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Type it again"
-                autoComplete="new-password"
-                onEnter={submit}
-              />
-              {confirm.length > 0 && password !== confirm && (
-                <p className="mt-1.5 text-[13px] text-[var(--moto)]">Passwords don't match yet.</p>
-              )}
-            </div>
-          )}
-
-          {mode === "signin" && (
-            <p className="-mt-2 text-right">
-              <button type="button" className={"!border-0 !bg-transparent !p-0 " + linkClass + " !text-[13px]"} onClick={() => switchMode("forgot")}>
-                Forgot password?
-              </button>
-            </p>
-          )}
-
-          {mode === "signup" && (
-            <label className="flex cursor-pointer items-start gap-2 text-[12.5px] text-[var(--soil)]">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--kijani)]"
-              />
-              <span>
-                I agree to the <a href="/privacy" target="_blank" className={linkClass + " !text-[12.5px]"}>Privacy Policy</a> and{" "}
-                <a href="/terms" target="_blank" className={linkClass + " !text-[12.5px]"}>Terms of Use</a>.
-              </span>
-            </label>
-          )}
-
-          {err && <p className="-mt-1 text-[13px] text-[var(--moto)]">{err}</p>}
-          {msg && <p className="-mt-1 text-[13px] text-[var(--kijani-dark)]">{msg}</p>}
-          {pendingConfirm && (
-            <p className="-mt-1 text-[11px] text-[var(--soil)]">
-              Didn't get it?{" "}
-              <button
-                type="button"
-                className={"!border-0 !bg-transparent !p-0 !text-[11px] " + linkClass}
-                onClick={resendConfirmation}
-                disabled={resendBusy}
-              >
-                {resendBusy ? "Sending…" : "Resend confirmation email"}
-              </button>
-              {resendMsg && <span> — {resendMsg}</span>}
-            </p>
-          )}
-
-          <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
-
-          <button className={primaryBtnClass} onClick={submit} disabled={busy || !canSubmit}>
-            {busy
-              ? "One moment…"
-              : mode === "signin"
-              ? "Sign in"
-              : mode === "signup"
-              ? `Create account — ${FREE_SIGNUP_CREDITS} free applications`
-              : mode === "magic"
-              ? "Send me the link"
-              : "Send reset link"}
-          </button>
-
-          <p className="text-center text-[13px] text-[var(--soil)]">
-            {mode === "signin" && (
-              <>New here?{" "}
-                <button type="button" className={"!border-0 !bg-transparent !p-0 " + linkClass + " !text-[13px]"} onClick={() => switchMode("signup")}>
-                  Create an account
-                </button>
+                )}
+                {mode !== "magic" && (
+                  <Button
+                    label="Email me a sign-in link"
+                    icon={<Icon icon={MailIcon} />}
+                    width="100%"
+                    size="lg"
+                    isDisabled={busy || oauthBusy}
+                    onClick={() => switchMode("magic")}
+                  />
+                )}
+                {usesPassword && <Divider label="or use a password" />}
               </>
             )}
+
+            <TextInput type="email" label="Email" placeholder="you@example.com" value={email} onChange={setEmail} hasAutoFocus />
+
+            {usesPassword && (
+              <TextInput
+                type="password"
+                label="Password"
+                placeholder="At least 6 characters"
+                value={password}
+                onChange={setPassword}
+              />
+            )}
+
+            {mode === "signup" && password.length > 0 && (
+              <ProgressBar
+                label={`Password strength: ${strengthInfo.label}`}
+                hasValueLabel={false}
+                value={strengthInfo.score}
+                max={5}
+                variant={strengthVariant}
+              />
+            )}
+
             {mode === "signup" && (
-              <>Already have an account?{" "}
-                <button type="button" className={"!border-0 !bg-transparent !p-0 " + linkClass + " !text-[13px]"} onClick={() => switchMode("signin")}>
-                  Sign in
-                </button>
-              </>
+              <TextInput
+                type="password"
+                label="Confirm password"
+                placeholder="Type it again"
+                value={confirm}
+                onChange={setConfirm}
+                status={confirm.length > 0 && password !== confirm ? { type: "error", message: "Passwords don't match yet." } : undefined}
+              />
             )}
-            {(mode === "forgot" || mode === "magic") && (
-              <button type="button" className={"!border-0 !bg-transparent !p-0 " + linkClass + " !text-[13px]"} onClick={() => switchMode("signin")}>
-                ← Back to sign in
-              </button>
+
+            {mode === "signin" && (
+              <HStack justify="between" align="center" wrap="wrap" gap={2}>
+                <CheckboxInput label="Remember me" size="sm" value={rememberMe} onChange={setRememberMe} />
+                <Button label="Forgot password?" variant="ghost" size="sm" onClick={() => switchMode("forgot")} />
+              </HStack>
             )}
-          </p>
-        </div>
-      </div>
-    </main>
+
+            {mode === "signup" && (
+              <CheckboxInput
+                label="I agree to the Privacy Policy and Terms of Use (linked below)"
+                value={agreed}
+                onChange={setAgreed}
+              />
+            )}
+
+            {err && <Banner status="error" title={err} />}
+            {msg && <Banner status="success" title={msg} />}
+            {pendingConfirm && (
+              <HStack gap={2} align="center" wrap="wrap">
+                <Text type="supporting" color="secondary">Didn't get the email?</Text>
+                <Button
+                  label="Resend confirmation"
+                  size="sm"
+                  variant="ghost"
+                  isLoading={resendBusy}
+                  onClick={resendConfirmation}
+                />
+                {resendMsg && <Text type="supporting" color="secondary">{resendMsg}</Text>}
+              </HStack>
+            )}
+
+            <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
+
+            <Button type="submit" label={busy ? "One moment…" : submitLabel} variant="primary" size="lg" width="100%" isLoading={busy} isDisabled={!canSubmit} />
+
+            {mode !== "forgot" && (
+              <Text color="secondary" justify="center">
+                By continuing you agree to our <Link href="/privacy">Privacy Policy</Link> and <Link href="/terms">Terms of Use</Link>.
+              </Text>
+            )}
+          </VStack>
+        </Card>
+
+        <HStack justify="center" gap={1} align="center">
+          {mode === "signin" && (
+            <>
+              <Text color="secondary">New here?</Text>
+              <Button label="Create an account" variant="ghost" size="sm" onClick={() => switchMode("signup")} />
+            </>
+          )}
+          {mode === "signup" && (
+            <>
+              <Text color="secondary">Already have an account?</Text>
+              <Button label="Sign in" variant="ghost" size="sm" onClick={() => switchMode("signin")} />
+            </>
+          )}
+          {(mode === "forgot" || mode === "magic") && (
+            <Button label="← Back to sign in" variant="ghost" size="sm" onClick={() => switchMode("signin")} />
+          )}
+        </HStack>
+      </VStack>
+    </Center>
   );
 }

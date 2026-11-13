@@ -18,7 +18,10 @@ import { FREE_MODE } from "../../lib/plans";
 import { generateCvDocx, downloadBlob } from "../../lib/generateDocx";
 import { ArrowLeftIcon, DownloadIcon, PlusIcon, PrinterIcon } from "../../lib/icons";
 
-export default function ResultView({ result, template, setTemplate, onEdit, onNew }) {
+// Shows a generated application. Used right after generating (home) and
+// when reopening a past one (dashboard) — `backLabel`/`onBack` and
+// `isFresh` cover the difference.
+export default function ResultView({ result, template, setTemplate, onBack, backLabel = "Edit inputs", onNew, isFresh = true }) {
   const [tab, setTab] = useState("cv");
   const [copied, setCopied] = useState(false);
   const [docxBusy, setDocxBusy] = useState(false);
@@ -54,12 +57,12 @@ export default function ResultView({ result, template, setTemplate, onEdit, onNe
           <VStack gap={5}>
             <HStack justify="between" align="center" wrap="wrap" gap={3} className="no-print">
               <VStack gap={1}>
-                <Text color="accent" weight="semibold">Your documents are ready</Text>
+                <Text color="accent" weight="semibold">{isFresh ? "Your documents are ready" : "Saved application"}</Text>
                 <Heading level={1}>{result.jobTitle || result.cv?.title || "Your application"}</Heading>
               </VStack>
               <HStack gap={2} wrap="wrap">
-                <Button label="Edit inputs" variant="ghost" icon={<Icon icon={ArrowLeftIcon} />} onClick={onEdit} />
-                <Button label="New application" icon={<Icon icon={PlusIcon} />} onClick={onNew} />
+                <Button label={backLabel} variant="ghost" icon={<Icon icon={ArrowLeftIcon} />} onClick={onBack} />
+                {onNew && <Button label="New application" icon={<Icon icon={PlusIcon} />} onClick={onNew} />}
               </HStack>
             </HStack>
 
@@ -97,6 +100,7 @@ export default function ResultView({ result, template, setTemplate, onEdit, onNe
               {tab === "cv" ? <CvSheet.Cv data={result.cv} template={template} /> : <CvSheet.Letter text={result.coverLetter} />}
             </CvSheet>
 
+            {isFresh && (
             <Card variant="muted" padding={5} className="no-print">
               <VStack gap={4} hAlign="center">
                 <Text color="secondary" justify="center">
@@ -108,6 +112,7 @@ export default function ResultView({ result, template, setTemplate, onEdit, onNe
                 <ShareButtons compact />
               </VStack>
             </Card>
+            )}
           </VStack>
         </LayoutContent>
       }

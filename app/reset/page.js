@@ -1,7 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Nav from "../../components/Nav";
+import { Center } from "@astryxdesign/core/Center";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Card } from "@astryxdesign/core/Card";
+import { Button } from "@astryxdesign/core/Button";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Banner } from "@astryxdesign/core/Banner";
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
+import { BrandMark } from "../../lib/icons";
 import { supabaseBrowser } from "../../lib/supabaseClient";
 
 export default function ResetPassword() {
@@ -32,54 +40,51 @@ export default function ResetPassword() {
   }
 
   return (
-    <main className="shell">
-      <Nav />
-      <section className="hero hero-band">
-        <h1>Set a new password</h1>
-      </section>
-
-      <div className="auth-card">
-        {!ready ? (
-          <>
-            <p className="step-hint">
-              This link has expired or wasn't opened from your email. That's fine — you can request
-              a fresh reset link, sign in if you remember your password, or create a new account if
-              you don't have one yet.
-            </p>
-            <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-              <a className="btn-ghost" style={{ textDecoration: "none" }} href="/login">Sign in</a>
-              <a className="btn-ghost" style={{ textDecoration: "none" }} href="/login">Create an account</a>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="step-hint">Choose a new password for your account.</p>
-            <label className="field-label" htmlFor="pw">New password</label>
-            <div style={{ position: "relative" }}>
-              <input id="pw" type={show ? "text" : "password"} autoComplete="new-password"
-                value={password} onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters" style={{ paddingRight: 64 }} />
-              <button type="button" className="linkish"
-                style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 12 }}
-                onClick={() => setShow(!show)}>
-                {show ? "Hide" : "Show"}
-              </button>
-            </div>
-            <label className="field-label" htmlFor="cpw">Confirm new password</label>
-            <input id="cpw" type={show ? "text" : "password"} autoComplete="new-password"
-              value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Type it again"
-              onKeyDown={(e) => e.key === "Enter" && save()} />
-            {confirm.length > 0 && password !== confirm && (
-              <p className="error" style={{ marginTop: 6 }}>Passwords don't match yet.</p>
-            )}
-            {err && <p className="error">{err}</p>}
-            <button className="btn-primary" style={{ width: "100%", marginTop: 14 }} onClick={save}
-              disabled={busy || !password || !confirm}>
-              {busy ? "Saving…" : "Save new password"}
-            </button>
-          </>
-        )}
-      </div>
-    </main>
+    <Center paddingBlock={8} paddingInline={4}>
+      <VStack gap={5} width="100%" maxWidth={440}>
+        <VStack gap={2} hAlign="center">
+          <BrandMark size={40} />
+          <Heading level={1} justify="center">Set a new password</Heading>
+        </VStack>
+        <Card padding={6} elevation="low">
+          {!ready ? (
+            <VStack gap={4}>
+              <Text color="secondary">
+                This link has expired or wasn't opened from your email. That's fine — request a fresh reset link,
+                sign in if you remember your password, or create an account if you don't have one yet.
+              </Text>
+              <HStack gap={2} wrap="wrap">
+                <Button label="Sign in" variant="primary" onClick={() => router.push("/login")} />
+                <Button label="Send a new reset link" onClick={() => router.push("/login")} />
+                <Button label="Create an account" variant="ghost" onClick={() => router.push("/login?mode=signup")} />
+              </HStack>
+            </VStack>
+          ) : (
+            <VStack
+              as="form"
+              gap={4}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!busy && password && confirm) save();
+              }}
+            >
+              <Text color="secondary">Choose a new password for your account.</Text>
+              <TextInput type={show ? "text" : "password"} label="New password" placeholder="At least 6 characters" value={password} onChange={setPassword} hasAutoFocus />
+              <TextInput
+                type={show ? "text" : "password"}
+                label="Confirm new password"
+                placeholder="Type it again"
+                value={confirm}
+                onChange={setConfirm}
+                status={confirm.length > 0 && password !== confirm ? { type: "error", message: "Passwords don't match yet." } : undefined}
+              />
+              <CheckboxInput label="Show passwords" size="sm" value={show} onChange={setShow} />
+              {err && <Banner status="error" title={err} />}
+              <Button type="submit" label="Save new password" variant="primary" size="lg" width="100%" isLoading={busy} isDisabled={!password || !confirm} />
+            </VStack>
+          )}
+        </Card>
+      </VStack>
+    </Center>
   );
 }

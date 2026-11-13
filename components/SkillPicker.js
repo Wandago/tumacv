@@ -1,5 +1,9 @@
 "use client";
 import { useState } from "react";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Token } from "@astryxdesign/core/Token";
 import { SKILL_OPTIONS, POPULAR_SKILLS } from "../lib/hubSkills";
 
 const MAX_SKILLS = 15;
@@ -10,7 +14,7 @@ export default function SkillPicker({ selected, onChange }) {
   const atMax = selected.length >= MAX_SKILLS;
 
   const pool = q ? SKILL_OPTIONS.filter((s) => s.toLowerCase().includes(q)) : POPULAR_SKILLS;
-  const shown = pool.filter((s) => !selected.includes(s)).slice(0, 40);
+  const shown = pool.filter((s) => !selected.includes(s)).slice(0, 30);
   const exactMatchExists = SKILL_OPTIONS.some((s) => s.toLowerCase() === q);
 
   function toggle(skill) {
@@ -27,35 +31,32 @@ export default function SkillPicker({ selected, onChange }) {
   }
 
   return (
-    <div className="skill-picker">
+    <VStack gap={3}>
       {selected.length > 0 && (
-        <div className="skill-picker-selected">
+        <HStack gap={2} wrap="wrap">
           {selected.map((s) => (
-            <button type="button" className="chip chip-removable" key={s} onClick={() => toggle(s)}>
-              {s} ✕
-            </button>
+            <Token key={s} label={s} color="green" onRemove={() => toggle(s)} />
           ))}
-        </div>
+        </HStack>
       )}
-      <input
-        type="text"
+      <TextInput
+        label="Skills"
+        description={`${selected.length}/${MAX_SKILLS} selected — tap a suggestion to add it.`}
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={setQuery}
         placeholder={atMax ? `Max ${MAX_SKILLS} skills selected` : "Search skills — e.g. Sales, Excel, Nursing…"}
-        disabled={atMax}
+        isDisabled={atMax}
+        startIcon="search"
       />
       {!atMax && (
-        <div className="skill-picker-grid">
+        <HStack gap={2} wrap="wrap">
           {shown.map((s) => (
-            <button type="button" className="skill-pick" key={s} onClick={() => toggle(s)}>{s}</button>
+            <Token key={s} label={s} onClick={() => toggle(s)} />
           ))}
-          {q && !exactMatchExists && (
-            <button type="button" className="skill-pick add-custom" onClick={addCustom}>+ Add "{query.trim()}"</button>
-          )}
-          {shown.length === 0 && !q && <p className="field-note">Type to search — hundreds of skills available.</p>}
-        </div>
+          {q && !exactMatchExists && <Token label={`+ Add "${query.trim()}"`} color="green" onClick={addCustom} />}
+          {shown.length === 0 && !q && <Text type="supporting" color="secondary">Type to search — hundreds of skills available.</Text>}
+        </HStack>
       )}
-      <p className="field-note">{selected.length}/{MAX_SKILLS} selected</p>
-    </div>
+    </VStack>
   );
 }

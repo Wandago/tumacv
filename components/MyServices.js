@@ -1,10 +1,25 @@
 "use client";
 import { useEffect, useState } from "react";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { List, ListItem } from "@astryxdesign/core/List";
+import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
+import { Selector } from "@astryxdesign/core/Selector";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { TextArea } from "@astryxdesign/core/TextArea";
+import { NumberInput } from "@astryxdesign/core/NumberInput";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Banner } from "@astryxdesign/core/Banner";
+import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { Link } from "@astryxdesign/core/Link";
+import { Icon } from "@astryxdesign/core/Icon";
 import { supabaseBrowser } from "../lib/supabaseClient";
 import { SERVICE_CATEGORIES } from "../lib/serviceCategories";
+import { PlusIcon } from "../lib/icons";
 
 const MAX_SERVICES = 6;
-const EMPTY_FORM = { category: SERVICE_CATEGORIES[0], title: "", description: "", price_kes: "", delivery_days: "" };
+const EMPTY_FORM = { category: SERVICE_CATEGORIES[0], title: "", description: "", price_kes: null, delivery_days: null };
 
 export default function MyServices({ userId }) {
   const [services, setServices] = useState(null);
@@ -12,7 +27,8 @@ export default function MyServices({ userId }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
-  const [removingId, setRemovingId] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -23,6 +39,8 @@ export default function MyServices({ userId }) {
       .order("created_at", { ascending: false })
       .then(({ data }) => setServices(data || []));
   }, [userId]);
+
+  const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
   function startNew() {
     setErr("");
@@ -36,8 +54,8 @@ export default function MyServices({ userId }) {
       category: s.category,
       title: s.title,
       description: s.description,
-      price_kes: String(s.price_kes),
-      delivery_days: s.delivery_days ? String(s.delivery_days) : "",
+      price_kes: s.price_kes,
+      delivery_days: s.delivery_days || null,
     });
     setEditing(s.id);
   }
@@ -79,96 +97,90 @@ export default function MyServices({ userId }) {
     setEditing(null);
   }
 
-  async function remove(id) {
-    if (!confirm("Remove this service listing?")) return;
-    setRemovingId(id);
+  async function remove() {
+    const id = confirmRemove;
+    setRemoving(true);
     const { error } = await supabaseBrowser().from("hub_services").delete().eq("id", id);
-    setRemovingId("");
+    setRemoving(false);
+    setConfirmRemove(null);
     if (!error) setServices((list) => (list || []).filter((s) => s.id !== id));
   }
 
   if (services === null) return null;
 
   return (
-    <div className="my-services">
-      <div className="my-services-head">
-        <span className="field-label" style={{ margin: 0 }}>Services you offer (optional)</span>
+    <VStack gap={3}>
+      <HStack justify="between" align="center" gap={3} wrap="wrap">
+        <VStack gap={0}>
+          <Heading level={4}>Services you offer</Heading>
+          <Text color="secondary">
+            Optional. List paid services — a CV rewrite, a logo, a tutoring session — so people on the{" "}
+            <Link href="/hub">Talent Hub</Link> can hire you directly.
+          </Text>
+        </VStack>
         {services.length < MAX_SERVICES && editing === null && (
-          <button className="btn-ghost" onClick={startNew}>+ Add a service</button>
+          <Button label="Add a service" size="sm" icon={<Icon icon={PlusIcon} />} onClick={startNew} />
         )}
-      </div>
-      <p className="field-note">
-        List specific paid services — a CV rewrite, a logo design, a tutoring session — so people
-        browsing the <a href="/hub">Talent Hub</a> can hire you directly, not just see your profile.
-      </p>
+      </HStack>
 
       {services.length > 0 && (
-        <div className="service-manage-list">
+        <List hasDividers>
           {services.map((s) => (
-            <div key={s.id} className="service-manage-item">
-              <div>
-                <span className="hi-title">{s.title}</span>
-                <div className="field-note" style={{ marginTop: 2 }}>
-                  {s.category} · KES {s.price_kes.toLocaleString()}
-                  {s.delivery_days ? ` · ${s.delivery_days}-day delivery` : ""}
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button className="btn-ghost" onClick={() => startEdit(s)}>Edit</button>
-                <button className="btn-ghost danger-btn" disabled={removingId === s.id} onClick={() => remove(s.id)}>
-                  {removingId === s.id ? "…" : "Remove"}
-                </button>
-              </div>
-            </div>
+            <ListItem
+              key={s.id}
+              label={s.title}
+              description={`${s.category} · KES ${s.price_kes.toLocaleString()}${s.delivery_days ? ` · ${s.delivery_days}-day delivery` : ""}`}
+              endContent={
+                <HStack gap={1}>
+                  <Button label="Edit" size="sm" variant="ghost" onClick={() => startEdit(s)} />
+                  <Button label="Remove" size="sm" variant="ghost" onClick={() => setConfirmRemove(s.id)} />
+                </HStack>
+              }
+            />
           ))}
-        </div>
+        </List>
       )}
 
       {editing !== null && (
-        <div className="service-form">
-          <label className="field-label">Category</label>
-          <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
-            {SERVICE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <label className="field-label">Service title</label>
-          <input
-            type="text" maxLength={100} value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            placeholder="e.g. I'll rewrite your CV for a specific job"
-          />
-          <label className="field-label">Description</label>
-          <textarea
-            maxLength={600} value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            placeholder="What's included, your process, anything a buyer should know."
-          />
-          <div className="two-col">
-            <div>
-              <label className="field-label">Price (KES)</label>
-              <input
-                type="number" min="1" value={form.price_kes}
-                onChange={(e) => setForm((f) => ({ ...f, price_kes: e.target.value }))}
-                placeholder="e.g. 500"
-              />
-            </div>
-            <div>
-              <label className="field-label">Delivery time in days (optional)</label>
-              <input
-                type="number" min="1" value={form.delivery_days}
-                onChange={(e) => setForm((f) => ({ ...f, delivery_days: e.target.value }))}
-                placeholder="e.g. 2"
-              />
-            </div>
-          </div>
-          {err && <p className="error">{err}</p>}
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <button className="btn-primary" disabled={saving} onClick={save}>
-              {saving ? "Saving…" : "Save service"}
-            </button>
-            <button className="btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
-          </div>
-        </div>
+        <Card variant="muted" padding={5}>
+          <VStack gap={4}>
+            <Selector
+              label="Category"
+              value={form.category}
+              onChange={set("category")}
+              options={SERVICE_CATEGORIES.map((c) => ({ value: c, label: c }))}
+            />
+            <TextInput label="Service title" value={form.title} onChange={set("title")} placeholder="e.g. I'll rewrite your CV for a specific job" />
+            <TextArea
+              label="Description"
+              maxLength={600}
+              rows={4}
+              value={form.description}
+              onChange={set("description")}
+              placeholder="What's included, your process, anything a buyer should know."
+            />
+            <Grid columns={{ minWidth: 180 }} gap={3}>
+              <NumberInput label="Price" units="KES" min={1} value={form.price_kes} onChange={set("price_kes")} placeholder="e.g. 500" />
+              <NumberInput label="Delivery time" units="days" isOptional min={1} value={form.delivery_days} onChange={set("delivery_days")} placeholder="e.g. 2" />
+            </Grid>
+            {err && <Banner status="error" title={err} />}
+            <HStack gap={2}>
+              <Button label="Save service" variant="primary" isLoading={saving} onClick={save} />
+              <Button label="Cancel" variant="ghost" onClick={() => setEditing(null)} />
+            </HStack>
+          </VStack>
+        </Card>
       )}
-    </div>
+
+      <AlertDialog
+        isOpen={!!confirmRemove}
+        onOpenChange={(open) => !open && setConfirmRemove(null)}
+        title="Remove this service?"
+        description="It disappears from the Talent Hub straight away. You can add it again later."
+        actionLabel="Remove"
+        isActionLoading={removing}
+        onAction={remove}
+      />
+    </VStack>
   );
 }

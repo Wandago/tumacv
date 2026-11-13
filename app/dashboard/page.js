@@ -1,63 +1,66 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AppSidebar from "../../components/AppSidebar";
-import CvView from "../../components/CvView";
+import { Layout, LayoutContent } from "@astryxdesign/core/Layout";
+import { VStack, HStack } from "@astryxdesign/core/Stack";
+import { Heading, Text } from "@astryxdesign/core/Text";
+import { Grid } from "@astryxdesign/core/Grid";
+import { Card } from "@astryxdesign/core/Card";
+import { Button } from "@astryxdesign/core/Button";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Icon } from "@astryxdesign/core/Icon";
+import { Center } from "@astryxdesign/core/Center";
+import { Spinner } from "@astryxdesign/core/Spinner";
+import { Skeleton } from "@astryxdesign/core/Skeleton";
+import { Link } from "@astryxdesign/core/Link";
 import { supabaseBrowser } from "../../lib/supabaseClient";
-import { PLANS, FREE_MODE, MPESA_ENABLED, PADDLE_ENABLED, DARAJA_ENABLED, FREE_SIGNUP_CREDITS, toUsd } from "../../lib/plans";
-import {
-  earnedBadges, nextBadge, badgeRemaining, isEarned, gamificationStats, streakState, BADGES,
-} from "../../lib/gamification";
+import { FREE_MODE, isUnlimited } from "../../lib/plans";
+import { gamificationStats, streakState, nextBadge } from "../../lib/gamification";
 import { clearLegacySharedDraft } from "../../lib/storage";
-import { generateCvDocx, downloadBlob } from "../../lib/generateDocx";
-import { openPaddleCheckout, paddlePriceIdFor } from "../../lib/paddle";
-import GlobalPayHelp from "../../components/GlobalPayHelp";
+import CountUp from "../../components/CountUp";
+import TrendChart from "../../components/TrendChart";
+import OverviewCard from "../../components/OverviewCard";
 import TalentHubCard from "../../components/TalentHubCard";
 import ReferralCard from "../../components/ReferralCard";
 import InAppMarketingBanner from "../../components/InAppMarketingBanner";
-import CountUp from "../../components/CountUp";
-import DonutChart from "../../components/DonutChart";
-import TrendChart from "../../components/TrendChart";
-import OverviewCard from "../../components/OverviewCard";
-import ActivityRail from "../../components/ActivityRail";
-import { motion } from "motion/react";
+import ResultView from "../../components/home/ResultView";
+import ApplicationsCard from "../../components/dashboard/ApplicationsCard";
+import BadgesCard from "../../components/dashboard/BadgesCard";
+import TopUpCard from "../../components/dashboard/TopUpCard";
+import { FlameIcon, LogOutIcon, PlusIcon, SettingsIcon, SparklesIcon, WalletIcon } from "../../lib/icons";
 
-const staggerContainer = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
-const staggerItem = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
-};
+function StatCard({ label, value, caption, icon, variant }) {
+  return (
+    <Card padding={5} variant={variant}>
+      <VStack gap={1}>
+        <HStack gap={2} align="center">
+          {icon && <Icon icon={icon} color="accent" size="sm" />}
+          <Text type="supporting" color="secondary" weight="medium">{label}</Text>
+        </HStack>
+        <Heading level={3} type="display-2">{value}</Heading>
+        {caption && <Text type="supporting" color="secondary">{caption}</Text>}
+      </VStack>
+    </Card>
+  );
+}
 
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState(undefined);
   const [profile, setProfile] = useState(null);
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState(null);
   const [viewing, setViewing] = useState(null);
-  const [docxBusy, setDocxBusy] = useState(false);
-  const [tab, setTab] = useState("cv");
-  const [buying, setBuying] = useState("");
-  const [err, setErr] = useState("");
-  const [showGlobalPay, setShowGlobalPay] = useState(false);
-  const [mpesaPhone, setMpesaPhone] = useState("");
-  const [mpesaBusy, setMpesaBusy] = useState(false);
-  const [mpesaMsg, setMpesaMsg] = useState("");
-  const [promoCode, setPromoCode] = useState("");
-  const [promoBusy, setPromoBusy] = useState(false);
-  const [promoMsg, setPromoMsg] = useState("");
-  const [promoErr, setPromoErr] = useState("");
+  const [viewTemplate, setViewTemplate] = useState("modern");
   const [paidBanner, setPaidBanner] = useState(false);
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
   const [hiredBusy, setHiredBusy] = useState(false);
-  const [q, setQ] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.search.includes("paid=1")) {
       setPaidBanner(true);
     }
-    const sb = supabaseBrowser();
-    sb.auth.getUser().then(({ data }) => {
+    supabaseBrowser().auth.getUser().then(({ data }) => {
       if (!data?.user) router.replace("/login");
       else setUser(data.user);
     });
@@ -78,6 +81,7 @@ export default function Dashboard() {
     if (user) loadData(user);
   }, [user]);
 
+  // After a payment, credits land via webhook — poll for up to 40s.
   useEffect(() => {
     if (!paidBanner || !user) return;
     const t = setInterval(() => loadData(user), 4000);
@@ -89,116 +93,24 @@ export default function Dashboard() {
     if (!user || !profile?.industry) return;
     setInsightLoading(true);
     (async () => {
-      const { data: sess } = await supabaseBrowser().auth.getSession();
-      const res = await fetch("/api/insight", {
-        headers: { authorization: `Bearer ${sess?.session?.access_token}` },
-      });
-      const data = await res.json();
-      setInsight(data.insight || null);
-      setInsightLoading(false);
+      try {
+        const { data: sess } = await supabaseBrowser().auth.getSession();
+        const res = await fetch("/api/insight", { headers: { authorization: `Bearer ${sess?.session?.access_token}` } });
+        const data = await res.json();
+        setInsight(data.insight || null);
+      } catch {
+        setInsight(null);
+      } finally {
+        setInsightLoading(false);
+      }
     })();
   }, [user, profile?.industry]);
 
   async function toggleHired(value) {
     setHiredBusy(true);
-    const sb = supabaseBrowser();
-    await sb.from("profiles").update({ hired: value, hired_at: value ? new Date().toISOString() : null }).eq("id", user.id);
+    await supabaseBrowser().from("profiles").update({ hired: value, hired_at: value ? new Date().toISOString() : null }).eq("id", user.id);
     setProfile((p) => ({ ...p, hired: value }));
     setHiredBusy(false);
-  }
-
-  async function buy(planId) {
-    setErr("");
-    setBuying(planId);
-    try {
-      const sb = supabaseBrowser();
-      const { data: sess } = await sb.auth.getSession();
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${sess?.session?.access_token}`,
-        },
-        body: JSON.stringify({ planId }),
-      });
-      const data = await res.json();
-      if (!res.ok) setErr(data.error || "Could not start the payment.");
-      else window.location.href = data.url;
-    } catch {
-      setErr("Network error. Try again.");
-    } finally {
-      setBuying("");
-    }
-  }
-
-  async function payWithCard(planId) {
-    setErr("");
-    try {
-      const { data: sess } = await supabaseBrowser().auth.getSession();
-      await openPaddleCheckout({ planId, userId: user.id, email: sess?.session?.user?.email });
-      // Card payment confirms via webhook, not a redirect — reuse the same
-      // polling used after an M-Pesa redirect to pick up credits once they land.
-      setPaidBanner(true);
-    } catch (e) {
-      setErr(e.message || "Could not open card checkout.");
-    }
-  }
-
-  async function payWithMpesa(planId) {
-    setErr("");
-    setMpesaMsg("");
-    if (!mpesaPhone.trim()) {
-      setErr("Enter your M-Pesa phone number first.");
-      return;
-    }
-    setMpesaBusy(true);
-    try {
-      const { data: sess } = await supabaseBrowser().auth.getSession();
-      const res = await fetch("/api/checkout-mpesa", {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${sess?.session?.access_token}` },
-        body: JSON.stringify({ planId, phone: mpesaPhone }),
-      });
-      const data = await res.json();
-      if (!res.ok) setErr(data.error || "Could not send the M-Pesa prompt.");
-      else {
-        setMpesaMsg(data.message);
-        setPaidBanner(true); // start polling for credits, same as card/redirect flows
-      }
-    } catch {
-      setErr("Network error. Try again.");
-    } finally {
-      setMpesaBusy(false);
-    }
-  }
-
-  async function redeemCode() {
-    setPromoErr("");
-    setPromoMsg("");
-    if (!promoCode.trim()) {
-      setPromoErr("Enter a code first.");
-      return;
-    }
-    setPromoBusy(true);
-    try {
-      const { data: sess } = await supabaseBrowser().auth.getSession();
-      const res = await fetch("/api/account/redeem-code", {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${sess?.session?.access_token}` },
-        body: JSON.stringify({ code: promoCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) setPromoErr(data.error || "Could not redeem that code.");
-      else {
-        setPromoMsg(`+${data.credits} credits added!`);
-        setPromoCode("");
-        loadData(user); // refresh the visible balance immediately
-      }
-    } catch {
-      setPromoErr("Network error. Try again.");
-    } finally {
-      setPromoBusy(false);
-    }
   }
 
   async function signOut() {
@@ -207,29 +119,35 @@ export default function Dashboard() {
     router.push("/");
   }
 
-  async function downloadDocx() {
-    if (!viewing?.result?.cv) return;
-    setDocxBusy(true);
-    try {
-      const blob = await generateCvDocx(viewing.result.cv);
-      const safeName = (viewing.result.cv.name || "CV").replace(/[^a-z0-9]+/gi, "_");
-      downloadBlob(blob, `${safeName}_CV.docx`);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setDocxBusy(false);
-    }
+  if (!user || history === null) {
+    return (
+      <Center minHeight="60vh">
+        <Spinner size="lg" />
+      </Center>
+    );
   }
 
-  const unlimited =
-    profile?.plan === "unlimited" && profile?.plan_expires && new Date(profile.plan_expires) > new Date();
+  if (viewing) {
+    return (
+      <ResultView
+        result={{ ...viewing.result, jobTitle: viewing.job_title || viewing.result?.jobTitle }}
+        template={viewTemplate}
+        setTemplate={setViewTemplate}
+        backLabel="Back to dashboard"
+        onBack={() => setViewing(null)}
+        isFresh={false}
+      />
+    );
+  }
 
-  const filteredHistory = history.filter(
-    (h) => !q || (h.job_title || "Application").toLowerCase().includes(q.toLowerCase())
-  );
+  const unlimited = isUnlimited(profile);
   const weekCount = history.filter((h) => Date.now() - new Date(h.created_at).getTime() < 7 * 86400000).length;
+  const gStats = gamificationStats(history, profile);
+  const streak = streakState(profile);
+  const upcoming = nextBadge(gStats);
+  const firstName = (profile?.full_name || history[0]?.result?.cv?.name || "").split(" ")[0];
 
-  // Which CV templates this user actually leans on — the donut breakdown.
+  // Which CV templates this user leans on — the donut breakdown.
   const templateSegments = Object.entries(
     history.reduce((acc, h) => {
       const t = h.template || "modern";
@@ -245,390 +163,153 @@ export default function Dashboard() {
     const d = new Date();
     d.setDate(d.getDate() - (29 - i));
     const key = d.toISOString().slice(0, 10);
-    return {
-      date: key,
-      value: history.filter((h) => h.created_at?.slice(0, 10) === key).length,
-    };
+    return { date: key, value: history.filter((h) => h.created_at?.slice(0, 10) === key).length };
   });
 
-  const gStats = gamificationStats(history, profile);
-  const streak = streakState(profile);
-  const upcoming = nextBadge(gStats);
-
-  const railNotices = [];
-  if (!FREE_MODE && !unlimited && profile?.credits === 0) {
-    railNotices.push({ label: "Out of credits — top up", count: 0, tone: "warn", onClick: () => router.push("/pricing") });
-  }
-  // Streaks only break silently otherwise — the stored count isn't cleared
-  // until the next generation, so warn on the last day it can still be saved.
-  if (streak.status === "at-risk") {
-    railNotices.push({
-      label: `${streak.streak}-day streak ends tonight — generate today to keep it`,
-      count: "🔥",
-      tone: "warn",
-      onClick: () => router.push("/"),
-    });
-  }
-  if (profile && !profile.industry) {
-    railNotices.push({ label: "Add your industry for daily tips", count: "!", onClick: () => router.push("/onboarding") });
-  }
-  if (upcoming) {
-    railNotices.push({
-      label: `${badgeRemaining(upcoming, gStats)} to "${upcoming.label}"`,
-      count: upcoming.emoji,
-      onClick: () => router.push("/"),
-    });
-  }
-
-  const sidebarItems = [
-    { key: "dashboard", label: "Dashboard", icon: "grid", href: "/dashboard" },
-    { key: "hub", label: "Talent Hub", icon: "users", href: "/hub" },
-    { key: "news", label: "News", icon: "doc", href: "/news" },
-    { key: "pricing", label: "Pricing", icon: "tag", href: "/pricing" },
-    ...(profile?.is_admin ? [{ key: "admin", label: "Admin", icon: "shield", href: "/admin" }] : []),
-  ];
-  const sidebarBottom = [
-    { key: "profile", label: "Edit profile", icon: "gear", href: "/onboarding" },
-    { key: "support", label: "Help", icon: "help", href: "/support" },
-    { key: "logout", label: "Sign out", icon: "logout", onClick: signOut },
-  ];
-
-  if (viewing) {
-    return (
-      <AppSidebar items={sidebarItems} bottomItems={sidebarBottom} activeKey="dashboard">
-        <div className="results-head">
-          <h2>{viewing.job_title || "Application"}</h2>
-          <button className="btn-ghost" onClick={() => setViewing(null)}>← Back to dashboard</button>
-          {tab === "cv" && (
-            <button className="btn-ghost" onClick={downloadDocx} disabled={docxBusy}>
-              {docxBusy ? "Preparing…" : "Download .docx"}
-            </button>
-          )}
-          <button className="btn-primary" onClick={() => window.print()}>
-            {tab === "cv" ? "Save CV as PDF" : "Save letter as PDF"}
-          </button>
-        </div>
-        <div className="doc-tabs">
-          <button className={tab === "cv" ? "on" : "btn-ghost"} onClick={() => setTab("cv")}>CV</button>
-          <button className={tab === "letter" ? "on" : "btn-ghost"} onClick={() => setTab("letter")}>Cover letter</button>
-        </div>
-        <div className="sheet-wrap">
-          <div className="sheet">
-            {tab === "cv"
-              ? <CvView data={viewing.result?.cv} template={viewing.template || "modern"} />
-              : <div className="letter">{viewing.result?.coverLetter}</div>}
-          </div>
-        </div>
-      </AppSidebar>
-    );
-  }
+  const outOfCredits = !FREE_MODE && !unlimited && profile?.credits === 0;
 
   return (
-    <AppSidebar
-      items={sidebarItems}
-      bottomItems={sidebarBottom}
-      activeKey="dashboard"
-      search={{ value: q, onChange: setQ, placeholder: "Search your applications…" }}
-      alertCount={railNotices.length}
-      rightRail={
-        <ActivityRail
-          notices={railNotices}
-          activityTitle="Recent applications"
-          activity={history.slice(0, 6).map((h) => ({
-            id: h.id,
-            title: h.job_title || "Application",
-            meta: h.template,
-            at: h.created_at,
-          }))}
-          emptyActivity="Your applications will show up here."
-          links={[
-            { href: "/", label: "Generate a new CV" },
-            { href: "/hub", label: "Talent Hub" },
-          ]}
-        />
-      }
-    >
-      <div className="page-heading">
-        <h1>Your dashboard</h1>
-        <p>Track your credits, streak, and past applications.</p>
-      </div>
+    <Layout
+      height="auto"
+      contentWidth={1120}
+      content={
+        <LayoutContent padding={6} isScrollable={false}>
+          <VStack gap={6}>
+            <HStack justify="between" align="center" gap={3} wrap="wrap">
+              <VStack gap={1}>
+                <Heading level={1}>{firstName ? `Hi, ${firstName}` : "Your dashboard"}</Heading>
+                <Text color="secondary">Your applications, credits and progress in one place.</Text>
+              </VStack>
+              <HStack gap={2} wrap="wrap">
+                <Button label="Edit profile" variant="ghost" icon={<Icon icon={SettingsIcon} />} onClick={() => router.push("/onboarding")} />
+                <Button label="Sign out" variant="ghost" icon={<Icon icon={LogOutIcon} />} onClick={signOut} />
+                <Button label="New application" variant="primary" icon={<Icon icon={PlusIcon} />} onClick={() => router.push("/")} />
+              </HStack>
+            </HStack>
 
-      <InAppMarketingBanner />
-
-      {paidBanner && (
-        <div className="banner">
-          Payment received — your account updates within a minute of M-Pesa/card confirmation.
-        </div>
-      )}
-
-      {profile?.hired ? (
-        <div className="banner hired-banner">
-          🎉 Congratulations on landing the job! Come back any time you need TumaCV again.
-          <button className="linkish" style={{ marginLeft: 10 }} onClick={() => toggleHired(false)} disabled={hiredBusy}>
-            Not hired anymore? Undo
-          </button>
-        </div>
-      ) : (
-        history.length > 0 && (
-          <button className="hired-prompt" onClick={() => toggleHired(true)} disabled={hiredBusy}>
-            🎉 Got the job? Tap to celebrate
-          </button>
-        )
-      )}
-
-      <div className="dash-grid">
-        <div className="dash-card accent">
-          <div className="stat-corner-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9" /></svg>
-          </div>
-          <h3>BALANCE</h3>
-          <div className="big-number">
-            {FREE_MODE || unlimited ? "∞" : profile?.credits != null ? <CountUp value={profile.credits} /> : "…"}
-          </div>
-          <p>
-            {FREE_MODE
-              ? "Free during beta"
-              : unlimited
-              ? `Unlimited until ${new Date(profile.plan_expires).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
-              : "applications remaining"}
-          </p>
-        </div>
-
-        <div className="dash-card stat">
-          <h3>STREAK</h3>
-          <div className="big-number streak-number">
-            {streak.streak > 0 ? <>🔥 <CountUp value={streak.streak} /></> : "—"}
-          </div>
-          <p>
-            {streak.status === "at-risk"
-              ? `day${streak.streak === 1 ? "" : "s"} in a row — ends tonight`
-              : streak.status === "safe"
-              ? `day${streak.streak === 1 ? "" : "s"} in a row`
-              : streak.status === "lapsed"
-              ? `${streak.lost}-day streak ended — start a new one`
-              : "Start a streak today"}
-            {gStats.longestStreak > 0 && <> · best {gStats.longestStreak}</>}
-          </p>
-        </div>
-
-        <div className="dash-card">
-          <h3>TOTAL APPLICATIONS</h3>
-          <div className="big-number"><CountUp value={history.length} /></div>
-          <p>all time</p>
-        </div>
-
-        <div className="dash-card">
-          <h3>THIS WEEK</h3>
-          <div className="big-number"><CountUp value={weekCount} /></div>
-          <p>applications generated</p>
-        </div>
-      </div>
-
-      <div className="dash-grid" style={{ marginTop: 10 }}>
-        <OverviewCard
-          title="APPLICATION OVERVIEW"
-          segments={templateSegments}
-          centerValue={history.length}
-          centerLabel="total"
-          empty="Generate your first CV and this fills in."
-          stats={[
-            { label: "this week", value: weekCount },
-            // Match score is what the quality badges are judged on, so it has
-            // to be visible somewhere the user actually looks.
-            ...(gStats.averageScore !== null
-              ? [
-                  { label: "avg match", value: `${gStats.averageScore}%` },
-                  { label: "best match", value: `${gStats.bestScore}%` },
-                ]
-              : [{ label: "templates used", value: templateSegments.length }]),
-            { label: "day streak", value: streak.streak },
-          ]}
-        />
-        <TrendChart title="ACTIVITY (30 DAYS)" series={activitySeries} className="span2" />
-      </div>
-
-      {!FREE_MODE && (
-        <div className="dash-grid" style={{ marginTop: 10 }}>
-          <div className="dash-card span2" style={{ gridColumn: "1 / -1" }}>
-            <h3>TOP UP</h3>
-            {MPESA_ENABLED ? (
-              <>
-                <div className="plan-row">
-                  {Object.values(PLANS).map((p) => (
-                    <button key={p.id} className="plan-card" onClick={() => buy(p.id)} disabled={!!buying}>
-                      <div className="plan-name">{p.name}</div>
-                      <div className="plan-price">KES {p.priceKes}</div>
-                      <div className="plan-blurb">{buying === p.id ? "Opening checkout…" : p.blurb}</div>
-                    </button>
-                  ))}
-                </div>
-                <p className="field-note">Pay with M-Pesa or Airtel Money.</p>
-              </>
-            ) : PADDLE_ENABLED ? (
-              <>
-                <div className="plan-row">
-                  {Object.values(PLANS).map((p) => (
-                    <button key={p.id} className="plan-card" onClick={() => payWithCard(p.id)} disabled={!paddlePriceIdFor(p.id)}>
-                      <div className="plan-name">{p.name}</div>
-                      <div className="plan-price">KES {p.priceKes}</div>
-                      <div className="field-note" style={{ marginTop: 2 }}>≈ ${toUsd(p.priceKes)}</div>
-                      <div className="plan-blurb">{p.blurb}</div>
-                    </button>
-                  ))}
-                </div>
-                <p className="field-note">
-                  Pay by Visa/Mastercard. M-Pesa and Airtel Money are coming back soon —{" "}
-                  <button className="linkish" onClick={() => setShowGlobalPay(!showGlobalPay)}>
-                    only have M-Pesa? Here's how to pay anyway →
-                  </button>
-                </p>
-                {showGlobalPay && <GlobalPayHelp />}
-              </>
+            <InAppMarketingBanner />
+            {paidBanner && (
+              <Banner status="success" title="Payment received" description="Your balance updates within a minute of M-Pesa or card confirmation." isDismissable onDismiss={() => setPaidBanner(false)} />
+            )}
+            {outOfCredits && (
+              <Banner
+                status="warning"
+                title="You're out of applications"
+                description="Top up below to keep tailoring your CV — everything you've made is saved."
+              />
+            )}
+            {streak.status === "at-risk" && (
+              <Banner
+                status="warning"
+                title={`Your ${streak.streak}-day streak ends tonight`}
+                description="Generate one application today to keep it going."
+                endContent={<Button size="sm" label="Apply now" onClick={() => router.push("/")} />}
+              />
+            )}
+            {profile?.hired ? (
+              <Banner
+                status="success"
+                title="🎉 Congratulations on landing the job!"
+                description="Come back any time you need TumaCV again."
+                endContent={<Button size="sm" variant="ghost" label="Not hired anymore? Undo" isLoading={hiredBusy} onClick={() => toggleHired(false)} />}
+              />
             ) : (
-              <div className="launching-soon">
-                <p className="step-hint" style={{ marginBottom: 0 }}>
-                  Paid plans are launching very soon — we're finishing M-Pesa payment approval so
-                  everyone can top up directly. Your {FREE_SIGNUP_CREDITS} free applications still work
-                  in the meantime, and nothing you've generated is affected.
-                </p>
-              </div>
-            )}
-            {DARAJA_ENABLED && (
-              <div className="mpesa-direct-box">
-                <p className="field-note" style={{ marginTop: 0 }}>Or pay directly with M-Pesa:</p>
-                <input
-                  type="tel"
-                  placeholder="07XX XXX XXX"
-                  value={mpesaPhone}
-                  onChange={(e) => setMpesaPhone(e.target.value)}
-                  style={{ marginBottom: 8, maxWidth: 220 }}
+              history.length > 0 && (
+                <Banner
+                  status="info"
+                  title="Got the job?"
+                  description="Tell us and we'll celebrate with you — it also unlocks the “Hired!” badge."
+                  endContent={<Button size="sm" label="🎉 I got hired" isLoading={hiredBusy} onClick={() => toggleHired(true)} />}
                 />
-                <div className="card-pay-buttons">
-                  {Object.values(PLANS).map((p) => (
-                    <button key={p.id} className="btn-ghost" disabled={mpesaBusy} onClick={() => payWithMpesa(p.id)}>
-                      {p.name} — KES {p.priceKes}
-                    </button>
-                  ))}
-                </div>
-                {mpesaMsg && <p className="success">{mpesaMsg}</p>}
-              </div>
+              )
             )}
-            {err && <p className="error">{err}</p>}
 
-            <div className="promo-box">
-              <p className="field-note" style={{ marginTop: 0 }}>Have a promo code?</p>
-              <div className="upload-row">
-                <input
-                  type="text"
-                  placeholder="e.g. TIKTOK5"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value)}
-                  style={{ maxWidth: 180, textTransform: "uppercase" }}
-                  onKeyDown={(e) => e.key === "Enter" && redeemCode()}
-                />
-                <button className="btn-ghost" onClick={redeemCode} disabled={promoBusy}>
-                  {promoBusy ? "Checking…" : "Redeem"}
-                </button>
-              </div>
-              {promoMsg && <p className="success">{promoMsg}</p>}
-              {promoErr && <p className="error">{promoErr}</p>}
-            </div>
-          </div>
-        </div>
-      )}
+            <Grid columns={{ minWidth: 220 }} gap={4}>
+              <StatCard
+                label="Balance"
+                icon={WalletIcon}
+                variant="green"
+                value={FREE_MODE || unlimited ? "∞" : profile?.credits != null ? <CountUp value={profile.credits} /> : "…"}
+                caption={
+                  FREE_MODE
+                    ? "Free during beta"
+                    : unlimited
+                    ? `Unlimited until ${new Date(profile.plan_expires).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
+                    : "applications remaining"
+                }
+              />
+              <StatCard
+                label="Streak"
+                icon={FlameIcon}
+                value={streak.streak > 0 ? <CountUp value={streak.streak} /> : "—"}
+                caption={
+                  (streak.status === "at-risk"
+                    ? `day${streak.streak === 1 ? "" : "s"} in a row — ends tonight`
+                    : streak.status === "safe"
+                    ? `day${streak.streak === 1 ? "" : "s"} in a row`
+                    : streak.status === "lapsed"
+                    ? `${streak.lost}-day streak ended — start a new one`
+                    : "Start a streak today") + (gStats.longestStreak > 0 ? ` · best ${gStats.longestStreak}` : "")
+                }
+              />
+              <StatCard label="Applications" icon={SparklesIcon} value={<CountUp value={history.length} />} caption={`${weekCount} this week`} />
+              <StatCard
+                label="Average match"
+                value={gStats.averageScore !== null ? `${gStats.averageScore}%` : "—"}
+                caption={gStats.bestScore !== null && gStats.bestScore !== undefined ? `best ${gStats.bestScore}%` : "Generate one to see it"}
+              />
+            </Grid>
 
-      {profile?.industry && (
-        <div className="insight-card">
-          <span className="insight-label">💡 Tip for {profile.industry}, {new Date().toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</span>
-          {insightLoading ? (
-            <p className="step-hint" style={{ margin: 0 }}>Loading today's tip…</p>
-          ) : insight ? (
-            <p className="insight-text">{insight}</p>
-          ) : (
-            <p className="step-hint" style={{ margin: 0 }}>Check back after your next generation for a fresh tip.</p>
-          )}
-        </div>
-      )}
-      {!profile?.industry && (
-        <div className="insight-card muted">
-          <span className="insight-label">💡 Want personalized tips?</span>
-          <p className="step-hint" style={{ margin: 0 }}>
-            <a href="/onboarding">Tell us your industry</a> to unlock a daily job-hunting tip made for your field.
-          </p>
-        </div>
-      )}
+            <ApplicationsCard history={history} onOpen={(h) => { setViewing(h); setViewTemplate(h.template || "modern"); window.scrollTo({ top: 0 }); }} onNew={() => router.push("/")} />
 
-      <section className="badges-section">
-        <div className="step-head"><span className="step-no">PROGRESS</span><h2>Your badges</h2></div>
-        <div style={{ display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
-          <div className="dash-card" style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <DonutChart
-              pct={(earnedBadges(gStats).length / BADGES.length) * 100}
-              value={`${earnedBadges(gStats).length}/${BADGES.length}`}
-              label="earned"
-            />
-          </div>
-          <motion.div className="badge-grid" style={{ flex: 1, minWidth: 260 }} variants={staggerContainer} initial="hidden" animate="show">
-            {BADGES.map((b) => (
-              <motion.div key={b.id} variants={staggerItem} className={`badge-item ${isEarned(b, gStats) ? "on" : ""}`}>
-                <span className="badge-emoji">{b.emoji}</span>
-                <span className="badge-label">{b.label}</span>
-                <span className="badge-threshold">{b.hint}</span>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-        {upcoming && (
-          <p className="field-note">
-            {badgeRemaining(upcoming, gStats)} to unlock "{upcoming.label}" {upcoming.emoji}
-          </p>
-        )}
-      </section>
+            <Grid columns={{ minWidth: 420 }} gap={4}>
+              <OverviewCard
+                title="Styles you use"
+                segments={templateSegments}
+                centerValue={history.length}
+                centerLabel="total"
+                empty="Generate your first CV and this fills in."
+                stats={[
+                  { label: "this week", value: weekCount },
+                  { label: "templates used", value: templateSegments.length },
+                  { label: "day streak", value: streak.streak },
+                ]}
+              />
+              <TrendChart title="Activity, last 30 days" series={activitySeries} />
+            </Grid>
 
-      <TalentHubCard user={user} profile={profile} latestGeneration={history[0]} />
+            <Card padding={5} variant="muted">
+              <VStack gap={2}>
+                <Text weight="semibold">
+                  💡 {profile?.industry
+                    ? `Tip for ${profile.industry}, ${new Date().toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`
+                    : "Want a daily job-hunting tip?"}
+                </Text>
+                {!profile?.industry ? (
+                  <Text color="secondary">
+                    <Link href="/onboarding">Tell us your industry</Link> to unlock a daily tip made for your field.
+                  </Text>
+                ) : insightLoading ? (
+                  <Skeleton height={40} />
+                ) : (
+                  <Text>{insight || "Check back after your next generation for a fresh tip."}</Text>
+                )}
+              </VStack>
+            </Card>
 
-      <ReferralCard user={user} />
-
-      <section style={{ marginTop: 34 }}>
-        <div className="step-head">
-          <span className="step-no">HISTORY</span>
-          <h2>Past applications</h2>
-          {history.length > 0 && <span className="week-stat">{weekCount} this week</span>}
-        </div>
-        {history.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "20px 0" }}>
-            <p className="step-hint">Nothing yet — let's fix that.</p>
-            <a href="/" className="btn-primary" style={{ textDecoration: "none", display: "inline-block", padding: "12px 28px" }}>
-              Generate your first CV
-            </a>
-          </div>
-        ) : (
-          <div className="data-table">
-            <div className="data-table-head">
-              <span style={{ flex: 1 }}>Application</span>
-              <span style={{ width: 90, textAlign: "right" }}>Template</span>
-              <span style={{ width: 110, textAlign: "right" }}>Date</span>
-            </div>
-            <motion.div className="history-list" variants={staggerContainer} initial="hidden" animate="show">
-              {filteredHistory.map((h) => (
-                <motion.button key={h.id} variants={staggerItem} className="history-item" onClick={() => { setViewing(h); setTab("cv"); }}>
-                  <span className="hi-title" style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
-                    <span className="data-row-avatar">{(h.job_title || "A").slice(0, 1).toUpperCase()}</span>
-                    {h.job_title || "Application"}
-                  </span>
-                  <span className="hi-meta" style={{ width: 90, textAlign: "right", textTransform: "capitalize" }}>{h.template}</span>
-                  <span className="hi-meta" style={{ width: 110, textAlign: "right" }}>
-                    {new Date(h.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                  </span>
-                </motion.button>
-              ))}
-            </motion.div>
-            {filteredHistory.length === 0 && (
-              <p className="step-hint" style={{ padding: "16px" }}>No applications match "{q}".</p>
+            {!FREE_MODE && (
+              <TopUpCard user={user} onPaymentStarted={() => setPaidBanner(true)} onCreditsChanged={() => loadData(user)} />
             )}
-          </div>
-        )}
-      </section>
-    </AppSidebar>
+
+            <BadgesCard stats={gStats} upcoming={upcoming} />
+
+            <Grid columns={{ minWidth: 360 }} gap={4} align="start">
+              <TalentHubCard user={user} profile={profile} latestGeneration={history[0]} />
+              <ReferralCard user={user} />
+            </Grid>
+          </VStack>
+        </LayoutContent>
+      }
+    />
   );
 }
