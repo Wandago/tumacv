@@ -1,6 +1,7 @@
 import { requireUser, addCredits } from "../../../lib/supabaseAdmin";
 import { isUnlimited, FREE_MODE } from "../../../lib/plans";
 import { callGemini } from "../../../lib/gemini";
+import { parseGeminiResult } from "../../../lib/cvResult";
 
 export const maxDuration = 60;
 
@@ -74,52 +75,44 @@ export async function POST(req) {
       return Response.json({ error: "Server is missing GEMINI_API_KEY." }, { status: 500 });
     }
 
-    const res = await callGemini({
-      systemInstruction: { parts: [{ text: SYSTEM }] },
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: `JOB DESCRIPTION:\n${jobText.slice(0, 14000)}\n\nCANDIDATE PROFILE:\n${profileText.slice(0, 14000)}` },
-          ],
-        },
-      ],
-      // maxOutputTokens raised from 4000: long CVs (multi-role careers,
-      // longer cover letters) were hitting the old cap and coming back
-      // truncated. (Not setting thinkingConfig here — not every candidate
-      // model in MODEL_CANDIDATES accepts it, and an unsupported field
-      // makes Gemini reject the whole request with a non-retryable 400.)
-      generationConfig: { maxOutputTokens: 8192, responseMimeType: "application/json" },
-    });
+    // Each model's output is checked before it's accepted: if it came back
+    // cut off, malformed, or without a usable CV, the next model is tried
+    // instead of handing the user a blank CV tab.
+    const res = await callGemini(
+      {
+        systemInstruction: { parts: [{ text: SYSTEM }] },
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: `JOB DESCRIPTION:\n${jobText.slice(0, 14000)}\n\nCANDIDATE PROFILE:\n${profileText.slice(0, 14000)}` },
+            ],
+          },
+        ],
+        // Long multi-role careers plus a cover letter need the room; the
+        // thinking level lib/gemini.js sets keeps reasoning from eating it.
+        generationConfig: { maxOutputTokens: 16384, responseMimeType: "application/json" },
+      },
+      { validate: (data) => parseGeminiResult(data).error || true }
+    );
 
     if (!res.ok) {
       if (res.status === 429) {
         return Response.json({ error: "The AI is busy right now. Wait a minute and try again — no credit was used." }, { status: 429 });
       }
+      if (res._detail === "truncated") {
+        return Response.json(
+          { error: "Your CV came out longer than we could generate in one go. Try trimming the job description or your profile, and try again — no credit was used." },
+          { status: 502 }
+        );
+      }
+      if (res.status === 504) {
+        return Response.json({ error: "That took longer than usual. Try again — no credit was used." }, { status: 504 });
+      }
       return Response.json({ error: "Generation failed. Try again — no credit was used." }, { status: 502 });
     }
 
-    const data = await res.json();
-    if (data.candidates?.[0]?.finishReason === "MAX_TOKENS") {
-      return Response.json(
-        { error: "Your CV came out longer than we could generate in one go. Try trimming the job description or your profile, and try again — no credit was used." },
-        { status: 502 }
-      );
-    }
-    const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
-    const clean = text.replace(/```json|```/g, "").trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(clean);
-    } catch {
-      const start = clean.indexOf("{");
-      const end = clean.lastIndexOf("}");
-      if (start === -1 || end === -1) {
-        return Response.json({ error: "Could not read the generated documents. Try again — no credit was used." }, { status: 502 });
-      }
-      parsed = JSON.parse(clean.slice(start, end + 1));
-    }
+    const { result: parsed } = parseGeminiResult(await res.json());
 
     // Streak tracking
     const today = new Date().toISOString().slice(0, 10);

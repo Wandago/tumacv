@@ -868,9 +868,15 @@ button:focus-visible, .btn-primary:focus-visible, .btn-ghost:focus-visible { out
 @media print {
   body { background: #fff; margin: 0; }
   header.top, .gen-bar, .doc-tabs, .results-head, .fit, footer, .share-prompt, .no-print { display: none !important; }
+  /* .shell's overflow-x: hidden makes it a scroll container, and Firefox and
+     Safari (including iOS "Save as PDF") print only the first page of a
+     scroll container — a two-page CV came out cut off after page one. */
+  html, body, .shell, .shell.wide { overflow: visible !important; height: auto !important; }
   .shell, .shell.wide { max-width: none; margin: 0; padding: 0; }
-  .sheet-wrap { display: block; padding: 0; }
-  .sheet { box-shadow: none; max-width: none; width: 100%; margin: 0; }
+  .sheet-wrap { display: block; padding: 0; animation: none; }
+  .sheet { box-shadow: none; max-width: none; width: 100%; margin: 0; min-height: 0; }
+  .cv .role-row, .cv h2 { break-after: avoid; }
+  .cv li { break-inside: avoid; }
 }
 
 /* Social Login Styles */

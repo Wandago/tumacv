@@ -257,11 +257,17 @@ export default function Home() {
         },
         body: JSON.stringify({ jobText, profileText, template }),
       });
-      const data = await res.json();
+      // A platform timeout comes back as an HTML error page, not JSON —
+      // reading it as JSON used to throw and show a misleading "Network error".
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (data.code === "credits") setNeedCredits(true);
         else if (data.code === "auth") window.location.href = "/login";
-        else setGenErr(data.error || "Generation failed. Try again.");
+        else if (data.error) setGenErr(data.error);
+        else if (res.status === 504) setGenErr("That took longer than usual. Try again — if no CV appeared, no credit was used.");
+        else setGenErr("Generation failed. Try again.");
+      } else if (!data.cv) {
+        setGenErr("Something went wrong showing your CV. Open it from your dashboard, or try again.");
       } else {
         setResult(data);
         setTab("cv");

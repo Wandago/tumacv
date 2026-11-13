@@ -28,8 +28,8 @@ export async function GET(req) {
 
     const res = await callGemini({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 200 },
-    });
+      generationConfig: { maxOutputTokens: 400 },
+    }, { timeoutMs: 25_000 });
 
     if (!res.ok) return Response.json({ insight: null });
     const data = await res.json();
