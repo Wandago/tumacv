@@ -4,7 +4,8 @@ import { Heading, Text } from "@astryxdesign/core/Text";
 // Articles are stored as plain paragraphs separated by blank lines, with the
 // odd one-line section label (see app/api/cron/generate-articles). A short
 // line with no closing punctuation is treated as such a label.
-const isLabel = (p) => p.length < 70 && !/[.!?:"”)]$/.test(p) && !p.includes("\n");
+// Bullet points ("• Maternity leave") are never labels.
+const isLabel = (p) => p.length < 70 && !/[.!?:"”)]$/.test(p) && !p.includes("\n") && !/^[•\-–*·]/.test(p);
 
 export default function ArticleBody({ content }) {
   const paragraphs = (content || "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
